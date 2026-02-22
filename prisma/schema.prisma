@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  currency      String    @default("AUD")
+  timezone      String    @default("Australia/Sydney")
+  
+  isPremium     Boolean   @default(false)
+  premiumUntil  DateTime?
+  stripeCustomerId String? @unique
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  jobs          Job[]
+  shifts        Shift[]
+  expenses      Expense[]
+  goals         Goal[]
+  budgets       Budget[]
+  
+  @@index([email])
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  employer    String
+  baseRate    Float
+  
+  // Rates for different shift types
+  weekdayRate       Float
+  saturdayRate      Float
+  sundayRate        Float
+  publicHolidayRate Float
+  nightRate         Float
+  overtimeRate      Float
+  
+  defaultHours      Float    @default(8)
+  
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  shifts      Shift[]
+  
+  @@index([userId])
+  @@index([userId, isActive])
+}
+
+model Shift {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  jobId           String
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  date            DateTime @db.Date
+  startTime       String
+  endTime         String
+  hours           Float
+  
+  rateType        String   // "weekday", "saturday", "sunday", "public_holiday", "night", "overtime"
+  rate            Float
+  earnings        Float
+  
+  note            String?
+  
+  calendarEventId String?  // Google Calendar event ID
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([jobId])
+  @@index([date])
+  @@index([userId, date])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date        DateTime @db.Date
+  amount      Float
+  description String
+  category    String
+  
+  isRecurring Boolean  @default(false)
+  splitWith   Json?    // Array of split participants
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([category])
+  @@index([date])
+  @@index([userId, date])
+}
+
+model Goal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  targetAmount Float
+  currentAmount Float   @default(0)
+  deadline    DateTime @db.Date
+  
+  isCompleted Boolean  @default(false)
+  priority    String   @default("medium") // "low", "medium", "high"
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([userId, isCompleted])
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  category    String
+  limit       Float
+  period      String   @default("monthly") // "weekly", "monthly", "yearly"
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, category, period])
+  @@index([userId])
+}
+
+// Premium features
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  
+  stripeSubscriptionId String @unique
+  stripePriceId     String
+  stripeCurrentPeriodEnd DateTime
+  
+  status            String   // "active", "canceled", "past_due"
+  cancelAtPeriodEnd Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([stripeSubscriptionId])
+}
+
+// For recurring shifts
+model RecurringShift {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  jobId       String
+  startTime   String
+  endTime     String
+  hours       Float
+  rateType    String
+  
+  frequency   String   // "daily", "weekly", "biweekly", "monthly"
+  dayOfWeek   Int?     // 0-6 for weekly
+  dayOfMonth  Int?     // 1-31 for monthly
+  
+  startDate   DateTime @db.Date
+  endDate     DateTime? @db.Date
+  
+  isActive    Boolean  @default(true)
+  lastGenerated DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([userId, isActive])
+}
+
+// For analytics and caching
+model AnalyticsCache {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  metric      String   // "total_earnings", "avg_hourly", etc.
+  period      String   // "week", "month", "year"
+  value       Float
+  
+  validUntil  DateTime
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, metric, period])
+  @@index([userId])
+  @@index([validUntil])
+}
+
+// For audit logging
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  action      String   // "create", "update", "delete"
+  entity      String   // "shift", "expense", etc.
+  entityId    String
+  
+  changes     Json?    // Old and new values
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, entity])
+}
