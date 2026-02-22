@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { useAppData } from "@/components/data-provider"
 import { formatCurrency, type RateType, RATE_TYPE_LABELS } from "@/lib/store"
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { PieChart } from "@/components/ui/pie-chart"
 import { useState } from "react"
 
 export function ReportingDashboard() {
@@ -219,15 +220,15 @@ export function ReportingDashboard() {
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={dailyEarnings}>
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                  <XAxis 
-                    dataKey="date" 
+                  <XAxis
+                    dataKey="date"
                     stroke={axisColor}
                     fontSize={11}
                     tick={{ fontSize: 11, fill: axisColor }}
                     tickFormatter={date => new Date(date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                   />
                   <YAxis stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ background: tooltipBg, color: tooltipColor, border: tooltipBorder, borderRadius: tooltipRadius, fontSize: "13px" }}
                     formatter={(value: number) => formatCurrency(value, currencySymbol)}
                   />
@@ -252,7 +253,7 @@ export function ReportingDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                   <XAxis dataKey="name" stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
                   <YAxis stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ background: tooltipBg, color: tooltipColor, border: tooltipBorder, borderRadius: tooltipRadius, fontSize: "13px" }}
                     formatter={(value: number) => formatCurrency(value, currencySymbol)}
                   />
@@ -276,38 +277,15 @@ export function ReportingDashboard() {
           </CardHeader>
           <CardContent>
             {earningsByRateType.length > 0 ? (
-              <div className="flex items-center gap-6">
-                <ResponsiveContainer width="50%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={earningsByRateType}
-                      dataKey="earnings"
-                      nameKey="rateType"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label
-                      stroke={axisColor}
-                    >
-                      {earningsByRateType.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value, currencySymbol)} contentStyle={{ background: tooltipBg, color: tooltipColor, border: tooltipBorder, borderRadius: tooltipRadius, fontSize: "13px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex flex-1 flex-col gap-2">
-                  {earningsByRateType.map((item, index) => (
-                    <div key={item.rateType} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="size-3 rounded" style={{ background: COLORS[index % COLORS.length] }} />
-                        <span className="text-xs" style={{ color: legendColor }}>{item.rateType}</span>
-                      </div>
-                      <span className="text-xs font-medium" style={{ color: legendColor }}>{formatCurrency(item.earnings, currencySymbol)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <PieChart
+                data={earningsByRateType.map((item, index) => ({
+                  name: item.rateType,
+                  value: item.earnings,
+                  color: COLORS[index % COLORS.length],
+                }))}
+                tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), name]}
+                height={200}
+              />
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">No data for this period</p>
             )}
@@ -332,12 +310,12 @@ export function ReportingDashboard() {
                           <span className="text-xs font-medium" style={{ color: legendColor }}>{formatCurrency(item.amount, currencySymbol)}</span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-secondary">
-                          <div 
-                            className="h-full rounded-full" 
-                            style={{ 
-                              width: `${percent}%`, 
-                              background: COLORS[index % COLORS.length] 
-                            }} 
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${percent}%`,
+                              background: COLORS[index % COLORS.length]
+                            }}
                           />
                         </div>
                       </div>
@@ -369,9 +347,9 @@ export function ReportingDashboard() {
                     </Badge>
                   </div>
                   <div className="h-2 w-full rounded-full bg-secondary">
-                    <div 
-                      className="h-full rounded-full bg-primary" 
-                      style={{ width: `${Math.min(100, goal.progress)}%` }} 
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${Math.min(100, goal.progress)}%` }}
                     />
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">

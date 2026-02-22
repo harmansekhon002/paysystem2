@@ -153,9 +153,9 @@ model Subscription {
   id                String   @id @default(cuid())
   userId            String   @unique
   
-  stripeSubscriptionId String @unique
-  stripePriceId     String
-  stripeCurrentPeriodEnd DateTime
+  paypalSubscriptionId String @unique
+  paypalPlanId      String
+  paypalCurrentPeriodEnd DateTime
   
   status            String   // "active", "canceled", "past_due"
   cancelAtPeriodEnd Boolean  @default(false)
@@ -164,7 +164,7 @@ model Subscription {
   updatedAt         DateTime @updatedAt
   
   @@index([userId])
-  @@index([stripeSubscriptionId])
+  @@index([paypalSubscriptionId])
 }
 
 // For recurring shifts

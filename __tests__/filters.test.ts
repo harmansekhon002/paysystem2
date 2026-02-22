@@ -25,7 +25,7 @@ describe("Filter Rules", () => {
   it("should filter with equals operator", () => {
     const rules: FilterRule[] = [{ field: "jobId", operator: "equals", value: "job1" }]
     const filtered = applyFilters(shifts, rules)
-    
+
     expect(filtered).toHaveLength(2)
     expect(filtered.every(s => s.jobId === "job1")).toBe(true)
   })
@@ -33,7 +33,7 @@ describe("Filter Rules", () => {
   it("should filter with greater_than operator", () => {
     const rules: FilterRule[] = [{ field: "earnings", operator: "greater_than", value: 200 }]
     const filtered = applyFilters(shifts, rules)
-    
+
     expect(filtered).toHaveLength(2)
     expect(filtered.every(s => s.earnings > 200)).toBe(true)
   })
@@ -41,7 +41,7 @@ describe("Filter Rules", () => {
   it("should filter with less_than operator", () => {
     const rules: FilterRule[] = [{ field: "hours", operator: "less_than", value: 8 }]
     const filtered = applyFilters(shifts, rules)
-    
+
     expect(filtered).toHaveLength(1)
     expect(filtered[0].hours).toBe(6)
   })
@@ -55,7 +55,7 @@ describe("Filter Rules", () => {
 
     const rules: FilterRule[] = [{ field: "description", operator: "contains", value: "coffee" }]
     const filtered = applyFilters(expenses, rules)
-    
+
     expect(filtered).toHaveLength(1)
     expect(filtered[0].description).toBe("Coffee")
   })
@@ -63,7 +63,7 @@ describe("Filter Rules", () => {
   it("should filter with between operator", () => {
     const rules: FilterRule[] = [{ field: "earnings", operator: "between", value: [200, 250] }]
     const filtered = applyFilters(shifts, rules)
-    
+
     expect(filtered).toHaveLength(2)
     expect(filtered.every(s => s.earnings >= 200 && s.earnings <= 250)).toBe(true)
   })
@@ -71,7 +71,7 @@ describe("Filter Rules", () => {
   it("should filter with in operator", () => {
     const rules: FilterRule[] = [{ field: "rateType", operator: "in", value: ["saturday", "sunday"] }]
     const filtered = applyFilters(shifts, rules)
-    
+
     expect(filtered).toHaveLength(2)
     expect(filtered.every(s => s.rateType === "saturday" || s.rateType === "sunday")).toBe(true)
   })
@@ -82,7 +82,7 @@ describe("Filter Rules", () => {
       { field: "earnings", operator: "greater_than", value: 250 },
     ]
     const filtered = applyFilters(shifts, rules)
-    
+
     expect(filtered).toHaveLength(1)
     expect(filtered[0].id).toBe("3")
   })
@@ -103,28 +103,28 @@ describe("Fuzzy Search", () => {
 
   it("should find exact matches", () => {
     const results = fuzzySearch(expenses, "uber", ["description"])
-    
+
     expect(results).toHaveLength(1)
     expect(results[0].description).toBe("Uber to work")
   })
 
   it("should be case-insensitive", () => {
     const results = fuzzySearch(expenses, "COFFEE", ["description"])
-    
+
     expect(results).toHaveLength(1)
     expect(results[0].description).toBe("Coffee at cafe")
   })
 
   it("should match multiple words", () => {
     const results = fuzzySearch(expenses, "cafe coffee", ["description"])
-    
+
     expect(results).toHaveLength(1)
     expect(results[0].description).toBe("Coffee at cafe")
   })
 
   it("should search multiple fields", () => {
     const results = fuzzySearch(expenses, "transport", ["description", "category"])
-    
+
     expect(results).toHaveLength(1)
     expect(results[0].category).toBe("Transport")
   })
@@ -145,7 +145,7 @@ describe("Multi-field Sorting", () => {
   it("should sort by single field ascending", () => {
     const sorts: SortConfig[] = [{ field: "earnings", direction: "asc" }]
     const sorted = multiSort(shifts, sorts)
-    
+
     expect(sorted[0].earnings).toBe(200)
     expect(sorted[1].earnings).toBe(210)
     expect(sorted[2].earnings).toBe(320)
@@ -154,7 +154,7 @@ describe("Multi-field Sorting", () => {
   it("should sort by single field descending", () => {
     const sorts: SortConfig[] = [{ field: "earnings", direction: "desc" }]
     const sorted = multiSort(shifts, sorts)
-    
+
     expect(sorted[0].earnings).toBe(320)
     expect(sorted[1].earnings).toBe(210)
     expect(sorted[2].earnings).toBe(200)
@@ -166,7 +166,7 @@ describe("Multi-field Sorting", () => {
       { field: "earnings", direction: "desc" },
     ]
     const sorted = multiSort(shifts, sorts)
-    
+
     // First by date, then by earnings (desc) within same date
     expect(sorted[0].date).toBe("2024-03-15")
     expect(sorted[0].earnings).toBe(210)
@@ -185,7 +185,7 @@ describe("Date Range Helpers", () => {
   it("should return correct range for 'today'", () => {
     const [start, end] = getDateRange("today")
     const today = new Date().toISOString().split("T")[0]
-    
+
     expect(start).toBe(today)
     expect(end).toBe(today)
   })
@@ -195,7 +195,7 @@ describe("Date Range Helpers", () => {
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     const expectedDate = yesterday.toISOString().split("T")[0]
-    
+
     expect(start).toBe(expectedDate)
     expect(end).toBe(expectedDate)
   })
@@ -205,7 +205,7 @@ describe("Date Range Helpers", () => {
     const today = new Date().toISOString().split("T")[0]
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    
+
     expect(end).toBe(today)
     expect(start).toBe(sevenDaysAgo.toISOString().split("T")[0])
   })
@@ -213,7 +213,7 @@ describe("Date Range Helpers", () => {
   it("should return correct range for 'last_30_days'", () => {
     const [, end] = getDateRange("last_30_days")
     const today = new Date().toISOString().split("T")[0]
-    
+
     expect(end).toBe(today)
     // Start should be 30 days before end
   })
@@ -228,7 +228,7 @@ describe("Group By", () => {
 
   it("should group by jobId", () => {
     const groups = groupBy(shifts, "jobId")
-    
+
     expect(Object.keys(groups)).toHaveLength(2)
     expect(groups["job1"]).toHaveLength(2)
     expect(groups["job2"]).toHaveLength(1)
@@ -236,7 +236,7 @@ describe("Group By", () => {
 
   it("should group by date", () => {
     const groups = groupBy(shifts, "date")
-    
+
     expect(Object.keys(groups)).toHaveLength(2)
     expect(groups["2024-03-15"]).toHaveLength(2)
     expect(groups["2024-03-16"]).toHaveLength(1)
@@ -283,6 +283,8 @@ describe("Filter Presets", () => {
   beforeEach(() => {
     const store: Record<string, string> = {}
     globalThis.localStorage = {
+      length: 0,
+      key: (index: number) => Object.keys(store)[index] || null,
       getItem: (key: string) => (key in store ? store[key] : null),
       setItem: (key: string, value: string) => {
         store[key] = value
@@ -309,7 +311,7 @@ describe("Filter Presets", () => {
 
     saveFilterPreset(preset)
     const presets = getFilterPresets()
-    
+
     const saved = presets.find(p => p.id === "my-filter")
     expect(saved).toBeDefined()
     expect(saved?.name).toBe("My Custom Filter")
@@ -317,7 +319,7 @@ describe("Filter Presets", () => {
 
   it("should get default filter presets", () => {
     const presets = getFilterPresets()
-    
+
     expect(presets.length).toBeGreaterThan(0)
     expect(presets.some(p => p.id === "high-earning-shifts")).toBe(true)
     expect(presets.some(p => p.id === "weekend-shifts")).toBe(true)
@@ -333,10 +335,10 @@ describe("Filter Presets", () => {
     }
 
     saveFilterPreset(preset)
-    
+
     const updated = { ...preset, name: "Updated Filter" }
     saveFilterPreset(updated)
-    
+
     const presets = getFilterPresets()
     const saved = presets.find(p => p.id === "my-filter")
     expect(saved?.name).toBe("Updated Filter")
@@ -353,7 +355,7 @@ describe("Filter Presets", () => {
 
     saveFilterPreset(preset)
     deleteFilterPreset("my-filter")
-    
+
     const presets = getFilterPresets()
     const deleted = presets.find(p => p.id === "my-filter")
     expect(deleted).toBeUndefined()
@@ -361,7 +363,7 @@ describe("Filter Presets", () => {
 
   it("should not delete default presets", () => {
     deleteFilterPreset("high-earning-shifts")
-    
+
     const presets = getFilterPresets()
     const defaultPreset = presets.find(p => p.id === "high-earning-shifts")
     expect(defaultPreset).toBeDefined()

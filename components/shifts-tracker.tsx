@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat } from "lucide-react"
+import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat, Pencil } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,19 +15,21 @@ import { useAppData } from "@/components/data-provider"
 import { useToast } from "@/hooks/use-toast"
 import {
   calculateShiftHours, calculateShiftEarnings, detectRateType,
-  formatCurrency, RATE_TYPE_LABELS, type RateType, type PenaltyRates, type JobTemplate,
+  formatCurrency, RATE_TYPE_LABELS, type RateType, type PenaltyRates, type JobTemplate, type Shift
 } from "@/lib/store"
 import { trackEvent } from "@/lib/analytics"
 
 export function ShiftsTracker() {
-  const { data, addShift, removeShift, addJob, getJob } = useAppData()
+  const { data, addShift, removeShift, updateShift, addJob, getJob } = useAppData()
   const { toast } = useToast()
   const [view, setView] = useState<"list" | "calendar">("list")
   const [calMonth, setCalMonth] = useState(() => new Date())
   const [dialogOpen, setDialogOpen] = useState(false)
   const [jobDialogOpen, setJobDialogOpen] = useState(false)
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false)
-  
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editShiftId, setEditShiftId] = useState<string | null>(null)
+
   // Filtering state
   const [filters, setFilters] = useState({
     jobId: "all",
@@ -45,6 +47,16 @@ export function ShiftsTracker() {
     endTime: "15:00",
     jobId: data.jobs[0]?.id || "",
     rateType: detectRateType(todayStr, data.publicHolidays) as RateType,
+    breakMinutes: 30,
+    note: "",
+  }))
+
+  const [editForm, setEditForm] = useState(() => ({
+    date: todayStr,
+    startTime: "09:00",
+    endTime: "15:00",
+    jobId: data.jobs[0]?.id || "",
+    rateType: "weekday" as RateType,
     breakMinutes: 30,
     note: "",
   }))
@@ -82,9 +94,18 @@ export function ShiftsTracker() {
     setForm(f => ({ ...f, date, rateType: detected }))
   }
 
+  const handleEditDateChange = (date: string) => {
+    const detected = detectRateType(date, data.publicHolidays)
+    setEditForm(f => ({ ...f, date, rateType: detected }))
+  }
+
   const previewHours = calculateShiftHours(form.startTime, form.endTime, form.breakMinutes)
   const previewJob = getJob(form.jobId)
   const previewEarnings = previewJob ? calculateShiftEarnings(previewHours, previewJob, form.rateType) : 0
+
+  const editPreviewHours = calculateShiftHours(editForm.startTime, editForm.endTime, editForm.breakMinutes)
+  const editPreviewJob = getJob(editForm.jobId)
+  const editPreviewEarnings = editPreviewJob ? calculateShiftEarnings(editPreviewHours, editPreviewJob, editForm.rateType) : 0
 
   const handleAdd = () => {
     if (!form.jobId) return
@@ -107,6 +128,43 @@ export function ShiftsTracker() {
     toast({ title: "Shift logged", description: `${formatCurrency(earnings, currencySymbol)} earned.` })
     setForm(f => ({ ...f, note: "" }))
     setDialogOpen(false)
+  }
+
+  const handleEditSave = () => {
+    if (!editForm.jobId || !editShiftId) return
+    const hours = calculateShiftHours(editForm.startTime, editForm.endTime, editForm.breakMinutes)
+    const job = getJob(editForm.jobId)
+    if (!job) return
+    const earnings = calculateShiftEarnings(hours, job, editForm.rateType)
+    updateShift(editShiftId, {
+      date: editForm.date,
+      startTime: editForm.startTime,
+      endTime: editForm.endTime,
+      jobId: editForm.jobId,
+      rateType: editForm.rateType,
+      breakMinutes: editForm.breakMinutes,
+      hours,
+      earnings,
+      note: editForm.note || undefined,
+    })
+    trackEvent("shift_edited", { hours, earnings, rateType: editForm.rateType })
+    toast({ title: "Shift updated", description: `Earnings adjusted to ${formatCurrency(earnings, currencySymbol)}.` })
+    setEditDialogOpen(false)
+    setEditShiftId(null)
+  }
+
+  const openEditDialog = (shift: Shift) => {
+    setEditShiftId(shift.id)
+    setEditForm({
+      date: shift.date,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      jobId: shift.jobId,
+      rateType: shift.rateType,
+      breakMinutes: shift.breakMinutes,
+      note: shift.note || "",
+    })
+    setEditDialogOpen(true)
   }
 
   const handleAddJob = () => {
@@ -143,7 +201,7 @@ export function ShiftsTracker() {
         const rateType = detectRateType(dateStr, data.publicHolidays)
         const hours = calculateShiftHours(recurringForm.startTime, recurringForm.endTime, recurringForm.breakMinutes)
         const earnings = calculateShiftEarnings(hours, job, rateType)
-        
+
         addShift({
           date: dateStr,
           startTime: recurringForm.startTime,
@@ -178,7 +236,7 @@ export function ShiftsTracker() {
       const startDT = shift.date.replace(/-/g, "") + "T" + shift.startTime.replace(":", "") + "00"
       const endDT = shift.date.replace(/-/g, "") + "T" + shift.endTime.replace(":", "") + "00"
       const uid = `shift-${shift.id}@shiftwise.app`
-      
+
       lines.push(
         "BEGIN:VEVENT",
         `UID:${uid}`,
@@ -199,13 +257,13 @@ export function ShiftsTracker() {
     a.download = `shiftwise-${new Date().toISOString().split("T")[0]}.ics`
     a.click()
     URL.revokeObjectURL(url)
-    
+
     trackEvent("calendar_exported", { count: shifts.length })
     toast({ title: "Calendar exported", description: `${shifts.length} shifts exported to iCal.` })
   }
 
   const sortedShifts = useMemo(() => [...data.shifts].sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)), [data.shifts])
-  
+
   // Apply filters
   const filteredShifts = useMemo(() => {
     return sortedShifts.filter(shift => {
@@ -492,70 +550,172 @@ export function ShiftsTracker() {
                   )}
                 </div>
 
-              {/* Date */}
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Date</Label>
-                <Input type="date" value={form.date} onChange={e => handleDateChange(e.target.value)} />
-              </div>
-
-              {/* Times */}
-              <div className="grid grid-cols-2 gap-3">
+                {/* Date */}
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Start</Label>
-                  <Input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
+                  <Label htmlFor="shift-date" className="text-xs">Date</Label>
+                  <Input id="shift-date" type="date" value={form.date} onChange={e => handleDateChange(e.target.value)} />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">End</Label>
-                  <Input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} />
-                </div>
-              </div>
 
-              {/* Rate type & break */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Rate Type</Label>
-                  <Select value={form.rateType} onValueChange={v => setForm(f => ({ ...f, rateType: v as RateType }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(RATE_TYPE_LABELS) as RateType[]).map(rt => (
-                        <SelectItem key={rt} value={rt}>{RATE_TYPE_LABELS[rt]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Times */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="shift-start" className="text-xs">Start Time</Label>
+                    <Input id="shift-start" type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="shift-end" className="text-xs">End Time</Label>
+                    <Input id="shift-end" type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Break (min)</Label>
-                  <Input type="number" min={0} step={5} value={form.breakMinutes} onChange={e => setForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
-                </div>
-              </div>
 
-              {/* Note */}
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Note (optional)</Label>
-                <Input placeholder="e.g. Covered for Sarah" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
-              </div>
+                {/* Rate type & break */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">Rate Type</Label>
+                    <Select value={form.rateType} onValueChange={v => setForm(f => ({ ...f, rateType: v as RateType }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(RATE_TYPE_LABELS) as RateType[]).map(rt => (
+                          <SelectItem key={rt} value={rt}>{RATE_TYPE_LABELS[rt]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">Break (min)</Label>
+                    <Input type="number" min={0} step={5} value={form.breakMinutes} onChange={e => setForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
+                  </div>
+                </div>
 
-              {/* Preview */}
-              <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Hours</span>
-                  <span className="font-medium text-foreground">{previewHours}h</span>
+                {/* Note */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Note (optional)</Label>
+                  <Input placeholder="e.g. Covered for Sarah" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
                 </div>
-                <div className="mt-1 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Rate</span>
-                  <span className="font-medium text-foreground">
-                    {previewJob ? formatCurrency(previewJob.rates[form.rateType], currencySymbol) + "/hr" : "---"}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between border-t border-primary/10 pt-2">
-                  <span className="text-sm font-medium text-foreground">Estimated Pay</span>
-                  <span className="text-lg font-semibold text-primary">{formatCurrency(previewEarnings, currencySymbol)}</span>
+
+                {/* Preview */}
+                <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Hours</span>
+                    <span className="font-medium text-foreground">{previewHours}h</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Rate</span>
+                    <span className="font-medium text-foreground">
+                      {previewJob ? formatCurrency(previewJob.rates[form.rateType], currencySymbol) + "/hr" : "---"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between border-t border-primary/10 pt-2">
+                    <span className="text-sm font-medium text-foreground">Estimated Pay</span>
+                    <span className="text-lg font-semibold text-primary">{formatCurrency(previewEarnings, currencySymbol)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
               <DialogFooter>
                 <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                 <Button onClick={handleAdd} disabled={!form.jobId}>Log Shift</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Dialog */}
+          <Dialog open={editDialogOpen} onOpenChange={open => {
+            setEditDialogOpen(open)
+            if (!open) setEditShiftId(null)
+          }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit Shift</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                {/* Job select */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Job</Label>
+                  {data.jobs.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                      Add a workplace first to log shifts.
+                    </div>
+                  ) : (
+                    <Select value={editForm.jobId} onValueChange={v => setEditForm(f => ({ ...f, jobId: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select job" /></SelectTrigger>
+                      <SelectContent>
+                        {data.jobs.map(j => (
+                          <SelectItem key={j.id} value={j.id}>
+                            <span className="flex items-center gap-2">
+                              <span className="size-2 rounded-full" style={{ background: j.color }} />
+                              {j.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Date */}
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-shift-date" className="text-xs">Date</Label>
+                  <Input id="edit-shift-date" type="date" value={editForm.date} onChange={e => handleEditDateChange(e.target.value)} />
+                </div>
+
+                {/* Times */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="edit-shift-start" className="text-xs">Start Time</Label>
+                    <Input id="edit-shift-start" type="time" value={editForm.startTime} onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="edit-shift-end" className="text-xs">End Time</Label>
+                    <Input id="edit-shift-end" type="time" value={editForm.endTime} onChange={e => setEditForm(f => ({ ...f, endTime: e.target.value }))} />
+                  </div>
+                </div>
+
+                {/* Rate type & break */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">Rate Type</Label>
+                    <Select value={editForm.rateType} onValueChange={v => setEditForm(f => ({ ...f, rateType: v as RateType }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(RATE_TYPE_LABELS) as RateType[]).map(rt => (
+                          <SelectItem key={rt} value={rt}>{RATE_TYPE_LABELS[rt]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">Break (min)</Label>
+                    <Input type="number" min={0} step={5} value={editForm.breakMinutes} onChange={e => setEditForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
+                  </div>
+                </div>
+
+                {/* Note */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Note (optional)</Label>
+                  <Input placeholder="e.g. Covered for Sarah" value={editForm.note} onChange={e => setEditForm(f => ({ ...f, note: e.target.value }))} />
+                </div>
+
+                {/* Preview */}
+                <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Hours</span>
+                    <span className="font-medium text-foreground">{editPreviewHours}h</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Rate</span>
+                    <span className="font-medium text-foreground">
+                      {editPreviewJob ? formatCurrency(editPreviewJob.rates[editForm.rateType], currencySymbol) + "/hr" : "---"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between border-t border-primary/10 pt-2">
+                    <span className="text-sm font-medium text-foreground">Estimated Pay</span>
+                    <span className="text-lg font-semibold text-primary">{formatCurrency(editPreviewEarnings, currencySymbol)}</span>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                <Button onClick={handleEditSave} disabled={!editForm.jobId}>Save Changes</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -573,7 +733,7 @@ export function ShiftsTracker() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">
-                {filteredShifts.length} shift{filteredShifts.length !== 1 ? "s" : ""} 
+                {filteredShifts.length} shift{filteredShifts.length !== 1 ? "s" : ""}
                 {filteredShifts.length !== data.shifts.length && ` (${data.shifts.length} total)`}
               </CardTitle>
             </CardHeader>
@@ -604,8 +764,17 @@ export function ShiftsTracker() {
                             {shift.note && <> &middot; {shift.note}</>}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-sm font-medium text-foreground">{formatCurrency(shift.earnings, currencySymbol)}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-sm font-medium text-foreground mr-1">{formatCurrency(shift.earnings, currencySymbol)}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-primary"
+                            onClick={() => openEditDialog(shift)}
+                            aria-label="Edit shift"
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -653,11 +822,10 @@ export function ShiftsTracker() {
                   return (
                     <div
                       key={dayStr}
-                      className={`relative flex min-h-[3.5rem] flex-col items-center rounded-lg p-1.5 text-xs transition-colors ${
-                        isToday ? "bg-primary/10 ring-1 ring-primary/30"
+                      className={`relative flex min-h-[3.5rem] flex-col items-center rounded-lg p-1.5 text-xs transition-colors ${isToday ? "bg-primary/10 ring-1 ring-primary/30"
                         : isPH ? "bg-destructive/5"
-                        : "hover:bg-secondary/50"
-                      }`}
+                          : "hover:bg-secondary/50"
+                        }`}
                     >
                       <span className={`font-medium ${isToday ? "text-primary" : isPH ? "text-destructive" : "text-foreground"}`}>
                         {day.getDate()}

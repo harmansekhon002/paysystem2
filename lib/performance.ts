@@ -3,17 +3,17 @@ import React from "react"
 // Performance optimization utilities
 
 // Lazy loading component wrapper
-export function lazyLoadComponent<T extends React.ComponentType<unknown>>(
+export function lazyLoadComponent<T extends React.ComponentType<any>>(
   importFunc: () => Promise<{ default: T }>,
   fallback: React.ReactNode = null
 ) {
-  const LazyComponent = React.lazy(importFunc)
+  const LazyComponent = React.lazy(importFunc as any)
 
-  const Wrapped = (props: React.ComponentProps<T>) =>
+  const Wrapped = (props: any) =>
     React.createElement(
       React.Suspense,
-      { fallback },
-      React.createElement(LazyComponent, { ...props })
+      { fallback: fallback as any } as any,
+      React.createElement(LazyComponent, props)
     )
 
   Wrapped.displayName = "LazyLoadComponent"
@@ -53,7 +53,7 @@ export function memoize<T extends (...args: unknown[]) => unknown>(func: T): T {
       return cache.get(key)!
     }
 
-    const result = func(...args)
+    const result = func(...args) as ReturnType<T>
     cache.set(key, result)
     return result
   }) as T

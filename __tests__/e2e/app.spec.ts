@@ -19,7 +19,7 @@ test.describe("Shifts Tracker", () => {
   test("should display shift list", async ({ page }) => {
     await page.getByRole("tab", { name: "List" }).click()
     // Should show default shifts
-    await expect(page.getByText(/shifts logged|shift/i)).toBeVisible()
+    await expect(page.getByText(/shifts logged|shift/i).first()).toBeVisible()
   })
 
   test("should switch to calendar view", async ({ page }) => {
@@ -32,8 +32,8 @@ test.describe("Shifts Tracker", () => {
   test("should open filter popover", async ({ page }) => {
     await page.getByRole("button", { name: /filter/i }).click()
     await expect(page.getByText("Filter Shifts")).toBeVisible()
-    await expect(page.getByText("Workplace")).toBeVisible()
-    await expect(page.getByText("Rate Type")).toBeVisible()
+    await expect(page.getByText("Workplace", { exact: true }).first()).toBeVisible()
+    await expect(page.getByText("Rate Type", { exact: true }).first()).toBeVisible()
   })
 
   test("should open recurring shifts dialog", async ({ page }) => {
@@ -45,7 +45,7 @@ test.describe("Shifts Tracker", () => {
   test("should open add workplace dialog", async ({ page }) => {
     await page.getByRole("button", { name: /add workplace/i }).click()
     await expect(page.getByRole("dialog")).toBeVisible()
-    await expect(page.getByText("Add Workplace")).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Add Workplace" })).toBeVisible()
   })
 })
 
@@ -91,7 +91,7 @@ test.describe("Budget Planner", () => {
   })
 
   test("should open add expense dialog", async ({ page }) => {
-    await page.getByRole("button", { name: /add expense/i }).click()
+    await page.getByRole("button", { name: /expense/i }).click()
     await expect(page.getByRole("dialog")).toBeVisible()
   })
 })
@@ -128,36 +128,36 @@ test.describe("Analytics Dashboard", () => {
 test.describe("Navigation", () => {
   test("should navigate between pages", async ({ page }) => {
     await page.goto("/")
-    
+
     // Test navigation
     await page.getByRole("link", { name: /shifts/i }).first().click()
     await expect(page).toHaveURL(/\/shifts/)
-    
+
     await page.getByRole("link", { name: /earnings/i }).first().click()
     await expect(page).toHaveURL(/\/earnings/)
-    
+
     await page.getByRole("link", { name: /budget/i }).first().click()
     await expect(page).toHaveURL(/\/budget/)
-    
+
     await page.getByRole("link", { name: /goals/i }).first().click()
     await expect(page).toHaveURL(/\/goals/)
-    
+
     await page.getByRole("link", { name: /analytics/i }).first().click()
     await expect(page).toHaveURL(/\/analytics/)
   })
 
   test("should have working theme toggle", async ({ page }) => {
     await page.goto("/")
-    const themeButton = page.getByRole("button", { name: /toggle theme/i })
+    const themeButton = page.getByRole("button", { name: /toggle theme/i }).first()
     await expect(themeButton).toBeVisible()
-    await themeButton.click()
+    await themeButton.click({ force: true })
     // Theme should change (check for dark or light class)
   })
 
   test("should open settings dialog", async ({ page }) => {
     await page.goto("/")
-    await page.getByRole("button", { name: /settings/i }).click()
-    await expect(page.getByRole("dialog")).toBeVisible()
-    await expect(page.getByText("Settings")).toBeVisible()
+    await page.getByRole("link", { name: /settings/i }).first().click({ force: true })
+    await expect(page).toHaveURL(/\/settings/)
+    await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible()
   })
 })

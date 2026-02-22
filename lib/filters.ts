@@ -91,7 +91,7 @@ function applyRule<T extends Record<string, unknown>>(item: T, rule: FilterRule)
       return String(value).toLowerCase().includes(String(rule.value).toLowerCase())
     case "between":
       if (Array.isArray(rule.value) && rule.value.length === 2) {
-        return value >= rule.value[0] && value <= rule.value[1]
+        return (value as unknown as number) >= rule.value[0] && (value as unknown as number) <= rule.value[1]
       }
       return false
     case "in":

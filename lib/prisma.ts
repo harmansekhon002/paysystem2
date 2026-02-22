@@ -28,8 +28,8 @@ const PrismaClientCtor = (() => {
 const prismaClient = globalForPrisma.prisma ??
   (PrismaClientCtor
     ? new PrismaClientCtor({
-        log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-      })
+      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    })
     : undefined)
 
 if (process.env.NODE_ENV !== "production" && prismaClient) {
@@ -93,8 +93,8 @@ export async function getCachedAnalytics(userId: string, metric: string, period:
     },
   })
 
-  if (cache && cache.validUntil > new Date()) {
-    return cache.value
+  if (cache && (cache as unknown as { validUntil: Date }).validUntil > new Date()) {
+    return (cache as unknown as { value: number }).value
   }
 
   return null

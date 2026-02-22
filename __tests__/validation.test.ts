@@ -296,7 +296,7 @@ describe("Duplicate Detection", () => {
         breakMinutes: 0,
         earnings: 240,
       },
-    ]
+    ] as Shift[]
 
     const duplicates = findDuplicateShifts(shifts)
     expect(duplicates).toHaveLength(1)

@@ -13,7 +13,8 @@ import { useAppData } from "@/components/data-provider"
 import { useToast } from "@/hooks/use-toast"
 import { formatCurrency } from "@/lib/store"
 import { trackEvent } from "@/lib/analytics"
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
+import { ResponsiveContainer, Tooltip } from "recharts"
+import { PieChart } from "@/components/ui/pie-chart"
 
 const CATEGORY_COLORS = ["#0d9488", "#f59e0b", "#ec4899", "#6366f1", "#8b5cf6", "#06b6d4", "#84cc16", "#ef4444"]
 
@@ -168,16 +169,16 @@ export function BudgetPlanner() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Amount ({data.settings.currency})</Label>
-                  <Input type="number" min={0} step="0.01" placeholder="0.00" value={newExpense.amount} onChange={e => setNewExpense(ex => ({ ...ex, amount: e.target.value }))} autoFocus />
+                  <Label htmlFor="expense-amount" className="text-xs">Amount ({data.settings.currency})</Label>
+                  <Input id="expense-amount" type="number" min={0} step="0.01" placeholder="0.00" value={newExpense.amount} onChange={e => setNewExpense(ex => ({ ...ex, amount: e.target.value }))} autoFocus />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Description</Label>
-                  <Input placeholder="What was this for?" value={newExpense.description} onChange={e => setNewExpense(ex => ({ ...ex, description: e.target.value }))} />
+                  <Label htmlFor="expense-desc" className="text-xs">Description</Label>
+                  <Input id="expense-desc" placeholder="What was this for?" value={newExpense.description} onChange={e => setNewExpense(ex => ({ ...ex, description: e.target.value }))} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Date</Label>
-                  <Input type="date" value={newExpense.date} onChange={e => setNewExpense(ex => ({ ...ex, date: e.target.value }))} />
+                  <Label htmlFor="expense-date" className="text-xs">Date</Label>
+                  <Input id="expense-date" type="date" value={newExpense.date} onChange={e => setNewExpense(ex => ({ ...ex, date: e.target.value }))} />
                 </div>
               </div>
               <DialogFooter>
@@ -222,16 +223,10 @@ export function BudgetPlanner() {
           <CardContent className="flex flex-col items-center gap-3">
             {stats.pieData.length > 0 ? (
               <>
-                <div className="h-[150px] w-[150px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={stats.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={65} strokeWidth={2} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#fff' : '#222'}>
-                        {stats.pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => [formatCurrency(v, currencySymbol), "Spent"]} contentStyle={{ background: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#222' : '#fff', color: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#fff' : '#222', border: "1px solid var(--color-border)", borderRadius: "8px", fontSize: "13px" }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <PieChart
+                  data={stats.pieData}
+                  tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), "Spent"]}
+                />
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
                   {stats.pieData.map(e => (
                     <div key={e.name} className="flex items-center gap-1.5 text-xs" style={{ color: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }}>

@@ -53,9 +53,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ErrorBoundary>
             <DataProvider>
-              <AppShell>
-                {children}
-              </AppShell>
+              {children}
               <Toaster />
             </DataProvider>
           </ErrorBoundary>

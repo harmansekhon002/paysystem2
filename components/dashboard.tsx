@@ -9,8 +9,8 @@ import { Clock, DollarSign, TrendingUp, CalendarClock, ArrowRight } from "lucide
 import Link from "next/link"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell,
 } from "recharts"
+import { PieChart } from "@/components/ui/pie-chart"
 
 function StatCard({
   title, value, subtitle, icon: Icon, accent = false,
@@ -22,8 +22,8 @@ function StatCard({
     <Card
       className={accent
         ?
-          // Remove always-on accent, add green ring only on hover
-          'transition-shadow hover:shadow-[0_0_0_3px_rgba(16,185,129,0.5)]'
+        // Remove always-on accent, add green ring only on hover
+        'transition-shadow hover:shadow-[0_0_0_3px_rgba(16,185,129,0.5)]'
         : ''}
     >
       <CardContent className="flex items-start justify-between p-5">
@@ -110,7 +110,7 @@ export function Dashboard() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches)
-      const listener = (e) => setIsDark(e.matches)
+      const listener = (e: MediaQueryListEvent) => setIsDark(e.matches)
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
       mq.addEventListener('change', listener)
       return () => mq.removeEventListener('change', listener)
@@ -174,16 +174,10 @@ export function Dashboard() {
             {jobPieData.length > 0 ? (
               <>
                 <div className="h-[150px] w-[150px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={jobPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={65} strokeWidth={2} stroke={axisColor}>
-                        {jobPieData.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value: number) => [formatCurrency(value, currencySymbol), "Earned"]} contentStyle={{ background: tooltipBg, color: tooltipColor, border: tooltipBorder, borderRadius: tooltipRadius, fontSize: "13px" }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <PieChart
+                    data={jobPieData}
+                    tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), "Earned"]}
+                  />
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
                   {jobPieData.map((e) => (

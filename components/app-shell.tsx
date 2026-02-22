@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
@@ -182,8 +182,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { data } = useAppData()
+  const [mounted, setMounted] = useState(false)
 
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
+  if (!mounted) {
+    return null
+  }
 
   return (
     <div className="flex min-h-svh bg-background">
@@ -193,17 +200,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
             <Zap className="size-4 text-primary-foreground" />
           </div>
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">ShiftWise</span>
+          <span className="text-sm font-semibold text-foreground">ShiftWise</span>
         </div>
         <div className="flex flex-1 flex-col px-3 py-2">
           <SidebarNav />
         </div>
         <div className="flex items-center gap-3 border-t border-border px-5 py-3">
-          <SettingsDialog>
-            <Button variant="ghost" size="icon" className="size-8" aria-label="Open settings">
-              <Settings className="size-4" />
-            </Button>
-          </SettingsDialog>
           <ThemeToggle />
           <span className="text-xs font-medium text-muted-foreground">{data.settings.currency}</span>
         </div>
@@ -212,27 +214,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile header */}
       <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-md md:hidden">
         <div className="flex items-center gap-2.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 -ml-1.5"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+          </Button>
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
             <Zap className="size-4 text-primary-foreground" />
           </div>
           <span className="text-sm font-semibold text-foreground">ShiftWise</span>
         </div>
         <div className="flex items-center gap-1">
-          <SettingsDialog>
-            <Button variant="ghost" size="icon" className="size-8" aria-label="Open settings">
-              <Settings className="size-4" />
-            </Button>
-          </SettingsDialog>
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-          </Button>
         </div>
       </header>
 

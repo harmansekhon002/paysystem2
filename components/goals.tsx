@@ -40,7 +40,7 @@ export function Goals() {
   const [addingFunds, setAddingFunds] = useState<string | null>(null)
   const [fundAmount, setFundAmount] = useState("")
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  
+
   const fundValue = parseFloat(fundAmount)
   const fundValid = !Number.isNaN(fundValue) && fundValue > 0
   const defaultDeadline = (() => {
@@ -88,6 +88,7 @@ export function Goals() {
         targetAmount,
         currentAmount: parseFloat(form.currentAmount) || 0,
         deadline: form.deadline,
+        icon: "Target",
       })
       trackEvent("goal_added", { name: form.name, targetAmount })
       toast({ title: "Goal created", description: form.name })
@@ -104,12 +105,12 @@ export function Goals() {
         const previousAmount = goal.currentAmount
         const newAmount = goal.currentAmount + amount
         updateGoal(goalId, { currentAmount: newAmount })
-        
+
         // Check for milestone notifications
         if (notificationsEnabled) {
           checkGoalMilestones(goal.name, newAmount, goal.targetAmount, previousAmount)
         }
-        
+
         trackEvent("goal_funded", { amount })
         toast({ title: "Funds added", description: `${formatCurrency(amount, currencySymbol)} to ${goal.name}` })
       }
@@ -127,10 +128,10 @@ export function Goals() {
         </div>
         <div className="flex gap-2">
           {typeof window !== "undefined" && "Notification" in window && (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="gap-1.5" 
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
               onClick={handleEnableNotifications}
               disabled={notificationsEnabled}
             >
@@ -151,12 +152,12 @@ export function Goals() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Target ({data.settings.currency})</Label>
-                    <Input type="number" min={0} step="0.01" placeholder="1000" value={form.targetAmount} onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))} />
+                    <Label htmlFor="goal-target" className="text-xs">Target Amount ({data.settings.currency})</Label>
+                    <Input id="goal-target" type="number" min={0} step="0.01" placeholder="1000" value={form.targetAmount} onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))} />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Already Saved</Label>
-                    <Input type="number" min={0} step="0.01" placeholder="0" value={form.currentAmount} onChange={e => setForm(f => ({ ...f, currentAmount: e.target.value }))} />
+                    <Label htmlFor="goal-saved" className="text-xs">Already Saved</Label>
+                    <Input id="goal-saved" type="number" min={0} step="0.01" placeholder="0" value={form.currentAmount} onChange={e => setForm(f => ({ ...f, currentAmount: e.target.value }))} />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">

@@ -1,0 +1,12 @@
+# Production Environment Variables Checklist
+
+- DATABASE_URL
+- SECRET_KEY
+- JWT_SECRET_KEY
+- STRIPE_SECRET_KEY
+- DEBUG=False
+- SESSION_COOKIE_SECURE=True
+- SESSION_COOKIE_HTTPONLY=True
+- SESSION_COOKIE_SAMESITE=Lax
+- CORS_ALLOWED_ORIGINS=https://yourfrontend.com
+- RATE_LIMIT="200 per day, 50 per hour"

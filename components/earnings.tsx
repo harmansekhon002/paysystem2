@@ -14,9 +14,10 @@ import { useToast } from "@/hooks/use-toast"
 import { formatCurrency, JOB_TEMPLATES, RATE_TYPE_LABELS, type RateType, type PenaltyRates, type JobTemplate } from "@/lib/store"
 import { trackEvent } from "@/lib/analytics"
 import {
-  PieChart, Pie, Cell, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, Cell
 } from "recharts"
+import { PieChart } from "@/components/ui/pie-chart"
 
 function RateEditor({ rates, onChange }: { rates: PenaltyRates; onChange: (r: PenaltyRates) => void }) {
   return (
@@ -222,16 +223,10 @@ export function Earnings() {
           <CardContent className="flex flex-col items-center gap-3 sm:flex-row sm:gap-6">
             {rateTypePie.length > 0 ? (
               <>
-                <div className="h-[150px] w-[150px] shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={rateTypePie} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={65} strokeWidth={2} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#fff' : '#222'}>
-                        {rateTypePie.map((e, i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => [formatCurrency(v, currencySymbol), "Earned"]} contentStyle={{ background: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#222' : '#fff', color: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#fff' : '#222', border: "1px solid var(--color-border)", borderRadius: "8px", fontSize: "13px" }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <PieChart
+                  data={rateTypePie}
+                  tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), "Earned"]}
+                />
                 <div className="flex flex-col gap-1.5">
                   {rateTypePie.map(e => (
                     <div key={e.name} className="flex items-center gap-2 text-xs" style={{ color: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }}>

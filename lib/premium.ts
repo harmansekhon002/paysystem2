@@ -6,7 +6,7 @@ export interface PremiumTier {
   price: number
   interval: "month" | "year"
   features: string[]
-  stripePriceId?: string
+  paypalPlanId?: string
 }
 
 export const premiumTiers: PremiumTier[] = [
@@ -41,7 +41,7 @@ export const premiumTiers: PremiumTier[] = [
       "Export to CSV/PDF",
       "Priority support",
     ],
-    stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_MONTHLY_PRICE_ID,
+    paypalPlanId: process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID,
   },
   {
     id: "premium-yearly",
@@ -54,7 +54,7 @@ export const premiumTiers: PremiumTier[] = [
       "Early access to new features",
       "Priority support",
     ],
-    stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_YEARLY_PRICE_ID,
+    paypalPlanId: process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_YEARLY_PLAN_ID,
   },
 ]
 
@@ -121,48 +121,9 @@ export function checkLimit(
   }
 }
 
-// Stripe integration helpers
-export async function createCheckoutSession(
-  userId: string,
-  priceId: string,
-  successUrl: string,
-  cancelUrl: string
-): Promise<{ sessionId: string; url: string }> {
-  // This would call your Next.js API route
-  const response = await fetch("/api/stripe/create-checkout-session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId,
-      priceId,
-      successUrl,
-      cancelUrl,
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error("Failed to create checkout session")
-  }
-
-  return response.json()
-}
-
-export async function createPortalSession(customerId: string): Promise<{ url: string }> {
-  const response = await fetch("/api/stripe/create-portal-session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ customerId }),
-  })
-
-  if (!response.ok) {
-    throw new Error("Failed to create portal session")
-  }
-
-  return response.json()
-}
-
-export async function cancelSubscription(subscriptionId: string): Promise<void> {
-  const response = await fetch("/api/stripe/cancel-subscription", {
+// PayPal integration helpers
+export async function cancelPayPalSubscription(subscriptionId: string): Promise<void> {
+  const response = await fetch("/api/subscription/cancel", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ subscriptionId }),
