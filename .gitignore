@@ -1,26 +1,21 @@
 # Node / Next
 node_modules/
+.env
 .next/
 out/
 dist/
 coverage/
-
-# Env files
-.env
-.env*.local
-
-# Tooling output
-test-results/
-playwright-report/
-
-# IDE / OS
-.vscode/
 .DS_Store
-
-# Logs
+pnpm-lock.yaml
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.vscode/
+test-results/
+playwright-report/
+
+# Env files
+.env*.local
 
 # v0 runtime files
 __v0_runtime_loader.js
