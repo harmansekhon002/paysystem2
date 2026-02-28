@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
@@ -52,8 +53,32 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ user }, { status: 201 })
     } catch (error) {
         console.error("[register]", error)
+
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === "P2002") {
+                return NextResponse.json(
+                    { error: "An account with this email already exists" },
+                    { status: 409 }
+                )
+            }
+
+            if (error.code === "P2021") {
+                return NextResponse.json(
+                    { error: "Database tables are not initialized yet. Run Prisma schema setup first." },
+                    { status: 503 }
+                )
+            }
+        }
+
+        if (error instanceof Prisma.PrismaClientInitializationError) {
+            return NextResponse.json(
+                { error: "Database connection failed. Check DATABASE_URL and database availability." },
+                { status: 503 }
+            )
+        }
+
         return NextResponse.json(
-            { error: "Something went wrong. Please try again." },
+            { error: "Registration failed due to a server error. Please try again." },
             { status: 500 }
         )
     }
