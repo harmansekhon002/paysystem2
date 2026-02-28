@@ -4,6 +4,14 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
     try {
+        const secret = process.env.NEXTAUTH_SECRET
+        if (!secret) {
+            return NextResponse.json(
+                { error: "Server auth configuration is incomplete (NEXTAUTH_SECRET)." },
+                { status: 503 }
+            )
+        }
+
         const data = await req.json() as { subscriptionId?: string }
         const { subscriptionId } = data
 
@@ -11,7 +19,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing subscription ID' }, { status: 400 })
         }
 
-        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+        const token = await getToken({ req, secret })
         const userId = typeof token?.id === "string" ? token.id : null
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

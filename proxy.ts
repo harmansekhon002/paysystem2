@@ -27,10 +27,23 @@ export async function proxy(req: NextRequest) {
         return NextResponse.next()
     }
 
-    const token = await getToken({
-        req,
-        secret: process.env.NEXTAUTH_SECRET,
-    })
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) {
+        console.error("Missing NEXTAUTH_SECRET in environment; bypassing auth proxy check")
+        return NextResponse.next()
+    }
+
+    let token = null
+    try {
+        token = await getToken({
+            req,
+            secret,
+        })
+    } catch (error) {
+        console.error("Failed to read auth token in proxy:", error)
+        const loginUrl = new URL("/login", req.url)
+        return NextResponse.redirect(loginUrl)
+    }
 
     if (!token) {
         const loginUrl = new URL("/login", req.url)
