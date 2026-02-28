@@ -63,10 +63,16 @@ export default function RegisterPage() {
                 body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
             })
 
-            const data = await res.json()
+            const raw = await res.text()
+            let data: { error?: string } = {}
+            try {
+                data = raw ? JSON.parse(raw) : {}
+            } catch {
+                data = {}
+            }
 
             if (!res.ok) {
-                setError(data.error ?? "Registration failed")
+                setError(data.error ?? `Registration failed (HTTP ${res.status})`)
                 return
             }
 
