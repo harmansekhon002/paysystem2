@@ -115,6 +115,8 @@ export function Earnings() {
   const { toast } = useToast()
   const currencySymbol = data.settings.currencySymbol
   const { resolvedTheme } = useTheme();
+  const axisColor = "hsl(var(--muted-foreground))"
+  const gridColor = "hsl(var(--border) / 0.5)"
   const [dialogOpen, setDialogOpen] = useState(false)
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
   const [template, setTemplate] = useState("custom")
@@ -324,9 +326,9 @@ export function Earnings() {
             {hasJobs && hasShifts ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={jobBarData} barSize={32}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#e5e7eb'} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }} tickLine={false} axisLine={false} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222'} />
-                  <YAxis tick={{ fontSize: 11, fill: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }} tickLine={false} axisLine={false} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222'} tickFormatter={v => `${currencySymbol}${v}`} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} />
+                  <YAxis tick={{ fontSize: 11, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={v => `${currencySymbol}${v}`} />
                   <Tooltip
                     cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }}
                     content={

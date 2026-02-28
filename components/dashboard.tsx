@@ -1,4 +1,5 @@
 "use client";
+import { useTheme } from "next-themes"
 import { type TooltipProps } from "recharts"
 
 // Custom tooltip for BarChart, matching PieChart style
@@ -39,7 +40,7 @@ function CustomBarTooltip({
 // ...existing code...
 
 
-import { useMemo, useEffect, useState } from "react"
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAppData } from "@/components/data-provider"
@@ -81,6 +82,7 @@ function StatCard({
 
 export function Dashboard() {
   const { data, getJob } = useAppData()
+  const { resolvedTheme } = useTheme()
   const { shifts, jobs, expenses, budgetCategories } = data
   const currencySymbol = data.settings.currencySymbol
   const hasShifts = shifts.length > 0
@@ -144,20 +146,10 @@ export function Dashboard() {
     })
   }, [shifts, jobs, getJob])
 
-  // Color helpers for dark mode (avoid SSR mismatch)
-  const [isDark, setIsDark] = useState(false)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches)
-      const listener = (e: MediaQueryListEvent) => setIsDark(e.matches)
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      mq.addEventListener('change', listener)
-      return () => mq.removeEventListener('change', listener)
-    }
-  }, [])
-  const axisColor = isDark ? '#888' : '#222'
-  const gridColor = isDark ? '#888' : 'var(--color-border)'
-  const legendColor = isDark ? '#888' : '#222'
+  const isDark = resolvedTheme === "dark"
+  const axisColor = "hsl(var(--muted-foreground))"
+  const gridColor = "hsl(var(--border) / 0.5)"
+  const legendColor = "hsl(var(--muted-foreground))"
   return (
     <div className="flex flex-col gap-6">
       <div>
