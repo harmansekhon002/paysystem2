@@ -103,6 +103,9 @@
     "vitest": "^4.0.18"
   },
   "pnpm": {
+    "overrides": {
+      "@radix-ui/react-use-size": "1.1.0"
+    },
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",
