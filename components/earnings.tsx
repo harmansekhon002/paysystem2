@@ -1,5 +1,52 @@
 "use client"
 
+import { useTheme } from "next-themes"
+import { type TooltipProps } from "recharts"
+
+// Shared custom tooltip for recharts (BarChart)
+function CustomChartTooltip({
+  active,
+  payload,
+  label,
+  formatter,
+  theme,
+}: TooltipProps<number, string> & {
+  theme: "light" | "dark"
+  formatter?: (value: number, name: string) => [string, string]
+}) {
+  if (!active || !payload || !payload.length) return null;
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#111827' : '#fff';
+  const color = isDark ? '#f9fafb' : '#111827';
+  const titleColor = isDark ? '#22d3aa' : '#059669';
+  const numericValue = Number(payload[0]?.value ?? 0)
+  const seriesName = String(payload[0]?.name ?? "")
+  const value = formatter
+    ? formatter(numericValue, seriesName)
+    : [`$${numericValue}`, seriesName]
+  const displayValue = String(value[0]).replace(/^\$\$/, "$")
+  return (
+    <div
+      style={{
+        background: bg,
+        color,
+        border: 'none',
+        borderRadius: 8,
+        fontSize: 14,
+        fontWeight: 700,
+        boxShadow: isDark ? '0 4px 16px 0 rgba(0,0,0,0.85)' : '0 2px 8px 0 rgba(0,0,0,0.08)',
+        padding: '12px 18px',
+        minWidth: 90,
+        textAlign: 'center',
+        letterSpacing: '0.01em',
+      }}
+    >
+      <div style={{ color: titleColor, fontWeight: 700 }}>{String(label ?? "")}</div>
+      <div style={{ color, fontWeight: 700 }}>{displayValue}</div>
+    </div>
+  );
+}
+
 import { useState, useMemo } from "react"
 import { Plus, Trash2, Briefcase, Settings2, ChevronDown, ChevronUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +62,7 @@ import { formatCurrency, JOB_TEMPLATES, RATE_TYPE_LABELS, type RateType, type Pe
 import { trackEvent } from "@/lib/analytics"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  ResponsiveContainer, Cell
+  ResponsiveContainer, Cell, Rectangle
 } from "recharts"
 import { PieChart } from "@/components/ui/pie-chart"
 
@@ -40,9 +87,34 @@ function RateEditor({ rates, onChange }: { rates: PenaltyRates; onChange: (r: Pe
 }
 
 export function Earnings() {
-  const { data, addJob, removeJob } = useAppData()
+  const { data, addJob, updateJob, removeJob } = useAppData()
+    // Edit job dialog state
+    const [editJobId, setEditJobId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<null | JobTemplate>(null);
+
+    const openEditJob = (job: JobTemplate) => {
+      setEditJobId(job.id);
+      setEditForm({ ...job });
+    };
+    const closeEditJob = () => {
+      setEditJobId(null);
+      setEditForm(null);
+    };
+    const handleEditJobSave = () => {
+      if (editJobId && editForm) {
+        updateJob(editJobId, {
+          name: editForm.name,
+          category: editForm.category,
+          baseRate: editForm.baseRate,
+          rates: editForm.rates,
+        });
+        toast({ title: "Job updated", description: editForm.name });
+        closeEditJob();
+      }
+    };
   const { toast } = useToast()
   const currencySymbol = data.settings.currencySymbol
+  const { resolvedTheme } = useTheme();
   const [dialogOpen, setDialogOpen] = useState(false)
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
   const [template, setTemplate] = useState("custom")
@@ -225,11 +297,11 @@ export function Earnings() {
               <>
                 <PieChart
                   data={rateTypePie}
-                  tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), "Earned"]}
+                  tooltipFormatter={(value) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), "Earned"]}
                 />
                 <div className="flex flex-col gap-1.5">
                   {rateTypePie.map(e => (
-                    <div key={e.name} className="flex items-center gap-2 text-xs" style={{ color: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }}>
+                    <div key={e.name} className="flex items-center gap-2 text-xs text-muted-foreground dark:text-[#888]">
                       <div className="size-2 rounded-full" style={{ background: e.color }} />
                       <span>{e.name}</span>
                       <span style={{ fontWeight: 600 }}>{formatCurrency(e.value, currencySymbol)}</span>
@@ -255,8 +327,23 @@ export function Earnings() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#e5e7eb'} />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }} tickLine={false} axisLine={false} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222'} />
                   <YAxis tick={{ fontSize: 11, fill: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }} tickLine={false} axisLine={false} stroke={typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222'} tickFormatter={v => `${currencySymbol}${v}`} />
-                  <Tooltip formatter={(v: number) => [formatCurrency(v, currencySymbol), "Earnings"]} contentStyle={{ background: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#222' : '#fff', color: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#fff' : '#222', border: "1px solid var(--color-border)", borderRadius: "8px", fontSize: "13px" }} />
-                  <Bar dataKey="earnings" radius={[6, 6, 0, 0]}>
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }}
+                    content={
+                      <CustomChartTooltip
+                        theme={resolvedTheme === "dark" ? "dark" : "light"}
+                        formatter={(v: number) => [formatCurrency(v, currencySymbol), "Earnings"]}
+                      />
+                    }
+                  />
+                  <Bar
+                    dataKey="earnings"
+                    radius={[6, 6, 0, 0]}
+                    stroke="transparent"
+                    activeBar={
+                      <Rectangle stroke="hsl(var(--border) / 0.35)" strokeWidth={1} />
+                    }
+                  >
                     {jobBarData.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Bar>
                 </BarChart>
@@ -279,10 +366,10 @@ export function Earnings() {
           {hasJobs ? (
             <div className="flex flex-col divide-y divide-border">
               {data.jobs.map(job => {
-                const isExpanded = expandedJob === job.id
-                const jobShifts = data.shifts.filter(s => s.jobId === job.id)
-                const totalEarnings = jobShifts.reduce((s, sh) => s + sh.earnings, 0)
-                const totalHours = jobShifts.reduce((s, sh) => s + sh.hours, 0)
+                const isExpanded = expandedJob === job.id;
+                const jobShifts = data.shifts.filter(s => s.jobId === job.id);
+                const totalEarnings = jobShifts.reduce((s, sh) => s + sh.earnings, 0);
+                const totalHours = jobShifts.reduce((s, sh) => s + sh.hours, 0);
                 return (
                   <div key={job.id} className="py-3">
                     <div className="flex items-center gap-3">
@@ -302,10 +389,13 @@ export function Earnings() {
                         <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandedJob(isExpanded ? null : job.id)}>
                           {isExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
                         </Button>
+                        <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-primary" onClick={() => openEditJob(job)} aria-label={`Edit ${job.name}`}>
+                          <Settings2 className="size-3.5" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-destructive" onClick={() => {
-                          removeJob(job.id)
-                          trackEvent("workplace_removed")
-                          toast({ title: "Workplace removed" })
+                          removeJob(job.id);
+                          trackEvent("workplace_removed");
+                          toast({ title: "Workplace removed" });
                         }} aria-label={`Remove ${job.name}`}>
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -325,8 +415,47 @@ export function Earnings() {
                       </div>
                     )}
                   </div>
-                )
+                );
               })}
+            {/* Edit Job Dialog */}
+            <Dialog open={!!editJobId} onOpenChange={v => !v && closeEditJob()}>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Edit Job</DialogTitle></DialogHeader>
+                {editForm && (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Job Name</Label>
+                      <Input value={editForm.name} onChange={e => setEditForm(f => f ? { ...f, name: e.target.value } : f)} />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Category</Label>
+                      <Select value={editForm.category} onValueChange={v => setEditForm(f => f ? { ...f, category: v as JobTemplate["category"] } : f)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hospitality">Food & Hospitality</SelectItem>
+                          <SelectItem value="retail">Retail</SelectItem>
+                          <SelectItem value="tutoring">Tutoring / Freelance</SelectItem>
+                          <SelectItem value="delivery">Delivery / Gig</SelectItem>
+                          <SelectItem value="custom">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Base Rate</Label>
+                      <Input type="number" min={0} step={0.01} value={editForm.baseRate} onChange={e => setEditForm(f => f ? { ...f, baseRate: parseFloat(e.target.value) || 0 } : f)} />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-xs flex items-center gap-1"><Settings2 className="size-3" />Hourly Rates</Label>
+                      <RateEditor rates={editForm.rates} onChange={r => setEditForm(f => f ? { ...f, rates: r } : f)} />
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                  <Button onClick={handleEditJobSave} disabled={!editForm?.name.trim()}>Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             </div>
           ) : (
             <div className="py-6 text-center text-sm text-muted-foreground">

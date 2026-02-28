@@ -1,5 +1,5 @@
-"use client"
 
+"use client";
 import { useState, useMemo } from "react"
 import { Plus, Trash2, TrendingDown, TrendingUp, Pencil } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,101 +11,136 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { useAppData } from "@/components/data-provider"
 import { useToast } from "@/hooks/use-toast"
-import { formatCurrency } from "@/lib/store"
+import { formatCurrency, type Expense } from "@/lib/store"
 import { trackEvent } from "@/lib/analytics"
-import { ResponsiveContainer, Tooltip } from "recharts"
 import { PieChart } from "@/components/ui/pie-chart"
 
-const CATEGORY_COLORS = ["#0d9488", "#f59e0b", "#ec4899", "#6366f1", "#8b5cf6", "#06b6d4", "#84cc16", "#ef4444"]
 
-export function BudgetPlanner() {
-  const { data, addExpense, removeExpense, addBudgetCategory, removeBudgetCategory } = useAppData()
-  const { toast } = useToast()
-  const currencySymbol = data.settings.currencySymbol
-  const [expenseDialog, setExpenseDialog] = useState(false)
-  const [catDialog, setCatDialog] = useState(false)
-  const todayStr = new Date().toISOString().split("T")[0]
+const CATEGORY_COLORS = ["#0d9488", "#f59e0b", "#ec4899", "#6366f1", "#8b5cf6", "#06b6d4", "#84cc16", "#ef4444"];
+
+type EditExpenseForm = {
+  category: string
+  amount: string
+  description: string
+  date: string
+}
+
+export default function BudgetPlanner() {
+  const { data, addExpense, updateExpense, removeExpense, addBudgetCategory, removeBudgetCategory } = useAppData();
+  // Edit expense dialog state
+  const [editExpenseId, setEditExpenseId] = useState<string | null>(null);
+  const [editExpense, setEditExpense] = useState<EditExpenseForm | null>(null);
+  const openEditExpense = (expense: Expense) => {
+    setEditExpenseId(expense.id);
+    setEditExpense({
+      category: expense.category,
+      amount: String(expense.amount),
+      description: expense.description,
+      date: expense.date,
+    });
+  };
+  const closeEditExpense = () => {
+    setEditExpenseId(null);
+    setEditExpense(null);
+  };
+  const handleEditExpenseSave = () => {
+    if (editExpenseId && editExpense) {
+      updateExpense(editExpenseId, {
+        category: editExpense.category,
+        amount: parseFloat(editExpense.amount),
+        description: editExpense.description,
+        date: editExpense.date,
+      });
+      toast({ title: "Expense updated", description: editExpense.description });
+      closeEditExpense();
+    }
+  };
+  const { toast } = useToast();
+  const currencySymbol = data.settings.currencySymbol;
+  const [expenseDialog, setExpenseDialog] = useState(false);
+  const [catDialog, setCatDialog] = useState(false);
+  const todayStr = new Date().toISOString().split("T")[0];
 
   const [newExpense, setNewExpense] = useState({
     category: data.budgetCategories[0]?.name || "",
     amount: "",
     description: "",
     date: todayStr,
-  })
-  const expenseAmount = parseFloat(newExpense.amount)
-  const expenseValid = Boolean(newExpense.category) && !Number.isNaN(expenseAmount) && expenseAmount > 0
+  });
+  const expenseAmount = parseFloat(newExpense.amount);
+  const expenseValid = Boolean(newExpense.category) && !Number.isNaN(expenseAmount) && expenseAmount > 0;
 
-  const [newCat, setNewCat] = useState({ name: "", budgeted: "" })
-  const categoryBudget = parseFloat(newCat.budgeted)
-  const categoryValid = newCat.name.trim().length > 0 && !Number.isNaN(categoryBudget) && categoryBudget > 0
+  const [newCat, setNewCat] = useState({ name: "", budgeted: "" });
+  const categoryBudget = parseFloat(newCat.budgeted);
+  const categoryValid = newCat.name.trim().length > 0 && !Number.isNaN(categoryBudget) && categoryBudget > 0;
 
   // Stats
   const stats = useMemo(() => {
-    const now = new Date()
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
-    const monthExpenses = data.expenses.filter(e => e.date >= monthStart)
-    const totalSpent = monthExpenses.reduce((s, e) => s + e.amount, 0)
-    const totalBudgeted = data.budgetCategories.reduce((s, c) => s + c.budgeted, 0)
-    const remaining = totalBudgeted - totalSpent
-    const percentUsed = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const monthExpenses = data.expenses.filter(e => e.date >= monthStart);
+    const totalSpent = monthExpenses.reduce((s, e) => s + e.amount, 0);
+    const totalBudgeted = data.budgetCategories.reduce((s, c) => s + c.budgeted, 0);
+    const remaining = totalBudgeted - totalSpent;
+    const percentUsed = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
 
     // Per-category spending
     const byCat = data.budgetCategories.map((cat, i) => {
-      const catExpenses = monthExpenses.filter(e => e.category === cat.name)
-      const spent = catExpenses.reduce((s, e) => s + e.amount, 0)
+      const catExpenses = monthExpenses.filter(e => e.category === cat.name);
+      const spent = catExpenses.reduce((s, e) => s + e.amount, 0);
       return {
         ...cat,
         spent,
         remaining: cat.budgeted - spent,
         percent: cat.budgeted > 0 ? (spent / cat.budgeted) * 100 : 0,
         color: cat.color || CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-      }
-    })
+      };
+    });
 
     const pieData = byCat.filter(c => c.spent > 0).map(c => ({
       name: c.name,
       value: Math.round(c.spent * 100) / 100,
       color: c.color,
-    }))
+    }));
 
-    return { totalSpent, totalBudgeted, remaining, percentUsed, byCat, pieData, monthExpenses }
-  }, [data.expenses, data.budgetCategories])
+    return { totalSpent, totalBudgeted, remaining, percentUsed, byCat, pieData, monthExpenses };
+  }, [data.expenses, data.budgetCategories]);
 
   const handleAddExpense = () => {
     if (newExpense.amount && newExpense.category) {
-      const amount = parseFloat(newExpense.amount)
+      const amount = parseFloat(newExpense.amount);
       addExpense({
         category: newExpense.category,
         amount,
         description: newExpense.description,
         date: newExpense.date,
-      })
-      trackEvent("expense_added", { category: newExpense.category, amount })
-      toast({ title: "Expense added", description: `${formatCurrency(amount, currencySymbol)} to ${newExpense.category}` })
-      setNewExpense(e => ({ ...e, amount: "", description: "" }))
-      setExpenseDialog(false)
+      });
+      trackEvent("expense_added", { category: newExpense.category, amount });
+      toast({ title: "Expense added", description: `${formatCurrency(amount, currencySymbol)} to ${newExpense.category}` });
+      setNewExpense(e => ({ ...e, amount: "", description: "" }));
+      setExpenseDialog(false);
     }
-  }
+  };
 
   const handleAddCategory = () => {
     if (newCat.name && newCat.budgeted) {
-      const budgeted = parseFloat(newCat.budgeted)
+      const budgeted = parseFloat(newCat.budgeted);
       addBudgetCategory({
         name: newCat.name,
         budgeted,
         color: CATEGORY_COLORS[data.budgetCategories.length % CATEGORY_COLORS.length],
-      })
-      trackEvent("budget_category_added", { name: newCat.name, budgeted })
-      toast({ title: "Category added", description: newCat.name })
-      setNewCat({ name: "", budgeted: "" })
-      setCatDialog(false)
+      });
+      trackEvent("budget_category_added", { name: newCat.name, budgeted });
+      toast({ title: "Category added", description: newCat.name });
+      setNewCat({ name: "", budgeted: "" });
+      setCatDialog(false);
     }
-  }
+  };
 
   const sortedExpenses = useMemo(() =>
     [...stats.monthExpenses].sort((a, b) => b.date.localeCompare(a.date)),
     [stats.monthExpenses]
-  )
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -225,11 +260,11 @@ export function BudgetPlanner() {
               <>
                 <PieChart
                   data={stats.pieData}
-                  tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), "Spent"]}
+                  tooltipFormatter={(value) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), "Spent"]}
                 />
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
                   {stats.pieData.map(e => (
-                    <div key={e.name} className="flex items-center gap-1.5 text-xs" style={{ color: typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#888' : '#222' }}>
+                    <div key={e.name} className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-[#888]">
                       <div className="size-2 rounded-full" style={{ background: e.color }} />
                       {e.name}
                     </div>
@@ -312,6 +347,9 @@ export function BudgetPlanner() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-sm font-medium text-foreground">{formatCurrency(expense.amount, currencySymbol)}</span>
+                  <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-primary" onClick={() => openEditExpense(expense)}>
+                        <Pencil className="size-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-destructive" onClick={() => {
                         removeExpense(expense.id)
                         trackEvent("expense_removed")
@@ -327,6 +365,59 @@ export function BudgetPlanner() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!editExpenseId} onOpenChange={v => !v && closeEditExpense()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Edit Expense</DialogTitle></DialogHeader>
+          {editExpense && (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Description</Label>
+                <Input
+                  value={editExpense.description}
+                  onChange={e => setEditExpense(f => (f ? { ...f, description: e.target.value } : f))}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Category</Label>
+                <Select
+                  value={editExpense.category}
+                  onValueChange={v => setEditExpense(f => (f ? { ...f, category: v } : f))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {data.budgetCategories.map(cat => (
+                      <SelectItem key={cat.name} value={cat.name}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Amount</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={editExpense.amount}
+                  onChange={e => setEditExpense(f => (f ? { ...f, amount: e.target.value } : f))}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Date</Label>
+                <Input
+                  type="date"
+                  value={editExpense.date}
+                  onChange={e => setEditExpense(f => (f ? { ...f, date: e.target.value } : f))}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+            <Button onClick={handleEditExpenseSave} disabled={!editExpense?.category || !editExpense?.amount}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

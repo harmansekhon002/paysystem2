@@ -1,53 +1,19 @@
-type PrismaClient = {
-  user: { findUnique: (args: unknown) => Promise<unknown> }
-  shift: { findMany: (args: unknown) => Promise<unknown> }
-  expense: { findMany: (args: unknown) => Promise<unknown> }
-  analyticsCache: {
-    findUnique: (args: unknown) => Promise<unknown>
-    upsert: (args: unknown) => Promise<unknown>
-  }
-  auditLog: { create: (args: unknown) => Promise<unknown> }
+import { Prisma, PrismaClient } from "@prisma/client"
+
+const globalForPrisma = globalThis as { prisma?: PrismaClient }
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+  })
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma
 }
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-type PrismaClientConstructor = new (options?: { log?: string[] }) => PrismaClient
-
-const PrismaClientCtor = (() => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("@prisma/client")
-    return mod.PrismaClient as PrismaClientConstructor
-  } catch {
-    return null
-  }
-})()
-
-const prismaClient = globalForPrisma.prisma ??
-  (PrismaClientCtor
-    ? new PrismaClientCtor({
-      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-    })
-    : undefined)
-
-if (process.env.NODE_ENV !== "production" && prismaClient) {
-  globalForPrisma.prisma = prismaClient
-}
-
-function getPrismaClient(): PrismaClient {
-  if (!prismaClient) {
-    throw new Error("PrismaClient not available. Run `pnpm db:generate` to generate the client.")
-  }
-  return prismaClient
-}
-
-export const prisma = prismaClient
-
-// Helper functions for common queries
 export async function getUserWithRelations(userId: string) {
-  return await getPrismaClient().user.findUnique({
+  return prisma.user.findUnique({
     where: { id: userId },
     include: {
       jobs: { where: { isActive: true } },
@@ -60,7 +26,7 @@ export async function getUserWithRelations(userId: string) {
 }
 
 export async function getShiftsInRange(userId: string, startDate: Date, endDate: Date) {
-  return await getPrismaClient().shift.findMany({
+  return prisma.shift.findMany({
     where: {
       userId,
       date: {
@@ -74,7 +40,7 @@ export async function getShiftsInRange(userId: string, startDate: Date, endDate:
 }
 
 export async function getExpensesInRange(userId: string, startDate: Date, endDate: Date) {
-  return await getPrismaClient().expense.findMany({
+  return prisma.expense.findMany({
     where: {
       userId,
       date: {
@@ -87,14 +53,14 @@ export async function getExpensesInRange(userId: string, startDate: Date, endDat
 }
 
 export async function getCachedAnalytics(userId: string, metric: string, period: string) {
-  const cache = await getPrismaClient().analyticsCache.findUnique({
+  const cache = await prisma.analyticsCache.findUnique({
     where: {
       userId_metric_period: { userId, metric, period },
     },
   })
 
-  if (cache && (cache as unknown as { validUntil: Date }).validUntil > new Date()) {
-    return (cache as unknown as { value: number }).value
+  if (cache && cache.validUntil > new Date()) {
+    return cache.value
   }
 
   return null
@@ -105,11 +71,11 @@ export async function setCachedAnalytics(
   metric: string,
   period: string,
   value: number,
-  ttl: number = 3600000 // 1 hour default
+  ttl: number = 3600000
 ) {
   const validUntil = new Date(Date.now() + ttl)
 
-  await getPrismaClient().analyticsCache.upsert({
+  await prisma.analyticsCache.upsert({
     where: {
       userId_metric_period: { userId, metric, period },
     },
@@ -118,8 +84,14 @@ export async function setCachedAnalytics(
   })
 }
 
-export async function logAction(userId: string, action: string, entity: string, entityId: string, changes?: unknown) {
-  await getPrismaClient().auditLog.create({
+export async function logAction(
+  userId: string,
+  action: string,
+  entity: string,
+  entityId: string,
+  changes?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput
+) {
+  await prisma.auditLog.create({
     data: {
       userId,
       action,

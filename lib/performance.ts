@@ -3,16 +3,16 @@ import React from "react"
 // Performance optimization utilities
 
 // Lazy loading component wrapper
-export function lazyLoadComponent<T extends React.ComponentType<any>>(
-  importFunc: () => Promise<{ default: T }>,
+export function lazyLoadComponent<TProps extends object>(
+  importFunc: () => Promise<{ default: React.ComponentType<TProps> }>,
   fallback: React.ReactNode = null
-) {
-  const LazyComponent = React.lazy(importFunc as any)
+): React.ComponentType<TProps> {
+  const LazyComponent = React.lazy(importFunc)
 
-  const Wrapped = (props: any) =>
+  const Wrapped = (props: TProps) =>
     React.createElement(
       React.Suspense,
-      { fallback: fallback as any } as any,
+      { fallback },
       React.createElement(LazyComponent, props)
     )
 

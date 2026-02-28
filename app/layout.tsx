@@ -1,14 +1,11 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { DataProvider } from '@/components/data-provider'
-import { AppShell } from '@/components/app-shell'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Toaster } from '@/components/ui/toaster'
+import { AuthProvider } from '@/components/auth-provider'
 import './globals.css'
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
   title: 'ShiftWise - Smart Shift Management for Students',
@@ -49,15 +46,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          <ErrorBoundary>
-            <DataProvider>
-              {children}
-              <Toaster />
-            </DataProvider>
-          </ErrorBoundary>
-        </ThemeProvider>
+      <body className="font-sans antialiased">
+        <AuthProvider>
+          <ThemeProvider>
+            <ErrorBoundary>
+              <DataProvider>
+                {children}
+                <Toaster />
+              </DataProvider>
+            </ErrorBoundary>
+          </ThemeProvider>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

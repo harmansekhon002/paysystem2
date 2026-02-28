@@ -1,5 +1,52 @@
 "use client"
 
+import { useTheme } from "next-themes"
+import { type TooltipProps } from "recharts"
+
+// Shared custom tooltip for recharts (LineChart, BarChart)
+function CustomChartTooltip({
+  active,
+  payload,
+  label,
+  formatter,
+  theme,
+}: TooltipProps<number, string> & {
+  theme: "light" | "dark"
+  formatter?: (value: number, name: string) => [string, string]
+}) {
+  if (!active || !payload || !payload.length) return null;
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#111827' : '#fff';
+  const color = isDark ? '#f9fafb' : '#111827';
+  const titleColor = isDark ? '#22d3aa' : '#059669';
+  const numericValue = Number(payload[0]?.value ?? 0)
+  const seriesName = String(payload[0]?.name ?? "")
+  const value = formatter
+    ? formatter(numericValue, seriesName)
+    : [`$${numericValue}`, seriesName]
+  const displayValue = String(value[0]).replace(/^\$\$/, "$")
+  return (
+    <div
+      style={{
+        background: bg,
+        color,
+        border: 'none',
+        borderRadius: 8,
+        fontSize: 14,
+        fontWeight: 700,
+        boxShadow: isDark ? '0 4px 16px 0 rgba(0,0,0,0.85)' : '0 2px 8px 0 rgba(0,0,0,0.08)',
+        padding: '12px 18px',
+        minWidth: 90,
+        textAlign: 'center',
+        letterSpacing: '0.01em',
+      }}
+    >
+      <div style={{ color: titleColor, fontWeight: 700 }}>{String(label ?? "")}</div>
+      <div style={{ color, fontWeight: 700 }}>{displayValue}</div>
+    </div>
+  );
+}
+
 import { useMemo } from "react"
 import { TrendingUp, TrendingDown, Calendar, DollarSign, Clock, Target } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,7 +54,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { useAppData } from "@/components/data-provider"
 import { formatCurrency, type RateType, RATE_TYPE_LABELS } from "@/lib/store"
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Rectangle } from "recharts"
 import { PieChart } from "@/components/ui/pie-chart"
 import { useState } from "react"
 
@@ -109,15 +156,10 @@ export function ReportingDashboard() {
 
   const COLORS = ["#0d9488", "#6366f1", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4"]
 
-  // Color helpers for dark mode
-  const isDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
-  const axisColor = isDark ? '#888' : '#222'
-  const gridColor = isDark ? '#888' : 'hsl(var(--border))'
-  const legendColor = isDark ? '#888' : '#222'
-  const tooltipBg = isDark ? '#222' : '#fff'
-  const tooltipColor = isDark ? '#fff' : '#222'
-  const tooltipBorder = '1px solid var(--color-border)'
-  const tooltipRadius = '8px'
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const axisColor = isDark ? '#888' : '#222';
+  const gridColor = isDark ? '#888' : 'hsl(var(--border))';
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">
@@ -229,8 +271,13 @@ export function ReportingDashboard() {
                   />
                   <YAxis stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
                   <Tooltip
-                    contentStyle={{ background: tooltipBg, color: tooltipColor, border: tooltipBorder, borderRadius: tooltipRadius, fontSize: "13px" }}
-                    formatter={(value: number) => formatCurrency(value, currencySymbol)}
+                    cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }}
+                    content={
+                      <CustomChartTooltip
+                        theme={resolvedTheme === "dark" ? "dark" : "light"}
+                        formatter={(value: number) => [formatCurrency(value, currencySymbol), 'Earnings']}
+                      />
+                    }
                   />
                   <Line type="monotone" dataKey="earnings" stroke="#0d9488" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
@@ -254,10 +301,21 @@ export function ReportingDashboard() {
                   <XAxis dataKey="name" stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
                   <YAxis stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
                   <Tooltip
-                    contentStyle={{ background: tooltipBg, color: tooltipColor, border: tooltipBorder, borderRadius: tooltipRadius, fontSize: "13px" }}
-                    formatter={(value: number) => formatCurrency(value, currencySymbol)}
+                    cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }}
+                    content={
+                      <CustomChartTooltip
+                        theme={resolvedTheme === "dark" ? "dark" : "light"}
+                        formatter={(value: number) => [formatCurrency(value, currencySymbol), 'Earnings']}
+                      />
+                    }
                   />
-                  <Bar dataKey="earnings">
+                  <Bar
+                    dataKey="earnings"
+                    stroke="transparent"
+                    activeBar={
+                      <Rectangle stroke="hsl(var(--border) / 0.35)" strokeWidth={1} />
+                    }
+                  >
                     {earningsByJob.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -283,7 +341,7 @@ export function ReportingDashboard() {
                   value: item.earnings,
                   color: COLORS[index % COLORS.length],
                 }))}
-                tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), name]}
+                tooltipFormatter={(value, name) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), name]}
                 height={200}
               />
             ) : (
@@ -306,8 +364,8 @@ export function ReportingDashboard() {
                     <div key={item.category} className="flex items-center gap-3">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs" style={{ color: legendColor }}>{item.category}</span>
-                          <span className="text-xs font-medium" style={{ color: legendColor }}>{formatCurrency(item.amount, currencySymbol)}</span>
+                          <span className="text-xs text-muted-foreground dark:text-[#888]">{item.category}</span>
+                          <span className="text-xs font-medium text-muted-foreground dark:text-[#888]">{formatCurrency(item.amount, currencySymbol)}</span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-secondary">
                           <div

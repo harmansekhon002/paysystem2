@@ -1,20 +1,31 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+type PayPalWebhookEvent = {
+  event_type?: string
+  resource?: {
+    id?: string
+    billing_agreement_id?: string
+  }
+}
+
 // Webhook endpoint to receive events from PayPal
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text()
-    const event = JSON.parse(rawBody)
+    const event = JSON.parse(rawBody) as PayPalWebhookEvent
 
     // Verify webhook signature here if configured (recommended for production)
+    if (!prisma?.subscription) {
+      throw new Error('Prisma client is not initialized')
+    }
 
     // Handle different PayPal event types
     switch (event.event_type) {
       case 'BILLING.SUBSCRIPTION.CANCELLED': {
-        const subscriptionId = event.resource.id
-        // @ts-ignore
-        await (prisma as any).subscription.update({
+        const subscriptionId = event.resource?.id
+        if (!subscriptionId) break
+        await prisma.subscription.update({
           where: { paypalSubscriptionId: subscriptionId },
           data: { status: 'canceled', cancelAtPeriodEnd: true }
         })
@@ -23,9 +34,9 @@ export async function POST(req: Request) {
       }
 
       case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED': {
-        const subscriptionId = event.resource.id
-        // @ts-ignore
-        await (prisma as any).subscription.update({
+        const subscriptionId = event.resource?.id
+        if (!subscriptionId) break
+        await prisma.subscription.update({
           where: { paypalSubscriptionId: subscriptionId },
           data: { status: 'past_due' }
         })
@@ -36,13 +47,12 @@ export async function POST(req: Request) {
       case 'PAYMENT.SALE.COMPLETED': {
         // Find the subscription ID linked to the sale.
         // The billing agreement ID is typically included in the custom field or billing_agreement_id
-        const subscriptionId = event.resource.billing_agreement_id
+        const subscriptionId = event.resource?.billing_agreement_id
 
         if (subscriptionId) {
           // Update the current period end 
           // (Requires fetching actual subscription details from PayPal API for exact dates)
-          // @ts-ignore
-          await (prisma as any).subscription.update({
+          await prisma.subscription.update({
             where: { paypalSubscriptionId: subscriptionId },
             data: {
               status: 'active',

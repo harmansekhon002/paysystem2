@@ -19,6 +19,7 @@ type DataContextType = {
   removeJob: (id: string) => void
   // Expenses
   addExpense: (expense: Omit<Expense, "id">) => void
+  updateExpense: (id: string, updates: Partial<Expense>) => void
   removeExpense: (id: string) => void
   // Budget
   addBudgetCategory: (cat: Omit<BudgetCategory, "id">) => void
@@ -127,8 +128,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Expenses
+
   const addExpense = useCallback((expense: Omit<Expense, "id">) => {
     setData(prev => ({ ...prev, expenses: [...prev.expenses, { ...expense, id: generateId() }] }))
+  }, [])
+
+  const updateExpense = useCallback((id: string, updates: Partial<Expense>) => {
+    setData(prev => ({
+      ...prev,
+      expenses: prev.expenses.map(e => e.id === id ? { ...e, ...updates } : e),
+    }))
   }, [])
 
   const removeExpense = useCallback((id: string) => {
@@ -204,7 +213,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         data,
         addShift, removeShift, updateShift,
         addJob, updateJob, removeJob,
-        addExpense, removeExpense,
+        addExpense, updateExpense, removeExpense,
         addBudgetCategory, updateBudgetCategory, removeBudgetCategory,
         addGoal, updateGoal, removeGoal,
         updateSettings,

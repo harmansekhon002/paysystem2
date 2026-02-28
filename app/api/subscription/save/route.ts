@@ -1,25 +1,27 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { getToken } from "next-auth/jwt"
 import { prisma } from '@/lib/prisma'
-// You would typically get the logged-in user's ID from auth context/session.
-// Assuming a mocked user ID for this implementation (replace with actual auth).
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
-        const data = await req.json()
+        const data = await req.json() as { subscriptionId?: string }
         const { subscriptionId } = data
 
         if (!subscriptionId) {
             return NextResponse.json({ error: 'Missing subscription ID' }, { status: 400 })
         }
 
-        // Replace with actual user fetching logic (e.g. NextAuth auth())
-        const userId = "mock-user-id" // TODO: Get actual user ID
+        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+        const userId = typeof token?.id === "string" ? token.id : null
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
         // We verify the subscription via the PayPal API in a production environment
         // For now, we save it directly to the database.
-        if (!prisma) throw new Error("Prisma client is not initialized")
+        if (!prisma?.subscription) throw new Error("Prisma client is not initialized")
 
-        await (prisma as any).subscription.upsert({
+        await prisma.subscription.upsert({
             where: { userId },
             update: {
                 paypalSubscriptionId: subscriptionId,

@@ -1,4 +1,43 @@
-"use client"
+"use client";
+import { type TooltipProps } from "recharts"
+
+// Custom tooltip for BarChart, matching PieChart style
+function CustomBarTooltip({
+  active,
+  payload,
+  label,
+  theme,
+}: TooltipProps<number, string> & { theme: "light" | "dark" }) {
+  if (!active || !payload || !payload.length) return null;
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#111827' : '#fff';
+  const color = isDark ? '#f9fafb' : '#111827';
+  const titleColor = isDark ? '#22d3aa' : '#059669';
+  const value = Number(payload[0]?.value ?? 0)
+  return (
+    <div
+      style={{
+        background: bg,
+        color,
+        border: 'none',
+        borderRadius: 8,
+        fontSize: 14,
+        fontWeight: 700,
+        boxShadow: isDark ? '0 4px 16px 0 rgba(0,0,0,0.85)' : '0 2px 8px 0 rgba(0,0,0,0.08)',
+        padding: '12px 18px',
+        minWidth: 90,
+        textAlign: 'center',
+        letterSpacing: '0.01em',
+      }}
+    >
+      <div style={{ color: titleColor, fontWeight: 700 }}>{String(label ?? "")}</div>
+      <div style={{ color, fontWeight: 700 }}>{`$${value}`}</div>
+    </div>
+  );
+}
+
+// ...existing code...
+
 
 import { useMemo, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +47,7 @@ import { formatCurrency, RATE_TYPE_LABELS } from "@/lib/store"
 import { Clock, DollarSign, TrendingUp, CalendarClock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Rectangle
 } from "recharts"
 import { PieChart } from "@/components/ui/pie-chart"
 
@@ -119,10 +158,6 @@ export function Dashboard() {
   const axisColor = isDark ? '#888' : '#222'
   const gridColor = isDark ? '#888' : 'var(--color-border)'
   const legendColor = isDark ? '#888' : '#222'
-  const tooltipBg = isDark ? '#222' : '#fff'
-  const tooltipColor = isDark ? '#fff' : '#222'
-  const tooltipBorder = '1px solid var(--color-border)'
-  const tooltipRadius = '8px'
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -147,15 +182,23 @@ export function Dashboard() {
           <CardContent className="h-[220px] pt-0">
             {hasShifts ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyChartData} barSize={28}>
+                <BarChart data={weeklyChartData} barSize={28} barCategoryGap={30} barGap={8}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                   <XAxis dataKey="day" tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} />
                   <YAxis tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={(v) => `${currencySymbol}${v}`} />
                   <Tooltip
-                    formatter={(value: number) => [formatCurrency(value, currencySymbol), "Earnings"]}
-                    contentStyle={{ background: tooltipBg, color: tooltipColor, border: tooltipBorder, borderRadius: tooltipRadius, fontSize: "13px" }}
+                    cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }}
+                    content={<CustomBarTooltip theme={isDark ? "dark" : "light"} />}
                   />
-                  <Bar dataKey="earnings" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
+                    <Bar
+                      dataKey="earnings"
+                      fill="var(--color-primary)"
+                      radius={[6, 6, 0, 0]}
+                      stroke="transparent"
+                      activeBar={
+                        <Rectangle stroke="hsl(var(--border) / 0.35)" strokeWidth={1} />
+                      }
+                    />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -176,7 +219,7 @@ export function Dashboard() {
                 <div className="h-[150px] w-[150px]">
                   <PieChart
                     data={jobPieData}
-                    tooltipFormatter={(value, name) => [formatCurrency(value, currencySymbol), "Earned"]}
+                    tooltipFormatter={(value) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), "Earned"]}
                   />
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">

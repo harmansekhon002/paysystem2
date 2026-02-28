@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
+import { signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   CalendarClock,
@@ -18,13 +19,12 @@ import {
   X,
   Menu,
   BarChart3,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAppData } from "@/components/data-provider"
+import { NotificationCenter } from "@/components/notification-center"
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -50,74 +50,6 @@ function ThemeToggle() {
       <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
     </Button>
-  )
-}
-
-function SettingsDialog({ children }: { children: React.ReactNode }) {
-  const { data, updateSettings } = useAppData()
-  const [open, setOpen] = useState(false)
-
-  const currencyOptions = [
-    { code: "AUD", symbol: "$" },
-    { code: "USD", symbol: "$" },
-    { code: "EUR", symbol: "€" },
-    { code: "GBP", symbol: "£" },
-  ]
-
-  const payPeriodOptions = [
-    { value: "weekly", label: "Weekly" },
-    { value: "biweekly", label: "Biweekly" },
-    { value: "monthly", label: "Monthly" },
-    { value: "per_shift", label: "Per shift" },
-  ]
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Customize your currency and pay period.</DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Currency</Label>
-            <Select
-              value={data.settings.currency}
-              onValueChange={(value) => {
-                const selected = currencyOptions.find((c) => c.code === value)
-                if (!selected) return
-                updateSettings({ currency: selected.code, currencySymbol: selected.symbol })
-              }}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {currencyOptions.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Pay Period</Label>
-            <Select
-              value={data.settings.payPeriod}
-              onValueChange={(value) => updateSettings({ payPeriod: value as typeof data.settings.payPeriod })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {payPeriodOptions.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Done</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -179,18 +111,8 @@ function BottomNav() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { data } = useAppData()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return null
-  }
 
   return (
     <div className="flex min-h-svh bg-background">
@@ -205,9 +127,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-1 flex-col px-3 py-2">
           <SidebarNav />
         </div>
-        <div className="flex items-center gap-3 border-t border-border px-5 py-3">
+        <div className="relative flex items-center gap-2 border-t border-border px-5 py-3">
           <ThemeToggle />
+          <NotificationCenter />
           <span className="text-xs font-medium text-muted-foreground">{data.settings.currency}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="ml-auto size-8 text-muted-foreground hover:text-foreground"
+            aria-label="Sign out"
+          >
+            <LogOut className="size-4" />
+          </Button>
         </div>
       </aside>
 
@@ -228,8 +160,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <span className="text-sm font-semibold text-foreground">ShiftWise</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="relative flex items-center gap-1">
+          <NotificationCenter />
           <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="size-8 text-muted-foreground hover:text-foreground"
+            aria-label="Sign out"
+          >
+            <LogOut className="size-4" />
+          </Button>
         </div>
       </header>
 
