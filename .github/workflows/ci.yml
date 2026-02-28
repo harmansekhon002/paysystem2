@@ -11,6 +11,8 @@ jobs:
   lint-and-format:
     name: Lint & Format Check
     runs-on: ubuntu-latest
+    env:
+      CI: true
     
     steps:
       - name: Checkout code
@@ -21,18 +23,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+
+      - name: Tooling versions
         run: |
-          set -euo pipefail
           node -v
           npm -v
-          if command -v corepack >/dev/null 2>&1; then
-            corepack enable
-            corepack prepare pnpm@10.30.1 --activate
-          else
-            npm i -g pnpm@10.30.1
-            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
-          fi
           pnpm --version
           command -v pnpm
       
@@ -50,6 +50,8 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: lint-and-format
+    env:
+      CI: true
     
     steps:
       - name: Checkout code
@@ -60,18 +62,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+
+      - name: Tooling versions
         run: |
-          set -euo pipefail
           node -v
           npm -v
-          if command -v corepack >/dev/null 2>&1; then
-            corepack enable
-            corepack prepare pnpm@10.30.1 --activate
-          else
-            npm i -g pnpm@10.30.1
-            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
-          fi
           pnpm --version
           command -v pnpm
       
@@ -92,6 +92,8 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: lint-and-format
+    env:
+      CI: true
     
     steps:
       - name: Checkout code
@@ -102,18 +104,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+
+      - name: Tooling versions
         run: |
-          set -euo pipefail
           node -v
           npm -v
-          if command -v corepack >/dev/null 2>&1; then
-            corepack enable
-            corepack prepare pnpm@10.30.1 --activate
-          else
-            npm i -g pnpm@10.30.1
-            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
-          fi
           pnpm --version
           command -v pnpm
       
@@ -138,6 +138,8 @@ jobs:
     name: Build Application
     runs-on: ubuntu-latest
     needs: [test-unit, test-e2e]
+    env:
+      CI: true
     
     steps:
       - name: Checkout code
@@ -148,18 +150,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+
+      - name: Tooling versions
         run: |
-          set -euo pipefail
           node -v
           npm -v
-          if command -v corepack >/dev/null 2>&1; then
-            corepack enable
-            corepack prepare pnpm@10.30.1 --activate
-          else
-            npm i -g pnpm@10.30.1
-            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
-          fi
           pnpm --version
           command -v pnpm
       
@@ -181,6 +181,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'pull_request'
+    env:
+      CI: true
     
     steps:
       - name: Checkout code
@@ -191,18 +193,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+
+      - name: Tooling versions
         run: |
-          set -euo pipefail
           node -v
           npm -v
-          if command -v corepack >/dev/null 2>&1; then
-            corepack enable
-            corepack prepare pnpm@10.30.1 --activate
-          else
-            npm i -g pnpm@10.30.1
-            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
-          fi
           pnpm --version
           command -v pnpm
       
@@ -274,6 +274,8 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    env:
+      CI: true
     
     steps:
       - name: Checkout code
