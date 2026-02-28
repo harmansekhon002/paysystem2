@@ -20,10 +20,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm (corepack)
+      - name: Install pnpm
         run: |
-          corepack enable
-          corepack prepare pnpm@10.30.1 --activate
+          npm i -g pnpm@10.30.1
           pnpm --version
       
       - name: Install dependencies
@@ -50,10 +49,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm (corepack)
+      - name: Install pnpm
         run: |
-          corepack enable
-          corepack prepare pnpm@10.30.1 --activate
+          npm i -g pnpm@10.30.1
           pnpm --version
       
       - name: Install dependencies
@@ -83,10 +81,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm (corepack)
+      - name: Install pnpm
         run: |
-          corepack enable
-          corepack prepare pnpm@10.30.1 --activate
+          npm i -g pnpm@10.30.1
           pnpm --version
       
       - name: Install dependencies
@@ -120,10 +117,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm (corepack)
+      - name: Install pnpm
         run: |
-          corepack enable
-          corepack prepare pnpm@10.30.1 --activate
+          npm i -g pnpm@10.30.1
           pnpm --version
       
       - name: Install dependencies
@@ -154,10 +150,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable pnpm (corepack)
+      - name: Install pnpm
         run: |
-          corepack enable
-          corepack prepare pnpm@10.30.1 --activate
+          npm i -g pnpm@10.30.1
           pnpm --version
       
       - name: Install dependencies
