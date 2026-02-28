@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   lint-and-format:
@@ -20,10 +21,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install pnpm
+      - name: Enable pnpm
         run: |
-          npm i -g pnpm@10.30.1
+          set -euo pipefail
+          node -v
+          npm -v
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable
+            corepack prepare pnpm@10.30.1 --activate
+          else
+            npm i -g pnpm@10.30.1
+            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
+          fi
           pnpm --version
+          command -v pnpm
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -49,10 +60,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install pnpm
+      - name: Enable pnpm
         run: |
-          npm i -g pnpm@10.30.1
+          set -euo pipefail
+          node -v
+          npm -v
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable
+            corepack prepare pnpm@10.30.1 --activate
+          else
+            npm i -g pnpm@10.30.1
+            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
+          fi
           pnpm --version
+          command -v pnpm
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -81,10 +102,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install pnpm
+      - name: Enable pnpm
         run: |
-          npm i -g pnpm@10.30.1
+          set -euo pipefail
+          node -v
+          npm -v
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable
+            corepack prepare pnpm@10.30.1 --activate
+          else
+            npm i -g pnpm@10.30.1
+            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
+          fi
           pnpm --version
+          command -v pnpm
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -117,10 +148,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install pnpm
+      - name: Enable pnpm
         run: |
-          npm i -g pnpm@10.30.1
+          set -euo pipefail
+          node -v
+          npm -v
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable
+            corepack prepare pnpm@10.30.1 --activate
+          else
+            npm i -g pnpm@10.30.1
+            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
+          fi
           pnpm --version
+          command -v pnpm
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -150,10 +191,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install pnpm
+      - name: Enable pnpm
         run: |
-          npm i -g pnpm@10.30.1
+          set -euo pipefail
+          node -v
+          npm -v
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable
+            corepack prepare pnpm@10.30.1 --activate
+          else
+            npm i -g pnpm@10.30.1
+            echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
+          fi
           pnpm --version
+          command -v pnpm
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -227,6 +278,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       
       - name: Run Snyk scan
         uses: snyk/actions/node@master
@@ -235,5 +291,5 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       
       - name: Run npm audit
-        run: npm audit --production
+        run: npm audit --omit=dev
         continue-on-error: true
