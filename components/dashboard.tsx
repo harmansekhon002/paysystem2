@@ -34,6 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
 import { calculateShiftEarnings, detectRateType, formatCurrency, RATE_TYPE_LABELS } from "@/lib/store"
 
@@ -109,6 +110,7 @@ function formatTime(date: Date) {
 export function Dashboard() {
   const { data, getJob, addShift, addExpense, updateShift, planName, isPremium, usage, limits, isSpecialUser, displayName } = useAppData()
   const { resolvedTheme } = useTheme()
+  const isMobile = useIsMobile()
   const { toast } = useToast()
   const { shifts, jobs, expenses, budgetCategories } = data
   const currencySymbol = data.settings.currencySymbol
@@ -325,6 +327,7 @@ export function Dashboard() {
   const axisColor = "var(--color-muted-foreground)"
   const gridColor = "var(--color-border)"
   const legendColor = "var(--color-muted-foreground)"
+  const showQuickActions = widgetConfig.quickActions && !isMobile
 
   return (
     <div className="mobile-page flex flex-col gap-6">
@@ -488,9 +491,9 @@ export function Dashboard() {
       </Card>
       ) : null}
 
-      {(widgetConfig.quickActions || widgetConfig.profitability) ? (
+      {(showQuickActions || widgetConfig.profitability) ? (
         <div className="grid gap-4 lg:grid-cols-5">
-          {widgetConfig.quickActions ? (
+          {showQuickActions ? (
             <Card className={widgetConfig.profitability ? "lg:col-span-3" : "lg:col-span-5"}>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -571,7 +574,7 @@ export function Dashboard() {
           ) : null}
 
           {widgetConfig.profitability ? (
-            <Card className={widgetConfig.quickActions ? "lg:col-span-2" : "lg:col-span-5"}>
+            <Card className={showQuickActions ? "lg:col-span-2" : "lg:col-span-5"}>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <BriefcaseBusiness className="size-4 text-primary" />

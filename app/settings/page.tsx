@@ -341,7 +341,7 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="mobile-page mx-auto flex w-full max-w-6xl flex-col gap-6 py-6 md:gap-8 md:py-10">
+      <div className="mobile-page mobile-settings mx-auto flex w-full max-w-6xl flex-col gap-6 py-6 md:gap-8 md:py-10">
         <Card className="border-primary/20 bg-gradient-to-r from-primary/8 via-card to-card shadow-sm">
           <CardHeader className="space-y-3 p-5 md:space-y-4 md:p-8">
             <div className="flex items-center justify-between gap-3">
@@ -356,15 +356,27 @@ export default function SettingsPage() {
           </CardHeader>
         </Card>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+        <div className="mobile-settings-quick-nav md:hidden">
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Link href="#settings-profile" className="mobile-settings-chip">Profile</Link>
+            <Link href="#settings-region-pay" className="mobile-settings-chip">Region</Link>
+            <Link href="#settings-notifications" className="mobile-settings-chip">Alerts</Link>
+            <Link href="#settings-subscription" className="mobile-settings-chip">Billing</Link>
+            <Link href="#settings-widgets" className="mobile-settings-chip">Widgets</Link>
+            {isSpecialUser ? <Link href="#settings-companion" className="mobile-settings-chip">Companion</Link> : null}
+            <Link href="#settings-data-reset" className="mobile-settings-chip">System</Link>
+          </div>
+        </div>
+
+        <div className="mobile-settings-grid grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           <div className="flex flex-col gap-8 lg:col-span-8">
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Account</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Identity details for this device.</p>
               </div>
               <div className="space-y-5">
-                <Card id="settings-profile" className="border-border/80 shadow-sm">
+                <Card id="settings-profile" className="mobile-settings-card border-border/80 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <UserRound className="text-primary size-4" />
@@ -406,13 +418,13 @@ export default function SettingsPage() {
                 </Card>
               </div>
             </div>
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Preferences</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Regional, communication, and notification behavior.</p>
               </div>
               <div className="space-y-5">
-                <Card id="settings-region-pay" className="border-border/80 shadow-sm">
+                <Card id="settings-region-pay" className="mobile-settings-card border-border/80 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <Globe2 className="text-primary size-4" />
@@ -579,7 +591,7 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                <Card id="settings-notifications" className="border-border/80 shadow-sm">
+                <Card id="settings-notifications" className="mobile-settings-card border-border/80 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <Bell className="text-primary size-4" />
@@ -634,7 +646,7 @@ export default function SettingsPage() {
                           onCheckedChange={(checked) => updateSettings({ quietHoursEnabled: Boolean(checked) })}
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
                           <Label htmlFor="quiet-start">Start</Label>
                           <Input
@@ -664,13 +676,13 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex flex-col gap-8 lg:col-span-4">
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Billing</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Plan status and renewal controls.</p>
               </div>
               <div className="space-y-5">
-                <Card id="settings-subscription" className="border-border/80 shadow-sm">
+                <Card id="settings-subscription" className="mobile-settings-card border-border/80 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <WalletCards className="text-primary size-4" />
@@ -777,13 +789,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Personalization</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Customize your dashboard layout.</p>
               </div>
               <div className="space-y-5">
-                <Card id="settings-widgets" className="border-border/80 shadow-sm">
+                <Card id="settings-widgets" className="mobile-settings-card border-border/80 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <LayoutDashboard className="text-primary size-4" />
@@ -812,7 +824,7 @@ export default function SettingsPage() {
                 </Card>
 
                 {isSpecialUser ? (
-                  <Card id="settings-companion" className="border-rose-300/40 bg-gradient-to-br from-rose-500/10 to-orange-500/10 shadow-sm">
+                  <Card id="settings-companion" className="mobile-settings-card border-rose-300/40 bg-gradient-to-br from-rose-500/10 to-orange-500/10 shadow-sm">
                     <CardHeader className="p-6 pb-4">
                       <div className="flex items-center gap-2">
                         <Heart className="size-4 text-rose-500" />
@@ -963,13 +975,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">System</h2>
                 <p className="mt-1 text-xs text-muted-foreground">App info, maintenance, and destructive actions.</p>
               </div>
               <div className="space-y-5">
-                <Card className="border-border/80 shadow-sm">
+                <Card className="mobile-settings-card border-border/80 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <Info className="text-primary size-4" />
@@ -990,7 +1002,7 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                <Card id="settings-data-reset" className="border-destructive/40 shadow-sm">
+                <Card id="settings-data-reset" className="mobile-settings-card border-destructive/40 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <Database className="text-destructive size-4" />

@@ -420,13 +420,18 @@ export function ShiftsTracker() {
           </div>
         </div>
         <div className="w-full lg:w-auto">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-nowrap lg:items-center">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-nowrap lg:overflow-visible lg:pb-0">
           {/* Filter Popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="outline" className="h-9 justify-center gap-1.5 whitespace-nowrap">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+                aria-label="Filter shifts"
+              >
                 <Filter className="size-4" />
-                <span>Filter</span>
+                <span className="hidden sm:inline">Filter</span>
                 {(filters.jobId !== "all" || filters.rateType !== "all" || filters.dateFrom || filters.dateTo) && (
                   <Badge variant="secondary" className="ml-1 size-4 p-0 text-[9px] flex items-center justify-center rounded-full">!</Badge>
                 )}
@@ -497,30 +502,42 @@ export function ShiftsTracker() {
           </Popover>
 
           {/* Export Button */}
-          <Button size="sm" variant="outline" className="h-9 justify-center gap-1.5 whitespace-nowrap" onClick={exportToICalendar}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+            onClick={exportToICalendar}
+            aria-label="Export"
+          >
             <Download className="size-4" />
-            <span>Export</span>
+            <span className="hidden sm:inline">Export</span>
           </Button>
 
           <Button
             size="sm"
             variant={multiSelectMode ? "default" : "outline"}
-            className="h-9 justify-center gap-1.5 whitespace-nowrap"
+            className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
             onClick={() => {
               setMultiSelectMode((prev) => !prev)
               setSelectedShiftIds([])
             }}
+            aria-label="Multi-select"
           >
             <CheckSquare className="size-4" />
-            <span>Multi-select</span>
+            <span className="hidden sm:inline">Multi-select</span>
           </Button>
 
           {/* Recurring Shifts Dialog */}
           <Dialog open={recurringDialogOpen} onOpenChange={setRecurringDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="h-9 justify-center gap-1.5 whitespace-nowrap">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+                aria-label="Recurring shifts"
+              >
                 <Repeat className="size-4" />
-                <span>Recurring</span>
+                <span className="hidden sm:inline">Recurring</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
@@ -599,9 +616,14 @@ export function ShiftsTracker() {
 
           <Dialog open={jobDialogOpen} onOpenChange={setJobDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="h-9 justify-center gap-1.5 whitespace-nowrap">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+                aria-label="Add workplace"
+              >
                 <Briefcase className="size-4" />
-                <span>Add Workplace</span>
+                <span className="hidden sm:inline">Add Workplace</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
@@ -643,7 +665,7 @@ export function ShiftsTracker() {
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="h-9 justify-center gap-1.5 whitespace-nowrap">
+              <Button size="sm" className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3">
                 <Plus className="size-4" />
                 <span>Add Shift</span>
               </Button>

@@ -693,7 +693,43 @@ export function WifeyRoutine() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="md:hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BookOpenCheck className="size-4 text-primary" />
+              Daily Checklist
+            </CardTitle>
+            <CardDescription>Mark exercise, paath, and study from one compact card.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            <Button
+              variant={routine.exerciseDone ? "default" : "outline"}
+              className="w-full justify-between"
+              onClick={() => toggleRoutineFlag("exerciseDone", "Exercise")}
+            >
+              <span>Exercise</span>
+              <span className="text-xs">{routine.exerciseDone ? "Done" : "Pending"}</span>
+            </Button>
+            <Button
+              variant={routine.paathDone ? "default" : "outline"}
+              className="w-full justify-between"
+              onClick={() => toggleRoutineFlag("paathDone", "Paath")}
+            >
+              <span>Paath</span>
+              <span className="text-xs">{routine.paathDone ? "Done" : "Pending"}</span>
+            </Button>
+            <Button
+              variant={routine.studyDone ? "default" : "outline"}
+              className="w-full justify-between"
+              onClick={() => toggleRoutineFlag("studyDone", "Study")}
+            >
+              <span>Study</span>
+              <span className="text-xs">{routine.studyDone ? "Done" : "Pending"}</span>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Dumbbell className="size-4 text-emerald-500" />
@@ -708,7 +744,7 @@ export function WifeyRoutine() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <BookOpenCheck className="size-4 text-amber-500" />
@@ -723,7 +759,7 @@ export function WifeyRoutine() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        <Card className="hidden md:block md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <GraduationCap className="size-4 text-indigo-500" />
@@ -739,7 +775,31 @@ export function WifeyRoutine() {
         </Card>
       </div>
 
-      <Card className="border-primary/25">
+      <details className="rounded-xl border border-primary/25 bg-card md:hidden">
+        <summary className="cursor-pointer list-none px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Brain className="size-4 text-primary" />
+            AI Care Plan Of The Day
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">{carePlan.summary}</p>
+        </summary>
+        <div className="space-y-3 border-t border-border/60 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{carePlan.title}</Badge>
+            <Badge variant="outline">Today: {todayWorkloadHours.toFixed(1)}h</Badge>
+            <Badge variant="outline">48h: {next48WorkloadHours.toFixed(1)}h</Badge>
+          </div>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            {carePlan.steps.map((step) => (
+              <p key={step} className="rounded-md border border-border/60 px-3 py-2">
+                {step}
+              </p>
+            ))}
+          </div>
+        </div>
+      </details>
+
+      <Card className="hidden border-primary/25 md:block">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Brain className="size-4 text-primary" />
@@ -764,7 +824,50 @@ export function WifeyRoutine() {
       </Card>
 
       {!parentalMode ? (
-        <Card className="border-primary/25">
+        <>
+          <details className="rounded-xl border border-primary/25 bg-card md:hidden">
+            <summary className="cursor-pointer list-none px-4 py-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Smile className="size-4 text-primary" />
+                Mood Log
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Open to log mood quickly.</p>
+            </summary>
+            <div className="space-y-3 border-t border-border/60 px-4 py-3">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Current mood</p>
+                <Select value={mood} onValueChange={setMood}>
+                  <SelectTrigger className="border-rose-300/60 bg-rose-50/70 text-rose-700 shadow-sm focus-visible:border-rose-400 focus-visible:ring-rose-300/60 dark:border-rose-400/40 dark:bg-rose-950/25 dark:text-rose-200 dark:focus-visible:ring-rose-400/40">
+                    <SelectValue placeholder="Select mood" />
+                  </SelectTrigger>
+                  <SelectContent className="border-rose-300/50 bg-gradient-to-b from-rose-50 to-pink-50 text-rose-800 dark:border-rose-400/40 dark:from-rose-950 dark:to-pink-950 dark:text-rose-100">
+                    {MOOD_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className="focus:bg-rose-100 focus:text-rose-900 data-[state=checked]:bg-rose-100/90 data-[state=checked]:text-rose-900 dark:focus:bg-rose-900/55 dark:focus:text-rose-100 dark:data-[state=checked]:bg-rose-900/60 dark:data-[state=checked]:text-rose-100"
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Quick note</p>
+                <Textarea
+                  value={moodNote}
+                  onChange={(event) => setMoodNote(event.target.value)}
+                  placeholder="How are you feeling right now?"
+                  rows={3}
+                />
+              </div>
+              <Button onClick={saveMood} disabled={!mood} className="w-full">Save mood</Button>
+              {mood ? <p className="text-xs text-muted-foreground">{getMoodTone(mood)}</p> : null}
+            </div>
+          </details>
+
+        <Card className="hidden border-primary/25 md:block">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Smile className="size-4 text-primary" />
@@ -866,14 +969,43 @@ export function WifeyRoutine() {
             ) : null}
           </CardContent>
         </Card>
+        </>
       ) : null}
 
-      <div className="space-y-1 pt-1">
+      <details className="rounded-xl border border-primary/25 bg-card md:hidden">
+        <summary className="cursor-pointer list-none px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <MoonStar className="size-4 text-primary" />
+            Sleep + Hydration Weekly Insights
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Open weekly trend summary and recommendation.</p>
+        </summary>
+        <div className="grid gap-3 border-t border-border/60 px-4 py-3">
+          <div className="rounded-lg border border-border/70 p-3">
+            <p className="text-xs text-muted-foreground">Avg sleep</p>
+            <p className="text-xl font-semibold text-foreground">{weeklyInsights.averageSleep.toFixed(1)}h</p>
+          </div>
+          <div className="rounded-lg border border-border/70 p-3">
+            <p className="text-xs text-muted-foreground">Avg hydration</p>
+            <p className="text-xl font-semibold text-foreground">{weeklyInsights.averageHydration.toFixed(1)} bottles</p>
+          </div>
+          <div className="rounded-lg border border-border/70 p-3">
+            <p className="text-xs text-muted-foreground">Synergy days</p>
+            <p className="text-xl font-semibold text-foreground">{weeklyInsights.synergyDays}/7</p>
+          </div>
+          <div className="rounded-lg border border-border/70 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Focus: {weeklyInsights.focus}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{weeklyInsights.recommendation}</p>
+          </div>
+        </div>
+      </details>
+
+      <div className="hidden space-y-1 pt-1 md:block">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Progress and extras</p>
         <p className="text-sm text-muted-foreground">Longer-term trends and support tools are grouped below.</p>
       </div>
 
-      <Card className="border-primary/25">
+      <Card className="hidden border-primary/25 md:block">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <MoonStar className="size-4 text-primary" />

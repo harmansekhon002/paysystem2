@@ -104,47 +104,6 @@ function SidebarNav({ items, mode, onNavigate }: { items: NavItem[]; mode: Theme
   )
 }
 
-function BottomNav({ items, mode }: { items: NavItem[]; mode: ThemeMode }) {
-  const pathname = usePathname()
-  return (
-    <nav
-      className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 border-t border-border px-2 py-1.5 backdrop-blur-md md:hidden",
-        mode === "light"
-          ? "bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50"
-          : "bg-card"
-      )}
-      role="navigation"
-      aria-label="Mobile navigation"
-    >
-      <div className="flex items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {items.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex min-w-[72px] shrink-0 flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] transition-colors",
-                isActive
-                  ? mode === "light"
-                    ? "bg-gradient-to-r from-yellow-200/85 via-orange-200/80 to-red-200/75 font-semibold text-orange-900"
-                    : "font-medium text-primary"
-                  : mode === "light"
-                    ? "text-muted-foreground hover:text-orange-800"
-                    : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <item.icon className="size-[18px]" />
-              <span className="max-w-[66px] truncate text-center">{item.label}</span>
-            </Link>
-          )
-        })}
-      </div>
-    </nav>
-  )
-}
-
 function formatZoneTime(timeZone: string, date: Date): string {
   return new Intl.DateTimeFormat("en-IN", {
     timeZone,
@@ -241,28 +200,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = useMemo<NavItem[]>(() => {
     return [...baseNavItems, ...specialNavItems, ...studentParentNavItems, settingsNavItem]
   }, [settingsNavItem, specialNavItems, studentParentNavItems])
-
-  const mobileNavItems = useMemo<NavItem[]>(() => {
-    if (loveModeActive) {
-      return [
-        { label: "Home", href: "/", icon: LayoutDashboard },
-        { label: "Shifts", href: "/shifts", icon: CalendarClock },
-        { label: "Routine", href: "/wifey-routine", icon: BookHeart },
-        { label: "Couple", href: "/couple-dashboard", icon: Users },
-        { label: "Settings", href: "/settings", icon: Settings },
-      ]
-    }
-
-    return [
-      { label: "Home", href: "/", icon: LayoutDashboard },
-      { label: "Shifts", href: "/shifts", icon: CalendarClock },
-      { label: "Routine", href: "/wifey-routine", icon: BookHeart },
-      { label: "Parent", href: "/couple-dashboard", icon: Users },
-      { label: "Earnings", href: "/earnings", icon: DollarSign },
-      { label: "Goals", href: "/goals", icon: Target },
-      { label: "Settings", href: "/settings", icon: Settings },
-    ]
-  }, [loveModeActive])
 
   const requiresPin = isSpecialUser && specialCompanion.pinEnabled && specialCompanion.pinCode.trim().length > 0
   const privacyModeEnabled = isSpecialUser && specialCompanion.privacyMode
@@ -551,13 +488,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
                   />
                 </div>
-                <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border/70 pt-3">
-                  <div className="flex justify-center">
-                    <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
-                  </div>
-                  <div className="flex justify-center">
-                    <NotificationCenter />
-                  </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
                   <div className="flex justify-center">
                     <Button
                       variant="ghost"
@@ -592,17 +523,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Main content */}
         <main className="flex-1 md:ml-[240px]">
-          <div className="min-h-svh pt-14 pb-24 md:pt-0 md:pb-0">
+          <div className="min-h-svh pt-14 pb-6 md:pt-0 md:pb-0">
             <div className={cn("mx-auto max-w-5xl px-4 py-6 transition-all md:px-8 md:py-8", privacyModeEnabled && !privacyReveal && "blur-md")}>
               {children}
             </div>
           </div>
         </main>
 
-        <BottomNav items={mobileNavItems} mode={activeThemeMode} />
-
         {privacyModeEnabled ? (
-          <div className="fixed bottom-24 right-4 z-[110] md:bottom-6 md:right-6">
+          <div className="fixed bottom-6 right-4 z-[110] md:right-6">
             <Button
               type="button"
               onClick={() => {

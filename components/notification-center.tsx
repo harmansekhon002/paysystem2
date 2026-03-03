@@ -117,6 +117,7 @@ export function NotificationCenter() {
   const panelRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({})
+  const [compactPanel, setCompactPanel] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
@@ -206,16 +207,23 @@ export function NotificationCenter() {
   }, [notifications])
 
   const positionPanel = useCallback(() => {
-    const margin = window.innerWidth < 640 ? 8 : 16
+    const isCompact = window.innerWidth < 640
+    setCompactPanel(isCompact)
+    const margin = isCompact ? 8 : 16
     const top = window.innerWidth < 768 ? 64 : margin
-    const panelWidth = Math.min(380, window.innerWidth - margin * 2)
+    const panelWidth = isCompact
+      ? Math.min(320, window.innerWidth - margin * 2)
+      : Math.min(380, window.innerWidth - margin * 2)
+    const panelMaxHeight = isCompact
+      ? Math.max(240, window.innerHeight - top - margin)
+      : Math.max(280, window.innerHeight - top - margin)
 
     setPanelStyle({
       position: "fixed",
       top,
       right: margin,
       width: panelWidth,
-      maxHeight: Math.max(280, window.innerHeight - top - margin),
+      maxHeight: panelMaxHeight,
     })
   }, [])
 
@@ -309,7 +317,7 @@ export function NotificationCenter() {
           ref={panelRef}
           style={{ ...panelStyle, ...panelThemeVars }}
           className={cn(
-            "z-[120] overflow-hidden rounded-2xl border border-border bg-card shadow-xl backdrop-blur-md",
+            "z-[120] overflow-hidden rounded-xl border border-border bg-card shadow-xl backdrop-blur-md sm:rounded-2xl",
             panelThemeMode === "dark"
               ? "shadow-black/45"
               : panelThemeMode === "love"
@@ -317,13 +325,13 @@ export function NotificationCenter() {
                 : "shadow-slate-200/60"
           )}
         >
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border px-3 py-2.5 sm:px-4 sm:py-3">
             <div className="flex items-center gap-2">
               <Bell className={cn("size-4", panelThemeMode === "dark" ? "text-emerald-300" : "text-primary")} />
               <span className="text-sm font-semibold text-foreground">Notifications</span>
               {unreadCount > 0 && (
                 <span className={cn(
-                  "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
+                  "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold sm:h-5 sm:min-w-5 sm:px-1.5 sm:text-[11px]",
                   panelThemeMode === "dark" ? "bg-emerald-400/20 text-emerald-200" : "bg-primary/15 text-primary"
                 )}>
                   {unreadCount}
@@ -335,17 +343,17 @@ export function NotificationCenter() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-6 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground sm:h-7 sm:px-2 sm:text-xs"
                   onClick={markAllRead}
                 >
                   <CheckCheck className="size-3" />
-                  Mark all read
+                  <span className={cn(compactPanel && "hidden sm:inline")}>Mark all read</span>
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 text-muted-foreground hover:text-foreground"
+                className="size-6 text-muted-foreground hover:text-foreground sm:size-7"
                 onClick={handleClosePanel}
               >
                 <X className="size-3.5" />
@@ -353,9 +361,9 @@ export function NotificationCenter() {
             </div>
           </div>
 
-          <div className="max-h-[460px] overflow-y-auto">
+          <div className="max-h-[58vh] overflow-y-auto sm:max-h-[460px]">
             {notifications.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+              <div className="flex flex-col items-center gap-2 px-3 py-8 text-center sm:px-4 sm:py-10">
                 <Bell className="size-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">You&apos;re all caught up!</p>
               </div>
@@ -393,23 +401,23 @@ function NotificationItem({
   return (
     <div
       className={cn(
-        "px-4 py-3.5 transition-colors",
+        "px-3 py-2.5 transition-colors sm:px-4 sm:py-3.5",
         n.read ? "bg-transparent hover:bg-secondary/50" : "bg-primary/[0.04] hover:bg-primary/[0.07]"
       )}
     >
       <div
-        className="flex gap-3"
+        className="flex gap-2.5 sm:gap-3"
         onClick={onRead}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && onRead()}
       >
-        <div className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-base", colorClass)}>
+        <div className={cn("mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-sm sm:size-8 sm:rounded-xl sm:text-base", colorClass)}>
           {n.emoji}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <span className={cn("text-[13px] font-semibold leading-tight", n.read ? "text-muted-foreground" : "text-foreground")}>
+            <span className={cn("text-xs font-semibold leading-tight sm:text-[13px]", n.read ? "text-muted-foreground" : "text-foreground")}>
               {n.title}
             </span>
             <div className="flex shrink-0 items-center gap-1.5">
@@ -417,7 +425,7 @@ function NotificationItem({
               {n.link && <ExternalLink className="size-3 shrink-0 text-muted-foreground/60" />}
             </div>
           </div>
-          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{n.body}</p>
+          <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">{n.body}</p>
           <div className="mt-1 flex items-center gap-2">
             <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize", PRIORITY_STYLES[n.priority])}>
               {n.priority}
@@ -430,7 +438,7 @@ function NotificationItem({
       </div>
 
       {n.actions && n.actions.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5 pl-11">
+        <div className="mt-2 flex flex-wrap gap-1.5 pl-9 sm:pl-11">
           {n.actions.slice(0, 2).map((action) =>
             action.link ? (
               <Link
