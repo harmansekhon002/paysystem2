@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat, Pencil } from "lucide-react"
+import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat, Pencil, CheckSquare } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -29,6 +30,8 @@ export function ShiftsTracker() {
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editShiftId, setEditShiftId] = useState<string | null>(null)
+  const [multiSelectMode, setMultiSelectMode] = useState(false)
+  const [selectedShiftIds, setSelectedShiftIds] = useState<string[]>([])
 
   // Filtering state
   const [filters, setFilters] = useState({
@@ -275,7 +278,40 @@ export function ShiftsTracker() {
     })
   }, [sortedShifts, filters])
 
+  const allVisibleSelected =
+    filteredShifts.length > 0 &&
+    filteredShifts.every((shift) => selectedShiftIds.includes(shift.id))
+
   const jobsById = useMemo(() => new Map(data.jobs.map(job => [job.id, job])), [data.jobs])
+
+  const toggleShiftSelection = (shiftId: string, checked: boolean) => {
+    setSelectedShiftIds((prev) =>
+      checked ? [...prev, shiftId] : prev.filter((id) => id !== shiftId)
+    )
+  }
+
+  const toggleSelectAllVisible = (checked: boolean) => {
+    if (!checked) {
+      setSelectedShiftIds((prev) =>
+        prev.filter((id) => !filteredShifts.some((shift) => shift.id === id))
+      )
+      return
+    }
+
+    const visibleIds = filteredShifts.map((shift) => shift.id)
+    setSelectedShiftIds((prev) => Array.from(new Set([...prev, ...visibleIds])))
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedShiftIds.length === 0) return
+    selectedShiftIds.forEach((shiftId) => removeShift(shiftId))
+    trackEvent("shifts_bulk_removed", { count: selectedShiftIds.length })
+    toast({
+      title: "Shifts removed",
+      description: `${selectedShiftIds.length} shift${selectedShiftIds.length === 1 ? "" : "s"} deleted.`,
+    })
+    setSelectedShiftIds([])
+  }
 
   // Calendar helpers
   const calDays = useMemo(() => {
@@ -374,6 +410,19 @@ export function ShiftsTracker() {
           <Button size="sm" variant="outline" className="gap-1.5" onClick={exportToICalendar}>
             <Download className="size-4" />
             <span className="hidden sm:inline">Export</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant={multiSelectMode ? "default" : "outline"}
+            className="gap-1.5"
+            onClick={() => {
+              setMultiSelectMode((prev) => !prev)
+              setSelectedShiftIds([])
+            }}
+          >
+            <CheckSquare className="size-4" />
+            <span className="hidden sm:inline">Multi-select</span>
           </Button>
 
           {/* Recurring Shifts Dialog */}
@@ -732,10 +781,34 @@ export function ShiftsTracker() {
         <TabsContent value="list">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                {filteredShifts.length} shift{filteredShifts.length !== 1 ? "s" : ""}
-                {filteredShifts.length !== data.shifts.length && ` (${data.shifts.length} total)`}
-              </CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-sm font-medium">
+                  {filteredShifts.length} shift{filteredShifts.length !== 1 ? "s" : ""}
+                  {filteredShifts.length !== data.shifts.length && ` (${data.shifts.length} total)`}
+                </CardTitle>
+                {multiSelectMode && filteredShifts.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        onCheckedChange={(checked) => toggleSelectAllVisible(checked === true)}
+                        aria-label="Select all visible shifts"
+                      />
+                      Select all visible
+                    </label>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 gap-1.5"
+                      onClick={handleBulkDelete}
+                      disabled={selectedShiftIds.length === 0}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete selected ({selectedShiftIds.length})
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               {filteredShifts.length === 0 ? (
@@ -746,8 +819,19 @@ export function ShiftsTracker() {
                 <div className="flex flex-col divide-y divide-border">
                   {filteredShifts.map(shift => {
                     const job = jobsById.get(shift.jobId)
+                    const isSelected = selectedShiftIds.includes(shift.id)
                     return (
-                      <div key={shift.id} className="flex items-center gap-3 py-3">
+                      <div
+                        key={shift.id}
+                        className={`flex items-center gap-3 py-3 ${isSelected ? "bg-primary/5" : ""}`}
+                      >
+                        {multiSelectMode && (
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => toggleShiftSelection(shift.id, checked === true)}
+                            aria-label={`Select shift on ${shift.date}`}
+                          />
+                        )}
                         <div className="size-2 rounded-full shrink-0" style={{ background: job?.color || "#94a3b8" }} />
                         <div className="flex flex-1 flex-col gap-0.5 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
