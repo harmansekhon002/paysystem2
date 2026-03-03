@@ -155,11 +155,16 @@ export function ReportingDashboard() {
   }, [data.goals, now])
 
   const COLORS = ["#0d9488", "#6366f1", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4"]
+  const rateTypePieData = earningsByRateType.map((item, index) => ({
+    name: item.rateType,
+    value: item.earnings,
+    color: COLORS[index % COLORS.length],
+  }))
 
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const axisColor = isDark ? '#888' : '#222';
-  const gridColor = isDark ? '#888' : 'hsl(var(--border))';
+  const axisColor = "var(--color-muted-foreground)";
+  const gridColor = "var(--color-border)";
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">
@@ -313,7 +318,7 @@ export function ReportingDashboard() {
                     dataKey="earnings"
                     stroke="transparent"
                     activeBar={
-                      <Rectangle stroke="hsl(var(--border) / 0.35)" strokeWidth={1} />
+                      <Rectangle stroke="var(--color-border)" strokeWidth={1} />
                     }
                   >
                     {earningsByJob.map((entry, index) => (
@@ -335,15 +340,24 @@ export function ReportingDashboard() {
           </CardHeader>
           <CardContent>
             {earningsByRateType.length > 0 ? (
-              <PieChart
-                data={earningsByRateType.map((item, index) => ({
-                  name: item.rateType,
-                  value: item.earnings,
-                  color: COLORS[index % COLORS.length],
-                }))}
-                tooltipFormatter={(value, name) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), name]}
-                height={200}
-              />
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-6">
+                <PieChart
+                  data={rateTypePieData}
+                  tooltipFormatter={(value, name) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), name]}
+                  height={200}
+                />
+                <div className="flex w-full flex-col gap-1.5 sm:w-auto">
+                  {rateTypePieData.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="size-2 rounded-full" style={{ background: item.color }} />
+                        <span>{item.name}</span>
+                      </div>
+                      <span className="font-medium text-foreground">{formatCurrency(item.value, currencySymbol)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">No data for this period</p>
             )}
