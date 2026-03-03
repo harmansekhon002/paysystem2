@@ -481,7 +481,7 @@ export function WifeyRoutine() {
                 {displayName}&apos;s Daily Routine
               </CardTitle>
               <CardDescription className="mt-1">
-                Hydration, exercise, paath, and study{data.settings.specialCompanion.lovesPuppies ? " with puppy motivation." : "."}
+                Hydration, exercise, paath, and study{data.settings.specialCompanion.lovesPuppies ? " with hubby motivation." : "."}
               </CardDescription>
             </div>
             <Badge variant="secondary" className="rounded-full px-3 py-1">{completionPercent}% complete today</Badge>

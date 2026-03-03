@@ -18,7 +18,7 @@ function CustomChartTooltip({
   const isDark = theme === 'dark';
   const bg = isDark ? '#111827' : '#fff';
   const color = isDark ? '#f9fafb' : '#111827';
-  const titleColor = isDark ? '#22d3aa' : '#059669';
+  const titleColor = isDark ? '#22d3aa' : '#ea580c';
   const numericValue = Number(payload[0]?.value ?? 0)
   const seriesName = String(payload[0]?.name ?? "")
   const value = formatter
@@ -218,11 +218,11 @@ export function ReportingDashboard() {
             </div>
             <div className="mt-2 flex items-center gap-1">
               {earningsTrend >= 0 ? (
-                <TrendingUp className="size-3 text-green-600" />
+                <TrendingUp className="size-3 text-primary" />
               ) : (
                 <TrendingDown className="size-3 text-red-600" />
               )}
-              <span className={`text-xs ${earningsTrend >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <span className={`text-xs ${earningsTrend >= 0 ? "text-primary" : "text-red-600"}`}>
                 {Math.abs(earningsTrend).toFixed(1)}% vs prev period
               </span>
             </div>
@@ -304,7 +304,7 @@ export function ReportingDashboard() {
                       />
                     }
                   />
-                  <Line type="monotone" dataKey="earnings" stroke="#0d9488" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="earnings" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (

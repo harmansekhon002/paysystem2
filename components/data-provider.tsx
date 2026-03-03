@@ -181,17 +181,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return `${STORAGE_KEY}:${identity}`
     }
 
+    let sessionUser: SessionResponse["user"] | undefined
+
     try {
       try {
         const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" })
         if (sessionResponse.ok) {
           const session = (await sessionResponse.json()) as SessionResponse
-          setCurrentUser(session.user ?? null)
-          setStorageKey(getStorageKey(session.user))
+          sessionUser = session.user ?? undefined
+          setCurrentUser(sessionUser ?? null)
+          setStorageKey(getStorageKey(sessionUser))
           setStorageReady(true)
 
-          if (isAdminSession(session.user)) {
+          if (isAdminSession(sessionUser)) {
             setPlanTier("admin")
+            return
+          }
+
+          if (sessionUser?.isSpecialUser) {
+            setPlanTier("lifetime")
             return
           }
         } else {
@@ -207,13 +215,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const response = await fetch("/api/subscription/status", { cache: "no-store" })
       if (!response.ok) {
+        if (sessionUser?.isSpecialUser) {
+          setPlanTier("lifetime")
+          return
+        }
         setPlanTier("free")
         return
       }
       const payload = (await response.json()) as SubscriptionStatusResponse
-      setPlanTier(normalizePlanTier(payload))
+      const normalizedTier = normalizePlanTier(payload)
+      setPlanTier(sessionUser?.isSpecialUser && normalizedTier === "free" ? "lifetime" : normalizedTier)
     } catch {
-      setPlanTier("free")
+      if (sessionUser?.isSpecialUser) {
+        setPlanTier("lifetime")
+      } else {
+        setPlanTier("free")
+      }
     }
   }, [])
 

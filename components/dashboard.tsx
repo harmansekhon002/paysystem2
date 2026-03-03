@@ -47,7 +47,7 @@ function CustomBarTooltip({
   const isDark = theme === "dark"
   const bg = isDark ? "#111827" : "#fff"
   const color = isDark ? "#f9fafb" : "#111827"
-  const titleColor = isDark ? "#22d3aa" : "#059669"
+  const titleColor = isDark ? "#22d3aa" : "#ea580c"
   const value = Number(payload[0]?.value ?? 0)
   return (
     <div
@@ -85,7 +85,7 @@ function StatCard({
   accent?: boolean
 }) {
   return (
-    <Card className={accent ? "transition-shadow hover:shadow-[0_0_0_3px_rgba(16,185,129,0.5)]" : ""}>
+    <Card className={accent ? "transition-shadow !hover:shadow-[0_0_0_3px_var(--card-hover-glow)]" : ""}>
       <CardContent className="flex items-start justify-between p-5">
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">{title}</span>

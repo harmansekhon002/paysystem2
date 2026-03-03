@@ -38,12 +38,20 @@ export async function GET(req: NextRequest) {
     }
 
     const token = await getToken({ req, secret })
-    const userId = typeof token?.id === "string" ? token.id : null
+    const userId =
+      typeof token?.id === "string"
+        ? token.id
+        : typeof token?.sub === "string"
+          ? token.sub
+          : null
     const tokenEmail = typeof token?.email === "string" ? token.email.toLowerCase().trim() : null
     const adminEmail = getAdminCredentials().email
-    if (!userId) {
+
+    const isSpecialUser = token?.isSpecialUser === true || (tokenEmail ? isSpecialUserEmail(tokenEmail) : false)
+    if (!userId && !tokenEmail && !isSpecialUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
     if (userId === "admin-root" || tokenEmail === adminEmail) {
       const now = new Date()
       const nextYear = new Date(now)
@@ -62,7 +70,6 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    const isSpecialUser = token?.isSpecialUser === true || (tokenEmail ? isSpecialUserEmail(tokenEmail) : false)
     if (isSpecialUser) {
       const now = new Date()
       return NextResponse.json({
@@ -77,6 +84,10 @@ export async function GET(req: NextRequest) {
           planName: "Lifetime",
         },
       })
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     let subscription: {

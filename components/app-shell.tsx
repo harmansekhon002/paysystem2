@@ -72,7 +72,7 @@ function ThemeToggle({ mode, onToggle }: { mode: ThemeMode; onToggle: () => void
   )
 }
 
-function SidebarNav({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
+function SidebarNav({ items, mode, onNavigate }: { items: NavItem[]; mode: ThemeMode; onNavigate?: () => void }) {
   const pathname = usePathname()
   return (
     <nav className="flex flex-col gap-1">
@@ -86,8 +86,12 @@ function SidebarNav({ items, onNavigate }: { items: NavItem[]; onNavigate?: () =
             className={cn(
               "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
               isActive
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? mode === "light"
+                  ? "bg-gradient-to-r from-yellow-200/80 via-orange-200/80 to-red-200/75 text-orange-900 shadow-sm"
+                  : "bg-primary/10 text-primary"
+                : mode === "light"
+                  ? "text-muted-foreground hover:bg-gradient-to-r hover:from-yellow-100/70 hover:via-orange-100/70 hover:to-red-100/65 hover:text-orange-900"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
             <item.icon className="size-[18px] shrink-0" />
@@ -99,11 +103,16 @@ function SidebarNav({ items, onNavigate }: { items: NavItem[]; onNavigate?: () =
   )
 }
 
-function BottomNav({ items }: { items: NavItem[] }) {
+function BottomNav({ items, mode }: { items: NavItem[]; mode: ThemeMode }) {
   const pathname = usePathname()
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border bg-card px-1 py-1.5 md:hidden"
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border px-1 py-1.5 md:hidden",
+        mode === "light"
+          ? "bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50"
+          : "bg-card"
+      )}
       role="navigation"
       aria-label="Mobile navigation"
     >
@@ -116,8 +125,12 @@ function BottomNav({ items }: { items: NavItem[] }) {
             className={cn(
               "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] transition-colors",
               isActive
-                ? "font-medium text-primary"
-                : "text-muted-foreground hover:text-foreground"
+                ? mode === "light"
+                  ? "bg-gradient-to-r from-yellow-200/85 via-orange-200/80 to-red-200/75 font-semibold text-orange-900"
+                  : "font-medium text-primary"
+                : mode === "light"
+                  ? "text-muted-foreground hover:text-orange-800"
+                  : "text-muted-foreground hover:text-foreground"
             )}
           >
             <item.icon className="size-5" />
@@ -322,10 +335,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}>
         {/* Desktop sidebar */}
-        <aside className="hidden border-r border-border bg-card md:fixed md:inset-y-0 md:flex md:w-[240px] md:flex-col">
+        <aside className={cn(
+          "hidden border-r border-border md:fixed md:inset-y-0 md:flex md:w-[240px] md:flex-col",
+          activeThemeMode === "light"
+            ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
+            : "bg-card"
+        )}>
           <div className="flex h-14 items-center gap-2.5 px-5">
-            <div className={cn("flex size-7 items-center justify-center rounded-lg bg-primary", loveModeActive && "bg-gradient-to-br from-primary to-accent")}>
-              {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className="size-4 text-primary-foreground" />}
+            <div className={cn(
+              "flex size-7 items-center justify-center rounded-lg",
+              loveModeActive
+                ? "bg-gradient-to-br from-primary to-accent"
+                : activeThemeMode === "light"
+                  ? "bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500"
+                  : "bg-primary"
+            )}>
+              {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className={cn("size-4", activeThemeMode === "light" ? "text-white" : "text-primary-foreground")} />}
             </div>
             <span className="text-sm font-semibold text-foreground">
               {loveModeActive ? `ShiftWise x ${displayName}` : "ShiftWise"}
@@ -337,7 +362,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Welcome wifey.
               </div>
             ) : null}
-            <SidebarNav items={navItems} />
+            <SidebarNav items={navItems} mode={activeThemeMode} />
           </div>
           <div className="relative border-t border-border px-4 py-3">
             <div className="grid grid-cols-4 items-center gap-2">
@@ -384,7 +409,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Mobile header */}
-        <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-md md:hidden">
+        <header className={cn(
+          "fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border px-4 backdrop-blur-md md:hidden",
+          activeThemeMode === "light"
+            ? "bg-gradient-to-r from-yellow-50/90 via-orange-50/90 to-red-50/90"
+            : "bg-card/80"
+        )}>
           <div className="flex items-center gap-2.5">
             <Button
               variant="ghost"
@@ -395,8 +425,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
             </Button>
-            <div className={cn("flex size-7 items-center justify-center rounded-lg bg-primary", loveModeActive && "bg-gradient-to-br from-primary to-accent")}>
-              {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className="size-4 text-primary-foreground" />}
+            <div className={cn(
+              "flex size-7 items-center justify-center rounded-lg",
+              loveModeActive
+                ? "bg-gradient-to-br from-primary to-accent"
+                : activeThemeMode === "light"
+                  ? "bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500"
+                  : "bg-primary"
+            )}>
+              {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className={cn("size-4", activeThemeMode === "light" ? "text-white" : "text-primary-foreground")} />}
             </div>
             <span className="text-sm font-semibold text-foreground">{loveModeActive ? `${displayName}'s ShiftWise` : "ShiftWise"}</span>
           </div>
@@ -420,10 +457,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
             <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
             <div
-              className="absolute left-0 top-14 bottom-0 w-[260px] border-r border-border bg-card p-4"
+              className={cn(
+                "absolute left-0 top-14 bottom-0 w-[260px] border-r border-border p-4",
+                activeThemeMode === "light"
+                  ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
+                  : "bg-card"
+              )}
               onClick={(e) => e.stopPropagation()}
             >
-              <SidebarNav items={navItems} onNavigate={() => setMobileOpen(false)} />
+              <SidebarNav items={navItems} mode={activeThemeMode} onNavigate={() => setMobileOpen(false)} />
             </div>
           </div>
         )}
@@ -437,7 +479,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </main>
 
-        <BottomNav items={mobileNavItems} />
+        <BottomNav items={mobileNavItems} mode={activeThemeMode} />
 
         {privacyModeEnabled ? (
           <div className="fixed bottom-24 right-4 z-[110] md:bottom-6 md:right-6">

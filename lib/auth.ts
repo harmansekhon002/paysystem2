@@ -137,14 +137,24 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
+        const resolvedUserId = typeof user.id === "string"
+          ? user.id
+          : typeof token.sub === "string"
+            ? token.sub
+            : token.id
+        if (resolvedUserId) {
+          token.id = resolvedUserId
+        }
+        token.email = user.email || token.email
         token.isSpecialUser = Boolean((user as { isSpecialUser?: boolean }).isSpecialUser)
+      } else if (!token.id && typeof token.sub === "string") {
+        token.id = token.sub
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string
+        session.user.id = (typeof token.id === "string" ? token.id : token.sub) as string
         session.user.isSpecialUser = Boolean(token.isSpecialUser)
       }
       return session
