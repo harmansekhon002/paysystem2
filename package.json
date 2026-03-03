@@ -17,7 +17,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "analyze": "ANALYZE=true next build --webpack",
-    "vercel-build": "export DATABASE_URL=${POSTGRES_PRISMA_URL:-${POSTGRES_URL:-$DATABASE_URL}} && prisma db push --accept-data-loss && next build --webpack",
+    "vercel-build": "next build --webpack",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
