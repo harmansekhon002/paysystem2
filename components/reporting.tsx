@@ -344,7 +344,7 @@ export function ReportingDashboard() {
               <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-6">
                 <PieChart
                   data={rateTypePieData}
-                  tooltipFormatter={(value, name) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), name]}
+                  tooltipFormatter={(value, name) => [formatCurrency(Number(value), currencySymbol), name]}
                   height={200}
                 />
                 <div className="flex w-full flex-col gap-1.5 sm:w-auto">

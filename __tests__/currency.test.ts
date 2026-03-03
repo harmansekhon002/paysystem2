@@ -39,19 +39,19 @@ describe("currency utilities", () => {
 
   describe("formatCurrencyWithCode", () => {
     it("formats with correct currency symbol", () => {
-      expect(formatCurrencyWithCode(100, "AUD")).toBe("$100.00")
+      expect(formatCurrencyWithCode(100, "AUD")).toBe("A$100.00")
       expect(formatCurrencyWithCode(50.5, "EUR")).toBe("€50.50")
       expect(formatCurrencyWithCode(25, "GBP")).toBe("£25.00")
     })
 
     it("optionally shows currency code", () => {
-      expect(formatCurrencyWithCode(100, "AUD", true)).toBe("$100.00 AUD")
+      expect(formatCurrencyWithCode(100, "AUD", true)).toBe("A$100.00 AUD")
       expect(formatCurrencyWithCode(50, "EUR", true)).toBe("€50.00 EUR")
     })
 
     it("always shows 2 decimal places", () => {
-      expect(formatCurrencyWithCode(10, "USD")).toBe("$10.00")
-      expect(formatCurrencyWithCode(10.1, "USD")).toBe("$10.10")
+      expect(formatCurrencyWithCode(10, "USD")).toBe("US$10.00")
+      expect(formatCurrencyWithCode(10.1, "USD")).toBe("US$10.10")
     })
   })
 
@@ -64,7 +64,7 @@ describe("currency utilities", () => {
     })
 
     it("has correct currency info", () => {
-      expect(SUPPORTED_CURRENCIES.AUD).toEqual({ symbol: "$", name: "Australian Dollar" })
+      expect(SUPPORTED_CURRENCIES.AUD).toEqual({ symbol: "A$", name: "Australian Dollar" })
       expect(SUPPORTED_CURRENCIES.EUR).toEqual({ symbol: "€", name: "Euro" })
       expect(SUPPORTED_CURRENCIES.GBP).toEqual({ symbol: "£", name: "British Pound" })
     })

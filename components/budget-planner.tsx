@@ -260,7 +260,7 @@ export default function BudgetPlanner() {
               <>
                 <PieChart
                   data={stats.pieData}
-                  tooltipFormatter={(value) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), "Spent"]}
+                  tooltipFormatter={(value) => [formatCurrency(Number(value), currencySymbol), "Spent"]}
                 />
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
                   {stats.pieData.map(e => (

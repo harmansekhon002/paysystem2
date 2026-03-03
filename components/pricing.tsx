@@ -28,36 +28,35 @@ const plans = [
     highlighted: false,
   },
   {
-    name: "Pro",
-    price: "$4.99",
+    name: "Plus",
+    price: "$2.50",
     period: "/month",
-    description: "Full financial toolkit for Australian students.",
+    description: "Great for regular workers who want stronger insights.",
     features: [
-      "Unlimited jobs & penalty rates",
-      "Full salary insights & charts",
-      "Budget planner with categories",
-      "Savings goals tracker",
-      "Public holiday auto-detection",
-      "Export data (CSV)",
+      "Everything in Free",
+      "Rate-type earnings breakdown",
+      "Monthly summary insights",
+      "CSV exports",
       "Priority support",
     ],
-    cta: "Start Free Trial",
+    cta: "Upgrade to Plus",
     highlighted: true,
     badge: "Most Popular",
   },
   {
-    name: "Student Bundle",
-    price: "$2.99",
+    name: "Pro",
+    price: "$5",
     period: "/month",
-    description: "Special pricing with a valid .edu.au email.",
+    description: "For power users who want complete control and analytics.",
     features: [
-      "Everything in Pro",
-      "40% student discount",
-      "Verified .edu.au email",
-      "Study-work balance tips",
-      "Community access",
+      "Everything in Plus",
+      "Advanced analytics dashboard",
+      "Trend forecasting",
+      "Unlimited goals and budgets",
+      "CSV and PDF exports",
+      "Fastest support response",
     ],
-    cta: "Verify Student Status",
+    cta: "Go Pro",
     highlighted: false,
   },
 ]
@@ -180,14 +179,6 @@ export function Pricing() {
               />
             </div>
 
-            {selectedPlan?.name === "Student Bundle" && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                <p className="text-xs text-muted-foreground">
-                  <strong className="font-medium text-foreground">Student verification:</strong> After signing up, 
-                  you&apos;ll receive an email to verify your .edu.au address to unlock the student discount.
-                </p>
-              </div>
-            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>

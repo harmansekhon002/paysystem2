@@ -112,7 +112,22 @@ function BottomNav() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { data } = useAppData()
+  const { data, updateSettings } = useAppData()
+  const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
+
+  const handleCurrencyCycle = () => {
+    const currentIndex = currencyOptions.indexOf(data.settings.currency as (typeof currencyOptions)[number])
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % currencyOptions.length : 0
+    const nextCurrency = currencyOptions[nextIndex]
+    const symbolByCode: Record<(typeof currencyOptions)[number], string> = {
+      AUD: "A$",
+      USD: "US$",
+      CAD: "C$",
+      EUR: "€",
+      GBP: "£",
+    }
+    updateSettings({ currency: nextCurrency, currencySymbol: symbolByCode[nextCurrency] })
+  }
 
   return (
     <div className="flex min-h-svh bg-background">
@@ -127,19 +142,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-1 flex-col px-3 py-2">
           <SidebarNav />
         </div>
-        <div className="relative flex items-center gap-2 border-t border-border px-5 py-3">
-          <ThemeToggle />
-          <NotificationCenter />
-          <span className="text-xs font-medium text-muted-foreground">{data.settings.currency}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="ml-auto size-8 text-muted-foreground hover:text-foreground"
-            aria-label="Sign out"
-          >
-            <LogOut className="size-4" />
-          </Button>
+        <div className="relative border-t border-border px-4 py-3">
+          <div className="grid grid-cols-4 items-center gap-2">
+            <div className="flex justify-center">
+              <ThemeToggle />
+            </div>
+            <div className="flex justify-center">
+              <NotificationCenter />
+            </div>
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCurrencyCycle}
+                className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                aria-label="Change currency"
+                title="Click to change currency"
+              >
+                {data.settings.currency}
+              </Button>
+            </div>
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="size-8 text-muted-foreground hover:text-foreground"
+                aria-label="Sign out"
+              >
+                <LogOut className="size-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </aside>
 

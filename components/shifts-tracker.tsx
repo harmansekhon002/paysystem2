@@ -537,7 +537,7 @@ export function ShiftsTracker() {
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Base Rate (AUD/hr)</Label>
+                  <Label className="text-xs">Base Rate ({data.settings.currency}/hr)</Label>
                   <Input type="number" step="0.01" min={0} value={jobForm.baseRate} onChange={e => setJobForm(j => ({ ...j, baseRate: e.target.value }))} />
                 </div>
                 <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">

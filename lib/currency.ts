@@ -3,12 +3,12 @@
 // Multi-currency support with exchange rates
 
 export const SUPPORTED_CURRENCIES = {
-  AUD: { symbol: "$", name: "Australian Dollar" },
-  USD: { symbol: "$", name: "US Dollar" },
+  AUD: { symbol: "A$", name: "Australian Dollar" },
+  USD: { symbol: "US$", name: "US Dollar" },
   EUR: { symbol: "€", name: "Euro" },
   GBP: { symbol: "£", name: "British Pound" },
   NZD: { symbol: "$", name: "New Zealand Dollar" },
-  CAD: { symbol: "$", name: "Canadian Dollar" },
+  CAD: { symbol: "C$", name: "Canadian Dollar" },
   JPY: { symbol: "¥", name: "Japanese Yen" },
   CNY: { symbol: "¥", name: "Chinese Yuan" },
 } as const

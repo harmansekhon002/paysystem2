@@ -142,7 +142,7 @@ test.describe("Data Persistence", () => {
     await expect(page).toHaveURL(/\/settings/)
 
     // Change currency (if not already USD)
-    await page.getByRole("combobox").filter({ hasText: /AUD|USD|EUR|GBP/ }).click()
+    await page.getByRole("combobox").filter({ hasText: /AUD|USD|CAD|EUR|GBP/ }).click()
     await page.getByRole("option", { name: "USD" }).click()
 
     // Navigate to different page

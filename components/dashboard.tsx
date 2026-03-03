@@ -211,7 +211,7 @@ export function Dashboard() {
                 <div className="h-[150px] w-[150px]">
                   <PieChart
                     data={jobPieData}
-                    tooltipFormatter={(value) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), "Earned"]}
+                    tooltipFormatter={(value) => [formatCurrency(Number(value), currencySymbol), "Earned"]}
                   />
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">

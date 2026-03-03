@@ -1,78 +1,193 @@
-
 "use client"
 
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
+import { Check } from "lucide-react"
+import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js"
 
 import { AppShell } from "@/components/app-shell"
 import { Card } from "@/components/ui/card"
 
+type PaidPlan = {
+  name: string
+  price: string
+  description: string
+  badge: string
+  planId: string
+  missingEnvVar: string
+  successMessage: string
+  ctaLabel: string
+  subCta: string
+  features: string[]
+  highlighted?: boolean
+}
+
 export default function PricingPage() {
+  const plusPlanId = process.env.NEXT_PUBLIC_PAYPAL_PLUS_MONTHLY_PLAN_ID || ""
+  const proPlanId = process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID || ""
+
+  const paidPlans: PaidPlan[] = [
+    {
+      name: "Plus",
+      price: "$2.50",
+      description: "For regular workers who want clearer monthly insights.",
+      badge: "Most Popular",
+      planId: plusPlanId,
+      missingEnvVar: "NEXT_PUBLIC_PAYPAL_PLUS_MONTHLY_PLAN_ID",
+      successMessage: "Plus subscription active! Welcome!",
+      ctaLabel: "Upgrade to Plus",
+      subCta: "Billed monthly. Cancel anytime.",
+      features: [
+        "Everything in Free",
+        "Rate-type earnings breakdown",
+        "Monthly summary insights",
+        "CSV exports",
+        "Priority email support",
+      ],
+    },
+    {
+      name: "Pro",
+      price: "$5",
+      description: "For serious users who want full control and advanced reports.",
+      badge: "Best Results",
+      planId: proPlanId,
+      missingEnvVar: "NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID",
+      successMessage: "Subscription active! Welcome to Pro!",
+      ctaLabel: "Go Pro",
+      subCta: "Billed monthly. Cancel anytime.",
+      features: [
+        "Everything in Plus",
+        "Advanced analytics dashboard",
+        "Trend forecasting",
+        "Unlimited goals and budgets",
+        "CSV and PDF exports",
+        "Fastest support turnaround",
+      ],
+      highlighted: true,
+    },
+  ]
+
+  const handleSubscriptionApproved = async (subscriptionId: string, successMessage: string) => {
+    try {
+      const response = await fetch("/api/subscription/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId }),
+      })
+
+      if (response.ok) {
+        alert(successMessage)
+      } else {
+        console.error("Failed to save subscription details")
+        alert("Subscription created, but failed to sync. Please contact support.")
+      }
+    } catch (error) {
+      console.error("Error activating subscription:", error)
+      alert("Error activating subscription. Please contact support.")
+    }
+  }
+
   return (
     <AppShell>
       <PayPalScriptProvider options={{ clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "" }}>
-        <div className="max-w-2xl mx-auto py-16">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-center bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent animate-fade-in">Pricing</h1>
-          <p className="text-lg text-muted-foreground text-center mb-10 animate-fade-in delay-100">Choose the plan that fits your hustle. Upgrade anytime.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Free Plan */}
-            <Card className="flex flex-col items-center font-sans p-2 shadow-lg hover:scale-[1.03] transition-transform duration-300 min-h-[270px]">
-              <h2 className="text-2xl font-bold mb-2 text-foreground">Free Plan</h2>
-              <p className="mb-4 text-3xl font-extrabold text-foreground">$0<span className="text-base font-normal text-muted-foreground">/month</span></p>
-              <ul className="mb-4 text-base text-muted-foreground text-left list-disc pl-4 space-y-1">
-                <li>Track shifts & earnings</li>
-                <li>Expense tracking</li>
-                <li>Budget management</li>
-                <li>Dark mode</li>
-                <li>Customizable settings</li>
-              </ul>
-              <span className="text-muted-foreground font-medium mb-4">Perfect for individuals</span>
-              <button className="w-full rounded-lg bg-gradient-to-r from-primary to-blue-500 text-white font-semibold py-2 mt-auto shadow-md hover:from-blue-500 hover:to-primary transition-colors duration-200">Get Started</button>
-            </Card>
-            {/* Pro Plan */}
-            <Card className="flex flex-col items-center relative border-2 border-primary ring-2 ring-primary/30 font-sans p-3 shadow-2xl bg-gradient-to-br from-primary/10 to-blue-900/10 scale-105 z-10 animate-pop hover:scale-110 transition-transform duration-300 min-h-[290px]">
-              <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-blue-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg animate-bounce">Most Popular</div>
-              <h2 className="text-2xl font-extrabold mb-2 text-foreground">Pro Plan</h2>
-              <p className="mb-4 text-4xl font-extrabold text-foreground">$5<span className="text-lg font-normal text-muted-foreground">/month</span></p>
-              <ul className="mb-4 text-base text-muted-foreground text-left list-disc pl-4 space-y-1">
-                <li>Everything in Free</li>
-                <li>Advanced analytics & reporting</li>
-                <li>Priority support</li>
-                <li>Goal progress tracking</li>
-                <li>Export data (CSV/PDF)</li>
-                <li>Multi-device sync</li>
-                <li>Early access to new features</li>
-              </ul>
-              <PayPalButtons
-                style={{ layout: "vertical", shape: "rect", color: "blue" }}
-                createSubscription={(data, actions) => {
-                  return actions.subscription.create({
-                    plan_id: process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID || "P-YOUR_PLAN_ID_HERE",
-                  })
-                }}
-                onApprove={async (data) => {
-                  try {
-                    // Send the subscription ID to our backend to activate it for the user
-                    const response = await fetch('/api/subscription/save', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ subscriptionId: data.subscriptionID })
-                    })
+        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+            <h1 className="from-primary to-primary/70 animate-fade-in bg-gradient-to-r bg-clip-text text-4xl font-extrabold tracking-tight text-transparent md:text-5xl">
+              Pick the right plan
+            </h1>
+            <p className="text-muted-foreground mt-4 text-base leading-relaxed md:text-lg">
+              Start free today, then unlock more insights and automation as your workload grows.
+            </p>
+          </div>
 
-                    if (response.ok) {
-                      alert("Subscription active! Welcome to Premium!")
-                    } else {
-                      console.error("Failed to save subscription details")
-                      alert("Subscription created, but failed to sync. Please contact support.")
-                    }
-                  } catch (error) {
-                    console.error("Error activating subscription:", error)
-                    alert("Error activating subscription. Please contact support.")
-                  }
-                }}
-              />
-              <button className="w-full rounded-lg bg-gradient-to-r from-primary to-blue-500 text-white font-bold py-3 mt-4 shadow-xl text-lg hover:from-blue-500 hover:to-primary transition-colors duration-200 animate-pulse">Start Free Trial</button>
-              <span className="text-muted-foreground font-medium mt-4">Unlock premium features & support</span>
+          <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
+            <Card className="border-border/80 bg-card/90 flex h-full flex-col overflow-hidden rounded-2xl border p-6 shadow-sm">
+              <div className="mb-4">
+                <p className="text-muted-foreground mb-2 text-sm font-semibold uppercase tracking-wide">Starter</p>
+                <h2 className="text-foreground text-2xl font-bold">Free</h2>
+                <p className="text-foreground mt-3 text-4xl font-extrabold tracking-tight">
+                  $0<span className="text-muted-foreground text-base font-medium">/month</span>
+                </p>
+              </div>
+
+              <p className="text-muted-foreground mb-5 min-h-[48px] text-sm leading-relaxed">
+                Perfect for getting started with shift and expense tracking.
+              </p>
+
+              <ul className="mb-6 flex flex-1 flex-col gap-3 text-sm">
+                {["Track shifts and earnings", "Expense tracking", "Simple budgeting", "Dark mode", "Custom settings"].map(feature => (
+                  <li key={feature} className="text-foreground flex items-start gap-2 break-words">
+                    <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button className="from-primary hover:to-primary mt-auto w-full rounded-xl bg-gradient-to-r to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors duration-200 hover:from-blue-500">
+                Get Started
+              </button>
+              <p className="text-muted-foreground mt-3 text-center text-xs">No card required.</p>
             </Card>
+
+            {paidPlans.map(plan => (
+              <Card
+                key={plan.name}
+                className={`relative flex h-full flex-col overflow-hidden rounded-2xl border p-6 shadow-md transition-all duration-300 ${
+                  plan.highlighted
+                    ? "border-primary/60 bg-gradient-to-br from-primary/10 via-background to-primary/5 ring-primary/20 ring-2"
+                    : "border-border/80 bg-card/95"
+                }`}
+              >
+                <div className="bg-primary text-primary-foreground absolute right-4 top-4 inline-flex min-h-8 items-center rounded-full px-3 py-2 text-xs font-semibold leading-tight">
+                  {plan.badge}
+                </div>
+
+                <div className="mb-4 pr-20">
+                  <h2 className="text-foreground text-2xl font-bold">{plan.name}</h2>
+                  <p className="text-foreground mt-3 text-4xl font-extrabold tracking-tight">
+                    {plan.price}
+                    <span className="text-muted-foreground ml-1 text-base font-medium">/month</span>
+                  </p>
+                </div>
+
+                <p className="text-muted-foreground mb-5 min-h-[48px] text-sm leading-relaxed break-words">{plan.description}</p>
+
+                <ul className="mb-6 flex flex-1 flex-col gap-3 text-sm">
+                  {plan.features.map(feature => (
+                    <li key={feature} className="text-foreground flex items-start gap-2 break-words">
+                      <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="w-full">
+                  {plan.planId ? (
+                    <>
+                      <div className="w-full overflow-hidden rounded-xl border border-transparent">
+                        <PayPalButtons
+                          style={{ layout: "vertical", shape: "rect", color: "blue", label: "subscribe" }}
+                          createSubscription={(_, actions) => {
+                            return actions.subscription.create({
+                              plan_id: plan.planId,
+                            })
+                          }}
+                          onApprove={async data => {
+                            await handleSubscriptionApproved(data.subscriptionID, plan.successMessage)
+                          }}
+                        />
+                      </div>
+                      <p className="text-muted-foreground mt-2 text-center text-xs">{plan.subCta}</p>
+                    </>
+                  ) : (
+                    <>
+                      <button className="from-primary hover:to-primary w-full rounded-xl bg-gradient-to-r to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors duration-200 hover:from-blue-500">
+                        {plan.ctaLabel}
+                      </button>
+                      <p className="text-muted-foreground mt-2 text-center text-xs">Set {plan.missingEnvVar} to enable checkout.</p>
+                    </>
+                  )}
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       </PayPalScriptProvider>

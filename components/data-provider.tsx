@@ -56,6 +56,20 @@ function mergeStoredData(raw: Partial<AppData>): AppData {
   }
 }
 
+function isLegacyDemoSeed(raw: Partial<AppData>): boolean {
+  const demoJobIds = ["j1", "j2", "j3", "j4"]
+  const jobs = raw.jobs ?? []
+  const shifts = raw.shifts ?? []
+  const expenses = raw.expenses ?? []
+
+  return (
+    jobs.length === 4 &&
+    demoJobIds.every(id => jobs.some(job => job.id === id)) &&
+    shifts.length === 10 &&
+    expenses.length === 7
+  )
+}
+
 export function useAppData() {
   const context = useContext(DataContext)
   if (!context) throw new Error("useAppData must be used within DataProvider")
@@ -72,7 +86,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<AppData>
-        setData(mergeStoredData(parsed))
+        if (isLegacyDemoSeed(parsed)) {
+          localStorage.removeItem(STORAGE_KEY)
+          setData(defaultData)
+        } else {
+          setData(mergeStoredData(parsed))
+        }
       }
     } catch {
       // Ignore corrupted storage and use defaults.

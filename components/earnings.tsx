@@ -299,7 +299,7 @@ export function Earnings() {
               <>
                 <PieChart
                   data={rateTypePie}
-                  tooltipFormatter={(value) => ["$" + formatCurrency(value, currencySymbol).replace(/^\$/, ''), "Earned"]}
+                  tooltipFormatter={(value) => [formatCurrency(Number(value), currencySymbol), "Earned"]}
                 />
                 <div className="flex flex-col gap-1.5">
                   {rateTypePie.map(e => (
@@ -328,7 +328,7 @@ export function Earnings() {
                 <BarChart data={jobBarData} barSize={32}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} />
-                  <YAxis tick={{ fontSize: 11, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={v => `${currencySymbol}${v}`} />
+                  <YAxis tick={{ fontSize: 11, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={v => formatCurrency(Number(v), currencySymbol)} />
                   <Tooltip
                     cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }}
                     content={

@@ -1,52 +1,39 @@
 "use client"
 
+import { useState } from "react"
+import { CalendarClock, Database, Globe2, Info, Palette, UserRound, WalletCards } from "lucide-react"
+import { useTheme } from "next-themes"
+
 import { AppShell } from "@/components/app-shell"
 import { useAppData } from "@/components/data-provider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { useTheme } from "next-themes"
-import { useState } from "react"
-
+import { Separator } from "@/components/ui/separator"
 
 export default function SettingsPage() {
   const { data, updateSettings } = useAppData()
   const { theme, setTheme } = useTheme()
   const [resetting, setResetting] = useState(false)
-  // Demo profile state (local only)
   const [profile, setProfile] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('shiftwise:profile')
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("shiftwise:profile")
       if (stored) return JSON.parse(stored)
     }
-    return { name: '', email: '' }
+    return { name: "", email: "" }
   })
+
   function handleProfileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
     setProfile((p: { name: string; email: string }) => ({ ...p, [name]: value }))
   }
+
   function handleProfileSave() {
-    localStorage.setItem('shiftwise:profile', JSON.stringify(profile))
+    localStorage.setItem("shiftwise:profile", JSON.stringify(profile))
   }
-  const currencyOptions = [
-    { code: "AUD", symbol: "$" },
-    { code: "USD", symbol: "$" },
-    { code: "EUR", symbol: "€" },
-    { code: "GBP", symbol: "£" },
-  ]
-  const payPeriodOptions = [
-    { value: "weekly", label: "Weekly" },
-    { value: "biweekly", label: "Biweekly" },
-    { value: "monthly", label: "Monthly" },
-    { value: "per_shift", label: "Per shift" },
-  ]
-  const countryOptions = [
-    { value: "Australia", label: "Australia" },
-    { value: "USA", label: "USA" },
-    { value: "UK", label: "UK" },
-    { value: "Other", label: "Other" },
-  ]
 
   function handleReset() {
     setResetting(true)
@@ -56,122 +43,174 @@ export default function SettingsPage() {
     }, 800)
   }
 
+  const currencyOptions = [
+    { code: "AUD", symbol: "A$" },
+    { code: "USD", symbol: "US$" },
+    { code: "CAD", symbol: "C$" },
+    { code: "EUR", symbol: "€" },
+    { code: "GBP", symbol: "£" },
+  ]
+
+  const payPeriodOptions = [
+    { value: "weekly", label: "Weekly" },
+    { value: "biweekly", label: "Biweekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "per_shift", label: "Per shift" },
+  ]
+
+  const countryOptions = [
+    { value: "Australia", label: "Australia" },
+    { value: "USA", label: "USA" },
+    { value: "UK", label: "UK" },
+    { value: "Other", label: "Other" },
+  ]
+
   return (
     <AppShell>
-      <div className="max-w-3xl mx-auto flex flex-col gap-10 py-8 px-2 md:px-0">
-        <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-2">Settings</h1>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 py-10">
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/8 via-card to-card shadow-sm">
+          <CardHeader className="space-y-4 p-7 md:p-8">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-3xl font-extrabold tracking-tight">Settings</CardTitle>
+              <Badge variant="secondary" className="rounded-full px-3 py-1">
+                Account & App Settings
+              </Badge>
+            </div>
+            <CardDescription className="text-sm md:text-base">
+              Manage your profile, region, pay cycle, and app appearance in one place.
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
-        {/* Profile Section */}
-        {/* Profile Section */}
-        <section>
-          <h2 className="text-lg font-semibold mb-2 text-primary">Profile</h2>
-          <Card className="shadow-sm border-muted-foreground/10">
-            <CardHeader>
-              <CardTitle className="text-base">Personal Information</CardTitle>
-              <CardDescription>Local only, not synced.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs" htmlFor="profile-name">Name</Label>
-                <input
-                  id="profile-name"
-                  name="name"
-                  type="text"
-                  className="input border rounded px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-primary outline-none"
-                  value={profile.name}
-                  onChange={handleProfileChange}
-                  placeholder="Your name"
-                  autoComplete="name"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs" htmlFor="profile-email">Email</Label>
-                <input
-                  id="profile-email"
-                  name="email"
-                  type="email"
-                  className="input border rounded px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-primary outline-none"
-                  value={profile.email}
-                  onChange={handleProfileChange}
-                  placeholder="you@email.com"
-                  autoComplete="email"
-                />
-              </div>
-              <Button variant="default" className="w-fit mt-2" onClick={handleProfileSave}>Save Profile</Button>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Preferences Section */}
-        <section>
-          <h2 className="text-lg font-semibold mb-2 text-primary">Preferences</h2>
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* General Settings */}
-            <Card className="shadow-sm border-muted-foreground/10">
-              <CardHeader>
-                <CardTitle className="text-base">General</CardTitle>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="flex flex-col gap-8 lg:col-span-7">
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
+                  <UserRound className="text-primary size-4" />
+                  <CardTitle className="text-lg">Profile</CardTitle>
+                </div>
+                <CardDescription>Stored locally on this device.</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Country</Label>
-                  <Select
-                    value={data.settings.country}
-                    onValueChange={v => updateSettings({ country: v })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+              <CardContent className="space-y-5 p-6 pt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="profile-name">Name</Label>
+                  <Input
+                    id="profile-name"
+                    name="name"
+                    type="text"
+                    value={profile.name}
+                    onChange={handleProfileChange}
+                    placeholder="Your name"
+                    autoComplete="name"
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-email">Email</Label>
+                  <Input
+                    id="profile-email"
+                    name="email"
+                    type="email"
+                    value={profile.email}
+                    onChange={handleProfileChange}
+                    placeholder="you@email.com"
+                    autoComplete="email"
+                    className="h-10"
+                  />
+                </div>
+                <Button onClick={handleProfileSave} className="w-full sm:w-fit">
+                  Save Profile
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
+                  <Globe2 className="text-primary size-4" />
+                  <CardTitle className="text-lg">Region and Pay</CardTitle>
+                </div>
+                <CardDescription>Used in earnings and summary calculations.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5 p-6 pt-0">
+                <div className="space-y-2">
+                  <Label>Country</Label>
+                  <Select value={data.settings.country} onValueChange={v => updateSettings({ country: v })}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {countryOptions.map(c => (
-                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Currency</Label>
+
+                <div className="space-y-2">
+                  <Label>Currency</Label>
                   <Select
                     value={data.settings.currency}
-                    onValueChange={(value) => {
-                      const selected = currencyOptions.find((c) => c.code === value)
+                    onValueChange={value => {
+                      const selected = currencyOptions.find(c => c.code === value)
                       if (!selected) return
                       updateSettings({ currency: selected.code, currencySymbol: selected.symbol })
                     }}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {currencyOptions.map((c) => (
-                        <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>
+                      {currencyOptions.map(c => (
+                        <SelectItem key={c.code} value={c.code}>
+                          {c.code}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Pay Period</Label>
+
+                <div className="space-y-2">
+                  <Label>Pay period</Label>
                   <Select
                     value={data.settings.payPeriod}
-                    onValueChange={(value) => updateSettings({ payPeriod: value as typeof data.settings.payPeriod })}
+                    onValueChange={value => updateSettings({ payPeriod: value as typeof data.settings.payPeriod })}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {payPeriodOptions.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                      {payPeriodOptions.map(p => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Appearance Settings */}
-            <Card className="shadow-sm border-muted-foreground/10">
-              <CardHeader>
-                <CardTitle className="text-base">Appearance</CardTitle>
-                <CardDescription>Customize the look and feel.</CardDescription>
+          <div className="flex flex-col gap-8 lg:col-span-5">
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
+                  <Palette className="text-primary size-4" />
+                  <CardTitle className="text-lg">Appearance</CardTitle>
+                </div>
+                <CardDescription>Choose how ShiftWise looks for you.</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Theme</Label>
+              <CardContent className="space-y-5 p-6 pt-0">
+                <div className="space-y-2">
+                  <Label>Theme</Label>
                   <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="system">System</SelectItem>
                       <SelectItem value="light">Light</SelectItem>
@@ -181,39 +220,47 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="border-destructive/40 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
+                  <Database className="text-destructive size-4" />
+                  <CardTitle className="text-lg">Data Reset</CardTitle>
+                </div>
+                <CardDescription>Clear all local app data from this browser.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5 p-6 pt-0">
+                <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-full sm:w-fit">
+                  {resetting ? "Resetting..." : "Reset All Data"}
+                </Button>
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
+                  <Info className="text-primary size-4" />
+                  <CardTitle className="text-lg">About ShiftWise</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6 pt-0 text-sm">
+                <p className="text-muted-foreground leading-relaxed">
+                  ShiftWise helps you track shifts, earnings, expenses, and goals with support for Australian penalty rates and more.
+                </p>
+                <Separator />
+                <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                  <WalletCards className="size-3.5" />
+                  <span>Version 1.0.0</span>
+                  <CalendarClock className="ml-2 size-3.5" />
+                  <span>2026</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </section>
-
-        {/* Data & Reset Section */}
-        <section>
-          <h2 className="text-lg font-semibold mb-2 text-primary">Data & Reset</h2>
-          <Card className="shadow-sm border-muted-foreground/10">
-            <CardHeader>
-              <CardTitle className="text-base">Manage Data</CardTitle>
-              <CardDescription>Reset your account and clear all data.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-fit">
-                {resetting ? "Resetting..." : "Reset All Data"}
-              </Button>
-              <span className="text-xs text-muted-foreground">This will clear all your jobs, shifts, expenses, goals, and settings. This action cannot be undone.</span>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* About Section */}
-        <section>
-          <h2 className="text-lg font-semibold mb-2 text-primary">About</h2>
-          <Card className="shadow-sm border-muted-foreground/10">
-            <CardHeader>
-              <CardTitle className="text-base">About ShiftWise</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <span className="text-sm">ShiftWise helps you track your shifts, earnings, expenses, and goals with full support for Australian penalty rates and more.</span>
-              <span className="text-xs text-muted-foreground">Version 1.0.0 &copy; 2026</span>
-            </CardContent>
-          </Card>
-        </section>
+        </div>
       </div>
     </AppShell>
   )
