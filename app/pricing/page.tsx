@@ -171,6 +171,10 @@ export default function PricingPage() {
                             })
                           }}
                           onApprove={async data => {
+                            if (!data.subscriptionID) {
+                              alert("Subscription approved, but no subscription ID was returned.")
+                              return
+                            }
                             await handleSubscriptionApproved(data.subscriptionID, plan.successMessage)
                           }}
                         />
