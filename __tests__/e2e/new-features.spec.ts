@@ -13,7 +13,7 @@ test.describe("New Features E2E Tests", () => {
 
   test("should open Add Expense dialog", async ({ page }) => {
     await page.click('a[href="/budget"]')
-    await page.click('button:has-text("Expense")')
+    await page.getByTestId("open-add-expense-dialog").click()
     await expect(page.getByRole('heading', { name: 'Add Expense' })).toBeVisible()
   })
 

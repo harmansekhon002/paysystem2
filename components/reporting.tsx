@@ -162,7 +162,6 @@ export function ReportingDashboard() {
   }))
 
   const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
   const axisColor = "var(--color-muted-foreground)";
   const gridColor = "var(--color-border)";
   return (

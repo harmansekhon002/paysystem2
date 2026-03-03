@@ -78,9 +78,9 @@ test.describe("Critical User Flows", () => {
     await page.getByRole("button", { name: /filter/i }).click()
     await expect(page.getByText("Filter Shifts")).toBeVisible()
 
-    // Select a workplace filter (select second item in dropdown)
-    await page.getByRole("combobox").first().click()
-    await page.getByRole("option").nth(1).click()
+    // Apply a date filter to verify filtering behavior
+    await expect(page.getByTestId("filter-date-from")).toBeVisible()
+    await page.getByTestId("filter-date-from").fill("2026-01-01")
 
     // Filter should be applied (badge indicator should appear)
     await expect(page.getByRole("button", { name: /filter/i }).getByText("!")).toBeVisible()

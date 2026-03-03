@@ -21,7 +21,7 @@ import {
 import { trackEvent } from "@/lib/analytics"
 
 export function ShiftsTracker() {
-  const { data, addShift, removeShift, updateShift, addJob, getJob } = useAppData()
+  const { data, addShift, removeShift, updateShift, addJob, getJob, addAttendanceEvent, removeAttendanceEvent } = useAppData()
   const { toast } = useToast()
   const [view, setView] = useState<"list" | "calendar">("list")
   const [calMonth, setCalMonth] = useState(() => new Date())
@@ -63,6 +63,14 @@ export function ShiftsTracker() {
     breakMinutes: 30,
     note: "",
   }))
+
+  const [attendanceForm, setAttendanceForm] = useState({
+    date: todayStr,
+    jobId: data.jobs[0]?.id || "",
+    type: "late" as "late" | "absent",
+    minutesLate: "10",
+    note: "",
+  })
 
   const [jobForm, setJobForm] = useState({
     name: "",
@@ -110,8 +118,37 @@ export function ShiftsTracker() {
   const editPreviewJob = getJob(editForm.jobId)
   const editPreviewEarnings = editPreviewJob ? calculateShiftEarnings(editPreviewHours, editPreviewJob, editForm.rateType) : 0
 
+  const toMinutes = (time: string) => {
+    const [h, m] = time.split(":").map(Number)
+    return h * 60 + m
+  }
+
+  const hasOverlap = (date: string, startTime: string, endTime: string, ignoreShiftId?: string) => {
+    const start = toMinutes(startTime)
+    const end = toMinutes(endTime)
+
+    if (end <= start) return false
+
+    return data.shifts.some((shift) => {
+      if (shift.id === ignoreShiftId) return false
+      if (shift.date !== date) return false
+      const shiftStart = toMinutes(shift.startTime)
+      const shiftEnd = toMinutes(shift.endTime)
+      if (shiftEnd <= shiftStart) return false
+      return start < shiftEnd && shiftStart < end
+    })
+  }
+
   const handleAdd = () => {
     if (!form.jobId) return
+    if (hasOverlap(form.date, form.startTime, form.endTime)) {
+      toast({
+        title: "Shift overlaps with an existing shift",
+        description: "Adjust start/end times to avoid overlap.",
+        variant: "destructive",
+      })
+      return
+    }
     const hours = calculateShiftHours(form.startTime, form.endTime, form.breakMinutes)
     const job = getJob(form.jobId)
     if (!job) return
@@ -135,6 +172,14 @@ export function ShiftsTracker() {
 
   const handleEditSave = () => {
     if (!editForm.jobId || !editShiftId) return
+    if (hasOverlap(editForm.date, editForm.startTime, editForm.endTime, editShiftId)) {
+      toast({
+        title: "Updated shift overlaps with another shift",
+        description: "Please adjust times before saving.",
+        variant: "destructive",
+      })
+      return
+    }
     const hours = calculateShiftHours(editForm.startTime, editForm.endTime, editForm.breakMinutes)
     const job = getJob(editForm.jobId)
     if (!job) return
@@ -337,6 +382,43 @@ export function ShiftsTracker() {
 
   const calMonthLabel = calMonth.toLocaleDateString("en-AU", { month: "long", year: "numeric" })
 
+  const attendanceEvents = useMemo(
+    () => [...data.attendanceEvents].sort((a, b) => b.date.localeCompare(a.date)),
+    [data.attendanceEvents]
+  )
+
+  const handleLogAttendance = () => {
+    if (!attendanceForm.jobId) {
+      toast({ title: "Select workplace", description: "Choose a workplace first.", variant: "destructive" })
+      return
+    }
+
+    const minutesLate = parseInt(attendanceForm.minutesLate, 10)
+    if (attendanceForm.type === "late" && (!Number.isFinite(minutesLate) || minutesLate <= 0)) {
+      toast({ title: "Invalid minutes late", description: "Enter a valid value.", variant: "destructive" })
+      return
+    }
+
+    addAttendanceEvent({
+      date: attendanceForm.date,
+      jobId: attendanceForm.jobId,
+      type: attendanceForm.type,
+      minutesLate: attendanceForm.type === "late" ? minutesLate : undefined,
+      note: attendanceForm.note.trim() || undefined,
+    })
+
+    toast({
+      title: attendanceForm.type === "late" ? "Late arrival logged" : "Absence logged",
+      description: `${getJob(attendanceForm.jobId)?.name || "Workplace"} · ${attendanceForm.date}`,
+    })
+
+    setAttendanceForm((prev) => ({
+      ...prev,
+      note: "",
+      minutesLate: prev.type === "late" ? prev.minutesLate : "10",
+    }))
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -388,12 +470,26 @@ export function ShiftsTracker() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="flex flex-col gap-1.5">
-                        <Label className="text-xs">From</Label>
-                        <Input type="date" className="h-8" value={filters.dateFrom} onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value }))} />
+                        <Label htmlFor="filter-date-from" className="text-xs">From</Label>
+                        <Input
+                          id="filter-date-from"
+                          data-testid="filter-date-from"
+                          type="date"
+                          className="h-8"
+                          value={filters.dateFrom}
+                          onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value }))}
+                        />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <Label className="text-xs">To</Label>
-                        <Input type="date" className="h-8" value={filters.dateTo} onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value }))} />
+                        <Label htmlFor="filter-date-to" className="text-xs">To</Label>
+                        <Input
+                          id="filter-date-to"
+                          data-testid="filter-date-to"
+                          type="date"
+                          className="h-8"
+                          value={filters.dateTo}
+                          onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value }))}
+                        />
                       </div>
                     </div>
                     {(filters.jobId !== "all" || filters.rateType !== "all" || filters.dateFrom || filters.dateTo) && (
@@ -773,6 +869,99 @@ export function ShiftsTracker() {
         </div>
       </div>
 
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Late / Absent Tracker</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-0">
+          <div className="grid gap-3 md:grid-cols-5">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Date</Label>
+              <Input
+                type="date"
+                value={attendanceForm.date}
+                onChange={(e) => setAttendanceForm((f) => ({ ...f, date: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Workplace</Label>
+              <Select value={attendanceForm.jobId} onValueChange={(v) => setAttendanceForm((f) => ({ ...f, jobId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select workplace" /></SelectTrigger>
+                <SelectContent>
+                  {data.jobs.map((job) => (
+                    <SelectItem key={job.id} value={job.id}>{job.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Type</Label>
+              <Select
+                value={attendanceForm.type}
+                onValueChange={(value) => setAttendanceForm((f) => ({ ...f, type: value as "late" | "absent" }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Minutes Late</Label>
+              <Input
+                type="number"
+                min={1}
+                disabled={attendanceForm.type !== "late"}
+                value={attendanceForm.minutesLate}
+                onChange={(e) => setAttendanceForm((f) => ({ ...f, minutesLate: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Note</Label>
+              <Input
+                placeholder="Optional"
+                value={attendanceForm.note}
+                onChange={(e) => setAttendanceForm((f) => ({ ...f, note: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <Button onClick={handleLogAttendance}>Log Attendance Event</Button>
+            <span className="text-xs text-muted-foreground">
+              {attendanceEvents.length} event{attendanceEvents.length === 1 ? "" : "s"} logged
+            </span>
+          </div>
+          {attendanceEvents.length > 0 ? (
+            <div className="flex flex-col divide-y divide-border rounded-md border">
+              {attendanceEvents.slice(0, 6).map((event) => {
+                const job = getJob(event.jobId)
+                return (
+                  <div key={event.id} className="flex items-center justify-between px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm">
+                        <span className="font-medium">{job?.name || "Unknown workplace"}</span>{" "}
+                        <Badge variant="secondary" className="ml-1 text-[10px]">
+                          {event.type === "late" ? `${event.minutesLate ?? 0}m late` : "Absent"}
+                        </Badge>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {event.date}{event.note ? ` · ${event.note}` : ""}
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="size-7" onClick={() => removeAttendanceEvent(event.id)}>
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No late/absent events recorded yet.</p>
+          )}
+        </CardContent>
+      </Card>
+
       <Tabs value={view} onValueChange={v => setView(v as "list" | "calendar")}>
         <TabsList>
           <TabsTrigger value="list" className="gap-1.5"><List className="size-3.5" />List</TabsTrigger>
@@ -937,6 +1126,15 @@ export function ShiftsTracker() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Button
+        size="icon"
+        className="fixed bottom-24 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden"
+        onClick={() => setDialogOpen(true)}
+        aria-label="Quick add shift"
+      >
+        <Plus className="size-5" />
+      </Button>
     </div>
   )
 }

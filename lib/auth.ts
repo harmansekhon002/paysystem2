@@ -8,6 +8,7 @@ import { ensureUserTableInitialized } from "@/lib/db-init"
 export type LoginErrorCode =
   | "MISSING_CREDENTIALS"
   | "ACCOUNT_NOT_FOUND"
+  | "EMAIL_NOT_VERIFIED"
   | "INVALID_PASSWORD"
   | "DB_UNAVAILABLE"
   | "UNKNOWN_AUTH_ERROR"
@@ -51,6 +52,17 @@ export async function validateLoginCredentials(email: string, password: string) 
 
   if (!user) {
     throw new LoginError("ACCOUNT_NOT_FOUND", "No account found with that email")
+  }
+
+  const [verificationStatus] = await prisma.$queryRaw<Array<{ email_verified: boolean | null }>>`
+    SELECT "emailVerified" as email_verified
+    FROM "User"
+    WHERE "id" = ${user.id}
+    LIMIT 1
+  `
+
+  if (verificationStatus?.email_verified === false) {
+    throw new LoginError("EMAIL_NOT_VERIFIED", "Email not verified. Please verify your email before signing in.")
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash)

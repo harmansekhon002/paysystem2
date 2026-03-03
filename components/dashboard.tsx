@@ -1,78 +1,97 @@
-"use client";
-import { useTheme } from "next-themes"
-import { type TooltipProps } from "recharts"
+"use client"
 
-// Custom tooltip for BarChart, matching PieChart style
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { useTheme } from "next-themes"
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  CalendarClock,
+  Clock,
+  DollarSign,
+  Plus,
+  Receipt,
+  TrendingUp,
+} from "lucide-react"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Rectangle,
+  type TooltipProps,
+} from "recharts"
+
+import { useAppData } from "@/components/data-provider"
+import { PieChart } from "@/components/ui/pie-chart"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { calculateShiftEarnings, detectRateType, formatCurrency, RATE_TYPE_LABELS } from "@/lib/store"
+
 function CustomBarTooltip({
   active,
   payload,
   label,
   theme,
 }: TooltipProps<number, string> & { theme: "light" | "dark" }) {
-  if (!active || !payload || !payload.length) return null;
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#111827' : '#fff';
-  const color = isDark ? '#f9fafb' : '#111827';
-  const titleColor = isDark ? '#22d3aa' : '#059669';
+  if (!active || !payload || !payload.length) return null
+  const isDark = theme === "dark"
+  const bg = isDark ? "#111827" : "#fff"
+  const color = isDark ? "#f9fafb" : "#111827"
+  const titleColor = isDark ? "#22d3aa" : "#059669"
   const value = Number(payload[0]?.value ?? 0)
   return (
     <div
       style={{
         background: bg,
         color,
-        border: 'none',
+        border: "none",
         borderRadius: 8,
         fontSize: 14,
         fontWeight: 700,
-        boxShadow: isDark ? '0 4px 16px 0 rgba(0,0,0,0.85)' : '0 2px 8px 0 rgba(0,0,0,0.08)',
-        padding: '12px 18px',
+        boxShadow: isDark ? "0 4px 16px 0 rgba(0,0,0,0.85)" : "0 2px 8px 0 rgba(0,0,0,0.08)",
+        padding: "12px 18px",
         minWidth: 90,
-        textAlign: 'center',
-        letterSpacing: '0.01em',
+        textAlign: "center",
+        letterSpacing: "0.01em",
       }}
     >
       <div style={{ color: titleColor, fontWeight: 700 }}>{String(label ?? "")}</div>
       <div style={{ color, fontWeight: 700 }}>{`$${value}`}</div>
     </div>
-  );
+  )
 }
 
-// ...existing code...
-
-
-import { useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { useAppData } from "@/components/data-provider"
-import { formatCurrency, RATE_TYPE_LABELS } from "@/lib/store"
-import { Clock, DollarSign, TrendingUp, CalendarClock, ArrowRight } from "lucide-react"
-import Link from "next/link"
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Rectangle
-} from "recharts"
-import { PieChart } from "@/components/ui/pie-chart"
-
 function StatCard({
-  title, value, subtitle, icon: Icon, accent = false,
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  accent = false,
 }: {
-  title: string; value: string; subtitle: string; icon: React.ElementType; accent?: boolean
+  title: string
+  value: string
+  subtitle: string
+  icon: React.ElementType
+  accent?: boolean
 }) {
-  // Only apply green glow on hover if accent is true
   return (
-    <Card
-      className={accent
-        ?
-        // Remove always-on accent, add green ring only on hover
-        'transition-shadow hover:shadow-[0_0_0_3px_rgba(16,185,129,0.5)]'
-        : ''}
-    >
+    <Card className={accent ? "transition-shadow hover:shadow-[0_0_0_3px_rgba(16,185,129,0.5)]" : ""}>
       <CardContent className="flex items-start justify-between p-5">
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">{title}</span>
           <span className="text-2xl font-semibold tracking-tight text-foreground">{value}</span>
           <span className="text-xs text-muted-foreground">{subtitle}</span>
         </div>
-        <div className={`flex size-9 items-center justify-center rounded-xl bg-secondary`}>
+        <div className="flex size-9 items-center justify-center rounded-xl bg-secondary">
           <Icon className="size-4 text-muted-foreground" />
         </div>
       </CardContent>
@@ -80,12 +99,33 @@ function StatCard({
   )
 }
 
+function formatTime(date: Date) {
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+  return `${hours}:${minutes}`
+}
+
 export function Dashboard() {
-  const { data, getJob } = useAppData()
+  const { data, getJob, addShift, addExpense } = useAppData()
   const { resolvedTheme } = useTheme()
+  const { toast } = useToast()
   const { shifts, jobs, expenses, budgetCategories } = data
   const currencySymbol = data.settings.currencySymbol
   const hasShifts = shifts.length > 0
+  const today = new Date().toISOString().split("T")[0]
+  const widgetConfig = data.settings.dashboardWidgets
+
+  const [quickJobId, setQuickJobId] = useState<string>("")
+  const [quickHours, setQuickHours] = useState<string>("4")
+  const [quickExpenseAmount, setQuickExpenseAmount] = useState<string>("")
+  const [quickExpenseCategory, setQuickExpenseCategory] = useState<string>("Transport")
+  const [quickExpenseDescription, setQuickExpenseDescription] = useState<string>("Quick expense")
+
+  useEffect(() => {
+    if (!quickJobId && jobs.length > 0) {
+      setQuickJobId(jobs[0].id)
+    }
+  }, [jobs, quickJobId])
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -94,24 +134,21 @@ export function Dashboard() {
     monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
     const thisWeekStr = monday.toISOString().split("T")[0]
 
-    const weekShifts = shifts.filter(s => s.date >= thisWeekStr)
+    const weekShifts = shifts.filter((s) => s.date >= thisWeekStr)
     const weekHours = weekShifts.reduce((sum, s) => sum + s.hours, 0)
     const weekEarnings = weekShifts.reduce((sum, s) => sum + s.earnings, 0)
 
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
-    const monthShifts = shifts.filter(s => s.date >= monthStart)
+    const monthShifts = shifts.filter((s) => s.date >= monthStart)
     const monthEarnings = monthShifts.reduce((sum, s) => sum + s.earnings, 0)
     const monthHours = monthShifts.reduce((sum, s) => sum + s.hours, 0)
 
-    const monthExpenses = expenses
-      .filter(e => e.date >= monthStart)
-      .reduce((sum, e) => sum + e.amount, 0)
-
+    const monthExpenses = expenses.filter((e) => e.date >= monthStart).reduce((sum, e) => sum + e.amount, 0)
     const totalBudgeted = budgetCategories.reduce((sum, c) => sum + c.budgeted, 0)
 
     const todayStr = now.toISOString().split("T")[0]
     const upcomingShifts = shifts
-      .filter(s => s.date >= todayStr)
+      .filter((s) => s.date >= todayStr)
       .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
       .slice(0, 4)
 
@@ -128,7 +165,7 @@ export function Dashboard() {
       const d = new Date(monday)
       d.setDate(monday.getDate() + i)
       const dateStr = d.toISOString().split("T")[0]
-      const dayShifts = shifts.filter(s => s.date === dateStr)
+      const dayShifts = shifts.filter((s) => s.date === dateStr)
       const earnings = dayShifts.reduce((sum, s) => sum + s.earnings, 0)
       return { day: label, earnings: Math.round(earnings * 100) / 100 }
     })
@@ -136,20 +173,116 @@ export function Dashboard() {
 
   const jobPieData = useMemo(() => {
     const byJob: Record<string, number> = {}
-    shifts.forEach(s => {
+    shifts.forEach((s) => {
       const job = getJob(s.jobId)
       if (job) byJob[job.name] = (byJob[job.name] || 0) + s.earnings
     })
     return Object.entries(byJob).map(([name, value]) => {
-      const job = jobs.find(j => j.name === name)
+      const job = jobs.find((j) => j.name === name)
       return { name, value: Math.round(value * 100) / 100, color: job?.color || "#94a3b8" }
     })
   }, [shifts, jobs, getJob])
+
+  const profitabilityRows = useMemo(() => {
+    const todayDate = new Date()
+    const periodStartDate = new Date(todayDate)
+    periodStartDate.setDate(todayDate.getDate() - 30)
+    const periodStart = periodStartDate.toISOString().split("T")[0]
+
+    const periodShifts = shifts.filter((s) => s.date >= periodStart)
+    const periodExpenses = expenses.filter((e) => e.date >= periodStart)
+    const totalHours = periodShifts.reduce((sum, s) => sum + s.hours, 0)
+    const totalExpenses = periodExpenses.reduce((sum, e) => sum + e.amount, 0)
+    const expensePerHour = totalHours > 0 ? totalExpenses / totalHours : 0
+
+    return jobs
+      .map((job) => {
+        const jobShifts = periodShifts.filter((s) => s.jobId === job.id)
+        const hours = jobShifts.reduce((sum, s) => sum + s.hours, 0)
+        const earnings = jobShifts.reduce((sum, s) => sum + s.earnings, 0)
+        const shiftCount = jobShifts.length
+        const grossHourly = hours > 0 ? earnings / hours : 0
+        const netHourly = Math.max(grossHourly - expensePerHour, 0)
+        return {
+          id: job.id,
+          name: job.name,
+          hours,
+          earnings,
+          shiftCount,
+          grossHourly,
+          netHourly,
+          color: job.color,
+        }
+      })
+      .filter((row) => row.hours > 0)
+      .sort((a, b) => b.netHourly - a.netHourly)
+  }, [jobs, shifts, expenses])
+
+  const handleQuickAddShift = () => {
+    const job = jobs.find((item) => item.id === quickJobId)
+    const hours = Number(quickHours)
+    if (!job) {
+      toast({ title: "Select a job", description: "Choose a job before adding a quick shift." })
+      return
+    }
+    if (!Number.isFinite(hours) || hours <= 0) {
+      toast({ title: "Invalid hours", description: "Enter a valid shift duration." })
+      return
+    }
+
+    const now = new Date()
+    const start = new Date(now)
+    start.setMinutes(0, 0, 0)
+    const end = new Date(start)
+    end.setMinutes(end.getMinutes() + Math.round(hours * 60))
+
+    const rateType = detectRateType(today, data.publicHolidays)
+    const earnings = calculateShiftEarnings(hours, job, rateType)
+
+    addShift({
+      date: today,
+      startTime: formatTime(start),
+      endTime: formatTime(end),
+      jobId: job.id,
+      rateType,
+      breakMinutes: 0,
+      hours,
+      earnings,
+      note: "Quick added from dashboard",
+    })
+
+    toast({
+      title: "Shift added",
+      description: `${job.name} · ${hours}h · ${formatCurrency(earnings, currencySymbol)}`,
+    })
+  }
+
+  const handleQuickAddExpense = () => {
+    const amount = Number(quickExpenseAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast({ title: "Invalid amount", description: "Enter a valid expense amount." })
+      return
+    }
+
+    addExpense({
+      amount,
+      category: quickExpenseCategory.trim() || "General",
+      description: quickExpenseDescription.trim() || "Quick expense",
+      date: today,
+    })
+
+    setQuickExpenseAmount("")
+    toast({
+      title: "Expense added",
+      description: `${formatCurrency(amount, currencySymbol)} in ${quickExpenseCategory}`,
+    })
+  }
 
   const isDark = resolvedTheme === "dark"
   const axisColor = "var(--color-muted-foreground)"
   const gridColor = "var(--color-border)"
   const legendColor = "var(--color-muted-foreground)"
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -157,17 +290,19 @@ export function Dashboard() {
         <p className="mt-1 text-sm text-muted-foreground">Your shift overview at a glance.</p>
       </div>
 
-      {/* Stats */}
+      {widgetConfig.stats ? (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard title="This Week" value={`${stats.weekHours}h`} subtitle={formatCurrency(stats.weekEarnings, currencySymbol)} icon={Clock} accent />
         <StatCard title="Monthly Earnings" value={formatCurrency(stats.monthEarnings, currencySymbol)} subtitle={`${stats.monthHours}h worked`} icon={DollarSign} accent />
         <StatCard title="Monthly Spend" value={formatCurrency(stats.monthExpenses, currencySymbol)} subtitle={`of ${formatCurrency(stats.totalBudgeted, currencySymbol)} budget`} icon={TrendingUp} accent />
         <StatCard title="Upcoming" value={`${stats.upcomingShifts.length}`} subtitle="shifts scheduled" icon={CalendarClock} accent />
       </div>
+      ) : null}
 
-      {/* Charts */}
+      {(widgetConfig.weeklyChart || widgetConfig.jobBreakdown) ? (
       <div className="grid gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+        {widgetConfig.weeklyChart ? (
+        <Card className={widgetConfig.jobBreakdown ? "lg:col-span-3" : "lg:col-span-5"}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-foreground">Weekly Earnings</CardTitle>
           </CardHeader>
@@ -178,19 +313,14 @@ export function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                   <XAxis dataKey="day" tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} />
                   <YAxis tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={(v) => `${currencySymbol}${v}`} />
-                  <Tooltip
-                    cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }}
-                    content={<CustomBarTooltip theme={isDark ? "dark" : "light"} />}
+                  <Tooltip cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }} content={<CustomBarTooltip theme={isDark ? "dark" : "light"} />} />
+                  <Bar
+                    dataKey="earnings"
+                    fill="var(--color-primary)"
+                    radius={[6, 6, 0, 0]}
+                    stroke="transparent"
+                    activeBar={<Rectangle stroke="var(--color-border)" strokeWidth={1} />}
                   />
-                    <Bar
-                      dataKey="earnings"
-                      fill="var(--color-primary)"
-                      radius={[6, 6, 0, 0]}
-                      stroke="transparent"
-                      activeBar={
-                        <Rectangle stroke="var(--color-border)" strokeWidth={1} />
-                      }
-                    />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -200,8 +330,10 @@ export function Dashboard() {
             )}
           </CardContent>
         </Card>
+        ) : null}
 
-        <Card className="lg:col-span-2">
+        {widgetConfig.jobBreakdown ? (
+        <Card className={widgetConfig.weeklyChart ? "lg:col-span-2" : "lg:col-span-5"}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-foreground">By Job</CardTitle>
           </CardHeader>
@@ -209,16 +341,13 @@ export function Dashboard() {
             {jobPieData.length > 0 ? (
               <>
                 <div className="h-[150px] w-[150px]">
-                  <PieChart
-                    data={jobPieData}
-                    tooltipFormatter={(value) => [formatCurrency(Number(value), currencySymbol), "Earned"]}
-                  />
+                  <PieChart data={jobPieData} tooltipFormatter={(value) => [formatCurrency(Number(value), currencySymbol), "Earned"]} />
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
-                  {jobPieData.map((e) => (
-                    <div key={e.name} className="flex items-center gap-1.5 text-xs" style={{ color: legendColor }}>
-                      <div className="size-2 rounded-full" style={{ background: e.color }} />
-                      {e.name}
+                  {jobPieData.map((entry) => (
+                    <div key={entry.name} className="flex items-center gap-1.5 text-xs" style={{ color: legendColor }}>
+                      <div className="size-2 rounded-full" style={{ background: entry.color }} />
+                      {entry.name}
                     </div>
                   ))}
                 </div>
@@ -228,9 +357,11 @@ export function Dashboard() {
             )}
           </CardContent>
         </Card>
+        ) : null}
       </div>
+      ) : null}
 
-      {/* Upcoming shifts */}
+      {widgetConfig.upcomingShifts ? (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-foreground">Upcoming Shifts</CardTitle>
@@ -247,17 +378,26 @@ export function Dashboard() {
                 const job = getJob(shift.jobId)
                 return (
                   <div key={shift.id} className="flex items-center gap-3 py-3">
-                    <div className="size-2 rounded-full shrink-0" style={{ background: job?.color || "#94a3b8" }} />
-                    <div className="flex flex-1 flex-col gap-0.5 min-w-0">
+                    <div className="size-2 shrink-0 rounded-full" style={{ background: job?.color || "#94a3b8" }} />
+                    <div className="min-w-0 flex-1 flex-col gap-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground truncate">{job?.name || "Unknown"}</span>
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{RATE_TYPE_LABELS[shift.rateType]}</Badge>
+                        <span className="truncate text-sm font-medium text-foreground">{job?.name || "Unknown"}</span>
+                        <Badge variant="secondary" className="h-4 px-1.5 py-0 text-[10px]">
+                          {RATE_TYPE_LABELS[shift.rateType]}
+                        </Badge>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(shift.date + "T00:00:00").toLocaleDateString("en-AU", { weekday: "short", month: "short", day: "numeric" })} &middot; {shift.startTime}&ndash;{shift.endTime} &middot; {shift.hours}h
+                        {new Date(`${shift.date}T00:00:00`).toLocaleDateString("en-AU", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                        &middot; {shift.startTime}&ndash;{shift.endTime} &middot; {shift.hours}h
                       </span>
                     </div>
-                    <span className="text-sm font-medium text-foreground shrink-0">{formatCurrency(shift.earnings, currencySymbol)}</span>
+                    <span className="shrink-0 text-sm font-medium text-foreground">
+                      {formatCurrency(shift.earnings, currencySymbol)}
+                    </span>
                   </div>
                 )
               })}
@@ -265,6 +405,129 @@ export function Dashboard() {
           )}
         </CardContent>
       </Card>
+      ) : null}
+
+      {(widgetConfig.quickActions || widgetConfig.profitability) ? (
+        <div className="grid gap-4 lg:grid-cols-5">
+          {widgetConfig.quickActions ? (
+            <Card className={widgetConfig.profitability ? "lg:col-span-3" : "lg:col-span-5"}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Plus className="size-4 text-primary" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-0">
+                <div className="rounded-md border border-border/70 p-3">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Quick Shift</p>
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label>Job</Label>
+                      <Select value={quickJobId} onValueChange={setQuickJobId}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select job" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {jobs.map((job) => (
+                            <SelectItem key={job.id} value={job.id}>
+                              {job.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Hours</Label>
+                      <Input value={quickHours} onChange={(e) => setQuickHours(e.target.value)} className="h-9" />
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={handleQuickAddShift} disabled={!jobs.length} className="h-9 w-full gap-1.5">
+                        <CalendarClock className="size-4" />
+                        Add Shift
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-border/70 p-3">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Quick Expense</p>
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="space-y-1.5">
+                      <Label>Amount</Label>
+                      <Input
+                        value={quickExpenseAmount}
+                        onChange={(e) => setQuickExpenseAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Category</Label>
+                      <Input
+                        value={quickExpenseCategory}
+                        onChange={(e) => setQuickExpenseCategory(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Description</Label>
+                      <Input
+                        value={quickExpenseDescription}
+                        onChange={(e) => setQuickExpenseDescription(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={handleQuickAddExpense} variant="secondary" className="h-9 w-full gap-1.5">
+                        <Receipt className="size-4" />
+                        Add Expense
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {widgetConfig.profitability ? (
+            <Card className={widgetConfig.quickActions ? "lg:col-span-2" : "lg:col-span-5"}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <BriefcaseBusiness className="size-4 text-primary" />
+                  Job Profitability (Last 30 Days)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {profitabilityRows.length ? (
+                  <div className="space-y-2">
+                    {profitabilityRows.map((row, index) => (
+                      <div key={row.id} className="rounded-md border border-border/70 px-3 py-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">{row.name}</span>
+                              {index === 0 ? <Badge variant="secondary">Best net/hr</Badge> : null}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {row.shiftCount} shifts · {row.hours.toFixed(1)}h · Gross {formatCurrency(row.grossHourly, currencySymbol)}/h
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-foreground">{formatCurrency(row.netHourly, currencySymbol)}/h</p>
+                            <p className="text-xs text-muted-foreground">Net hourly</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-6 text-sm text-muted-foreground">Add shifts to compare job profitability.</p>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

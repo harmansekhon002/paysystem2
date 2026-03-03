@@ -62,7 +62,7 @@ export default function BudgetPlanner() {
   const todayStr = new Date().toISOString().split("T")[0];
 
   const [newExpense, setNewExpense] = useState({
-    category: data.budgetCategories[0]?.name || "",
+    category: data.budgetCategories[0]?.name || "General",
     amount: "",
     description: "",
     date: todayStr,
@@ -178,7 +178,7 @@ export default function BudgetPlanner() {
 
           <Dialog open={expenseDialog} onOpenChange={setExpenseDialog}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5">
+              <Button size="sm" className="gap-1.5" data-testid="open-add-expense-dialog">
                 <Plus className="size-4" />
                 <span className="hidden sm:inline">Expense</span>
               </Button>
@@ -189,9 +189,11 @@ export default function BudgetPlanner() {
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs">Category</Label>
                   {data.budgetCategories.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
-                      Add a category first to log expenses.
-                    </div>
+                    <Input
+                      placeholder="Category"
+                      value={newExpense.category}
+                      onChange={e => setNewExpense(ex => ({ ...ex, category: e.target.value }))}
+                    />
                   ) : (
                     <Select value={newExpense.category} onValueChange={v => setNewExpense(e => ({ ...e, category: v }))}>
                       <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>

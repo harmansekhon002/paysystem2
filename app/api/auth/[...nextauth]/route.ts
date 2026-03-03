@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import { NextResponse } from "next/server"
 import { authOptions } from "@/lib/auth"
+import { logServerError } from "@/lib/server-ops"
 
 const handler = NextAuth(authOptions)
 const isProduction = process.env.NODE_ENV === "production"
@@ -20,8 +21,8 @@ export async function GET(req: Request, ctx: unknown) {
   try {
     return await handler(req, ctx as never)
   } catch (error) {
-    console.error("NextAuth GET handler failed:", error)
-    return NextResponse.json({ error: "Authentication service unavailable" }, { status: 500 })
+    const errorId = logServerError("nextauth-get", error)
+    return NextResponse.json({ error: "Authentication service unavailable", errorId }, { status: 500 })
   }
 }
 
@@ -33,7 +34,7 @@ export async function POST(req: Request, ctx: unknown) {
   try {
     return await handler(req, ctx as never)
   } catch (error) {
-    console.error("NextAuth POST handler failed:", error)
-    return NextResponse.json({ error: "Authentication service unavailable" }, { status: 500 })
+    const errorId = logServerError("nextauth-post", error)
+    return NextResponse.json({ error: "Authentication service unavailable", errorId }, { status: 500 })
   }
 }

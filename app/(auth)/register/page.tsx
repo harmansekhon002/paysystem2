@@ -1,10 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, UserPlus, Loader2, CheckCircle2 } from "lucide-react"
+import { Copy, Eye, EyeOff, UserPlus, Loader2, CheckCircle2, MailCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,18 +31,21 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function RegisterPage() {
-    const router = useRouter()
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState("")
+    const [success, setSuccess] = useState("")
+    const [verificationUrl, setVerificationUrl] = useState("")
     const [isLoading, setIsLoading] = useState(false)
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+        setSuccess("")
+        setVerificationUrl("")
 
         if (password !== confirmPassword) {
             setError("Passwords do not match")
@@ -64,7 +65,7 @@ export default function RegisterPage() {
             })
 
             const raw = await res.text()
-            let data: { error?: string } = {}
+            let data: { error?: string; verificationUrl?: string } = {}
             try {
                 data = raw ? JSON.parse(raw) : {}
             } catch {
@@ -76,19 +77,8 @@ export default function RegisterPage() {
                 return
             }
 
-            // Auto sign in after registration
-            const result = await signIn("credentials", {
-                email: email.trim().toLowerCase(),
-                password,
-                redirect: false,
-            })
-
-            if (result?.error) {
-                router.push("/login")
-            } else {
-                router.push("/")
-                router.refresh()
-            }
+            setSuccess("Account created. Verify your email before signing in.")
+            if (data.verificationUrl) setVerificationUrl(data.verificationUrl)
         } catch {
             setError("Something went wrong. Please try again.")
         } finally {
@@ -108,6 +98,28 @@ export default function RegisterPage() {
                 {error && (
                     <div className="rounded-xl border border-destructive/20 bg-destructive/8 px-4 py-3 text-sm text-destructive">
                         {error}
+                    </div>
+                )}
+                {success && (
+                    <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                        <div className="flex items-center gap-2 font-semibold">
+                            <MailCheck className="size-4" />
+                            Email verification required
+                        </div>
+                        <p className="mt-1">{success}</p>
+                        {verificationUrl && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <a href={verificationUrl} className="text-xs underline text-emerald-200">Open verification link</a>
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 rounded-md border border-emerald-400/30 px-2 py-1 text-xs text-emerald-100 hover:bg-emerald-500/20"
+                                    onClick={() => navigator.clipboard.writeText(verificationUrl)}
+                                >
+                                    <Copy className="size-3.5" />
+                                    Copy link
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 

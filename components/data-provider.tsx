@@ -3,12 +3,14 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import {
   type AppData, type Shift, type JobTemplate, type Expense, type Goal,
-  type BudgetCategory, type AppSettings,
+  type BudgetCategory, type AppSettings, type AttendanceEvent,
   defaultData, generateId, getJobColor
 } from "@/lib/store"
 
 type DataContextType = {
   data: AppData
+  saveStatus: "idle" | "saving" | "saved" | "error"
+  lastSavedAt: string | null
   // Shifts
   addShift: (shift: Omit<Shift, "id">) => void
   removeShift: (id: string) => void
@@ -21,6 +23,9 @@ type DataContextType = {
   addExpense: (expense: Omit<Expense, "id">) => void
   updateExpense: (id: string, updates: Partial<Expense>) => void
   removeExpense: (id: string) => void
+  // Attendance
+  addAttendanceEvent: (event: Omit<AttendanceEvent, "id">) => void
+  removeAttendanceEvent: (id: string) => void
   // Budget
   addBudgetCategory: (cat: Omit<BudgetCategory, "id">) => void
   updateBudgetCategory: (id: string, cat: Partial<BudgetCategory>) => void
@@ -48,6 +53,7 @@ function mergeStoredData(raw: Partial<AppData>): AppData {
     ...raw,
     jobs: raw.jobs ?? defaultData.jobs,
     shifts: raw.shifts ?? defaultData.shifts,
+    attendanceEvents: raw.attendanceEvents ?? defaultData.attendanceEvents,
     expenses: raw.expenses ?? defaultData.expenses,
     budgetCategories: raw.budgetCategories ?? defaultData.budgetCategories,
     goals: raw.goals ?? defaultData.goals,
@@ -79,6 +85,8 @@ export function useAppData() {
 export function DataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(defaultData)
   const [hydrated, setHydrated] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -102,7 +110,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    try {
+      setSaveStatus("saving")
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      setSaveStatus("saved")
+      setLastSavedAt(new Date().toISOString())
+    } catch {
+      setSaveStatus("error")
+    }
   }, [data, hydrated])
 
   // Shifts
@@ -161,6 +176,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const removeExpense = useCallback((id: string) => {
     setData(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== id) }))
+  }, [])
+
+  // Attendance
+  const addAttendanceEvent = useCallback((event: Omit<AttendanceEvent, "id">) => {
+    setData(prev => ({ ...prev, attendanceEvents: [...prev.attendanceEvents, { ...event, id: generateId() }] }))
+  }, [])
+
+  const removeAttendanceEvent = useCallback((id: string) => {
+    setData(prev => ({ ...prev, attendanceEvents: prev.attendanceEvents.filter(e => e.id !== id) }))
   }, [])
 
   // Budget
@@ -230,9 +254,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     <DataContext.Provider
       value={{
         data,
+        saveStatus,
+        lastSavedAt,
         addShift, removeShift, updateShift,
         addJob, updateJob, removeJob,
         addExpense, updateExpense, removeExpense,
+        addAttendanceEvent, removeAttendanceEvent,
         addBudgetCategory, updateBudgetCategory, removeBudgetCategory,
         addGoal, updateGoal, removeGoal,
         updateSettings,

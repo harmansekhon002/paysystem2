@@ -1,15 +1,16 @@
 import { Prisma, PrismaClient } from "@prisma/client"
+import { getDatabaseProvider, getDatabaseUrl } from "@/lib/db-config"
 
 const globalForPrisma = globalThis as { prisma?: PrismaClient }
-const databaseUrl =
-  process.env.DATABASE_URL ??
-  process.env.POSTGRES_PRISMA_URL ??
-  process.env.POSTGRES_URL
+const databaseUrl = getDatabaseUrl()
+const databaseProvider = getDatabaseProvider()
 
 if (!databaseUrl) {
   console.error(
-    "No database URL found. Expected POSTGRES_PRISMA_URL, POSTGRES_URL, or DATABASE_URL."
+    "No database URL found. Expected PRIMARY_DATABASE_URL, DATABASE_URL, POSTGRES_PRISMA_URL, or POSTGRES_URL."
   )
+} else if (databaseProvider !== "unknown") {
+  console.info(`[db] Provider configured: ${databaseProvider}`)
 }
 
 export const prisma =

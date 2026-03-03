@@ -23,6 +23,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:retention:check": "tsx scripts/db-retention.ts",
+    "db:retention:run": "tsx scripts/db-retention.ts --execute",
     "postinstall": "prisma generate"
   },
   "dependencies": {

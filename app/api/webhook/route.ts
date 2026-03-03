@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handleDbWriteFailure } from "@/lib/db-resilience"
 
 type PayPalWebhookEvent = {
   event_type?: string
@@ -73,7 +74,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Webhook error:', error)
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+    return handleDbWriteFailure("paypal-webhook", error)
   }
 }

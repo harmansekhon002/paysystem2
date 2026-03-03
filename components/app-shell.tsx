@@ -112,7 +112,7 @@ function BottomNav() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { data, updateSettings } = useAppData()
+  const { data, updateSettings, saveStatus, lastSavedAt } = useAppData()
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
 
   const handleCurrencyCycle = () => {
@@ -172,6 +172,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <LogOut className="size-4" />
               </Button>
+            </div>
+            <div className="col-span-4 flex justify-center border-t border-border pt-2 text-[10px] text-muted-foreground">
+              {saveStatus === "saving" && "Saving..."}
+              {saveStatus === "saved" && `Saved ${lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}`}
+              {saveStatus === "error" && "Save failed"}
+              {saveStatus === "idle" && "Ready"}
             </div>
           </div>
         </div>

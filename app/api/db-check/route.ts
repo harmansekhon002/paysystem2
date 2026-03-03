@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { logServerError } from "@/lib/server-ops"
 
 function parseDatabaseUrl(url?: string) {
   if (!url) return null
@@ -28,7 +29,7 @@ export async function GET() {
     )
 
     const [tableInfo] = await prisma.$queryRawUnsafe<Array<{ user_table: string | null }>>(
-      `SELECT to_regclass('"User"') AS user_table`
+      `SELECT to_regclass('"User"')::text AS user_table`
     )
 
     return NextResponse.json({
@@ -38,11 +39,13 @@ export async function GET() {
       userTable: tableInfo?.user_table ?? null,
     })
   } catch (error) {
+    const errorId = logServerError("db-check", error)
     return NextResponse.json(
       {
         ok: false,
         envUrlParsed: parseDatabaseUrl(selectedUrl ?? undefined),
         error: error instanceof Error ? error.message : "Unknown database error",
+        errorId,
       },
       { status: 500 }
     )

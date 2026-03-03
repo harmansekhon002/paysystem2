@@ -12,6 +12,11 @@ const USER_TABLE_INIT_STATEMENTS = [
       "email" TEXT NOT NULL,
       "name" TEXT,
       "passwordHash" TEXT NOT NULL,
+      "emailVerified" BOOLEAN NOT NULL DEFAULT false,
+      "verificationToken" TEXT,
+      "verificationTokenExpires" TIMESTAMP(3),
+      "resetToken" TEXT,
+      "resetTokenExpires" TIMESTAMP(3),
       "currency" TEXT NOT NULL DEFAULT 'AUD',
       "timezone" TEXT NOT NULL DEFAULT 'Australia/Sydney',
       "isPremium" BOOLEAN NOT NULL DEFAULT false,
@@ -25,6 +30,13 @@ const USER_TABLE_INIT_STATEMENTS = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_stripeCustomerId_key" ON "User"("stripeCustomerId")`,
   `CREATE INDEX IF NOT EXISTS "User_email_idx" ON "User"("email")`,
+  `CREATE INDEX IF NOT EXISTS "User_verificationToken_idx" ON "User"("verificationToken")`,
+  `CREATE INDEX IF NOT EXISTS "User_resetToken_idx" ON "User"("resetToken")`,
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationToken" TEXT`,
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationTokenExpires" TIMESTAMP(3)`,
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetToken" TEXT`,
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetTokenExpires" TIMESTAMP(3)`,
 ]
 
 async function runUserTableInitialization() {

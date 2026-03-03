@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from "next-auth/jwt"
 import { prisma } from '@/lib/prisma'
+import { handleDbWriteFailure } from "@/lib/db-resilience"
+import { prepareIdempotency } from "@/lib/idempotency"
 
 export async function POST(req: NextRequest) {
     try {
@@ -25,6 +27,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
+        const idempotency = await prepareIdempotency({
+            req,
+            scope: "subscription-save",
+            ownerKey: userId,
+            payload: data,
+        })
+        if (idempotency.replay) {
+            return idempotency.replay
+        }
+
         // We verify the subscription via the PayPal API in a production environment
         // For now, we save it directly to the database.
         if (!prisma?.subscription) throw new Error("Prisma client is not initialized")
@@ -46,9 +58,8 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        return NextResponse.json({ success: true })
+        return idempotency.finish(200, { success: true })
     } catch (error) {
-        console.error('Error saving subscription:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        return handleDbWriteFailure("subscription-save", error)
     }
 }

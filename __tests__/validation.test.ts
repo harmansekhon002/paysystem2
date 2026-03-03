@@ -262,7 +262,7 @@ describe("Data Cleaning", () => {
 
 describe("Duplicate Detection", () => {
   it("should find duplicate shifts", () => {
-    const shifts: Partial<Shift>[] = [
+    const shifts: Shift[] = [
       {
         id: "1",
         jobId: "job1",
@@ -296,7 +296,7 @@ describe("Duplicate Detection", () => {
         breakMinutes: 0,
         earnings: 240,
       },
-    ] as Shift[]
+    ]
 
     const duplicates = findDuplicateShifts(shifts)
     expect(duplicates).toHaveLength(1)

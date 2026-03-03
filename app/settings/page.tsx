@@ -1,23 +1,43 @@
 "use client"
 
-import { useState } from "react"
-import { CalendarClock, Database, Globe2, Info, Palette, UserRound, WalletCards } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Bell, CalendarClock, Copy, Database, Globe2, Info, LayoutDashboard, Loader2, Palette, RefreshCw, UserRound, WalletCards } from "lucide-react"
 import { useTheme } from "next-themes"
+import Link from "next/link"
 
 import { AppShell } from "@/components/app-shell"
 import { useAppData } from "@/components/data-provider"
+import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+
+type SubscriptionStatus = {
+  paypalSubscriptionId: string
+  paypalPlanId: string
+  paypalCurrentPeriodEnd: string
+  status: string
+  cancelAtPeriodEnd: boolean
+  updatedAt: string
+  planName: string
+}
 
 export default function SettingsPage() {
   const { data, updateSettings } = useAppData()
   const { theme, setTheme } = useTheme()
+  const { toast } = useToast()
   const [resetting, setResetting] = useState(false)
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null)
+  const [loadingSubscription, setLoadingSubscription] = useState(true)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
+  const [managingSubscription, setManagingSubscription] = useState<"cancel" | "reactivate" | null>(null)
   const [profile, setProfile] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("shiftwise:profile")
@@ -25,6 +45,98 @@ export default function SettingsPage() {
     }
     return { name: "", email: "" }
   })
+
+  const loadSubscriptionStatus = async () => {
+    setLoadingSubscription(true)
+    setSubscriptionError(null)
+    try {
+      const response = await fetch("/api/subscription/status", { cache: "no-store" })
+      const payload = (await response.json()) as {
+        hasSubscription?: boolean
+        subscription?: SubscriptionStatus | null
+        error?: string
+      }
+
+      if (!response.ok) {
+        setSubscriptionError(payload.error ?? "Could not load subscription status.")
+        setSubscription(null)
+        return
+      }
+
+      setSubscription(payload.hasSubscription ? payload.subscription ?? null : null)
+    } catch (error) {
+      console.error("Failed to load subscription status:", error)
+      setSubscriptionError("Could not load subscription status due to a network issue.")
+      setSubscription(null)
+    } finally {
+      setLoadingSubscription(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadSubscriptionStatus()
+  }, [])
+
+  const manageSubscription = async (action: "cancel" | "reactivate") => {
+    setManagingSubscription(action)
+    try {
+      const key = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+      const response = await fetch("/api/subscription/manage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-idempotency-key": key,
+        },
+        body: JSON.stringify({ action }),
+      })
+
+      const payload = (await response.json()) as { ok?: boolean; message?: string; error?: string }
+      if (!response.ok) {
+        toast({
+          title: "Subscription update failed",
+          description: payload.error ?? "Please retry in a moment.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: action === "cancel" ? "Cancellation scheduled" : "Auto-renew enabled",
+        description: payload.message ?? "Subscription updated successfully.",
+      })
+      await loadSubscriptionStatus()
+    } catch (error) {
+      console.error("Failed to manage subscription:", error)
+      toast({
+        title: "Network error",
+        description: "Could not update your subscription right now.",
+        variant: "destructive",
+      })
+    } finally {
+      setManagingSubscription(null)
+    }
+  }
+
+  const copySubscriptionId = async () => {
+    if (!subscription?.paypalSubscriptionId) return
+    try {
+      await navigator.clipboard.writeText(subscription.paypalSubscriptionId)
+      toast({
+        title: "Subscription ID copied",
+        description: "Copied to clipboard for support cases.",
+      })
+    } catch (error) {
+      console.error("Failed to copy subscription ID:", error)
+      toast({
+        title: "Copy failed",
+        description: "Could not copy subscription ID.",
+        variant: "destructive",
+      })
+    }
+  }
 
   function handleProfileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
@@ -64,6 +176,26 @@ export default function SettingsPage() {
     { value: "UK", label: "UK" },
     { value: "Other", label: "Other" },
   ]
+  const notificationTypeOptions = [
+    { value: "shift", label: "Shift reminders" },
+    { value: "budget", label: "Budget alerts" },
+    { value: "goal", label: "Goal reminders" },
+    { value: "earnings", label: "Earnings milestones" },
+    { value: "payday", label: "Payday reminders" },
+    { value: "motivation", label: "Daily motivation" },
+    { value: "milestone", label: "Goal milestones" },
+  ]
+  const dashboardWidgetOptions: Array<{
+    key: keyof typeof data.settings.dashboardWidgets
+    label: string
+  }> = [
+    { key: "quickActions", label: "Quick actions" },
+    { key: "profitability", label: "Job profitability" },
+    { key: "stats", label: "Stats cards" },
+    { key: "weeklyChart", label: "Weekly earnings chart" },
+    { key: "jobBreakdown", label: "Job breakdown chart" },
+    { key: "upcomingShifts", label: "Upcoming shifts" },
+  ]
 
   return (
     <AppShell>
@@ -71,7 +203,7 @@ export default function SettingsPage() {
         <Card className="border-primary/20 bg-gradient-to-r from-primary/8 via-card to-card shadow-sm">
           <CardHeader className="space-y-4 p-7 md:p-8">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-3xl font-extrabold tracking-tight">Settings</CardTitle>
+              <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
               <Badge variant="secondary" className="rounded-full px-3 py-1">
                 Account & App Settings
               </Badge>
@@ -122,6 +254,87 @@ export default function SettingsPage() {
                 <Button onClick={handleProfileSave} className="w-full sm:w-fit">
                   Save Profile
                 </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
+                  <Bell className="text-primary size-4" />
+                  <CardTitle className="text-lg">Notifications</CardTitle>
+                </div>
+                <CardDescription>Control alerts, categories, and quiet hours.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5 p-6 pt-0">
+                <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">Enable notifications</p>
+                    <p className="text-xs text-muted-foreground">Master switch for app notifications.</p>
+                  </div>
+                  <Switch
+                    checked={data.settings.notificationsEnabled}
+                    onCheckedChange={(checked) => updateSettings({ notificationsEnabled: Boolean(checked) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Notification types</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {notificationTypeOptions.map((type) => {
+                      const checked = data.settings.notificationTypes.includes(type.value)
+                      return (
+                        <label key={type.value} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              const enabled = Boolean(next)
+                              const nextTypes = enabled
+                                ? Array.from(new Set([...data.settings.notificationTypes, type.value]))
+                                : data.settings.notificationTypes.filter(t => t !== type.value)
+                              updateSettings({ notificationTypes: nextTypes })
+                            }}
+                          />
+                          <span>{type.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">Quiet hours</p>
+                      <p className="text-xs text-muted-foreground">Pause notification generation during selected time.</p>
+                    </div>
+                    <Switch
+                      checked={data.settings.quietHoursEnabled}
+                      onCheckedChange={(checked) => updateSettings({ quietHoursEnabled: Boolean(checked) })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="quiet-start">Start</Label>
+                      <Input
+                        id="quiet-start"
+                        type="time"
+                        className="h-10"
+                        value={data.settings.quietHoursStart}
+                        onChange={e => updateSettings({ quietHoursStart: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="quiet-end">End</Label>
+                      <Input
+                        id="quiet-end"
+                        type="time"
+                        className="h-10"
+                        value={data.settings.quietHoursEnd}
+                        onChange={e => updateSettings({ quietHoursEnd: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -199,6 +412,34 @@ export default function SettingsPage() {
             <Card className="border-border/80 shadow-sm">
               <CardHeader className="p-6 pb-4">
                 <div className="flex items-center gap-2">
+                  <LayoutDashboard className="text-primary size-4" />
+                  <CardTitle className="text-lg">Dashboard Widgets</CardTitle>
+                </div>
+                <CardDescription>Choose what appears on your home dashboard.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 p-6 pt-0">
+                {dashboardWidgetOptions.map((widget) => (
+                  <label key={widget.key} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                    <Checkbox
+                      checked={data.settings.dashboardWidgets[widget.key]}
+                      onCheckedChange={(next) =>
+                        updateSettings({
+                          dashboardWidgets: {
+                            ...data.settings.dashboardWidgets,
+                            [widget.key]: Boolean(next),
+                          },
+                        })
+                      }
+                    />
+                    <span>{widget.label}</span>
+                  </label>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
                   <Palette className="text-primary size-4" />
                   <CardTitle className="text-lg">Appearance</CardTitle>
                 </div>
@@ -236,6 +477,107 @@ export default function SettingsPage() {
                 <p className="text-muted-foreground text-xs leading-relaxed">
                   This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="p-6 pb-4">
+                <div className="flex items-center gap-2">
+                  <WalletCards className="text-primary size-4" />
+                  <CardTitle className="text-lg">Subscription</CardTitle>
+                </div>
+                <CardDescription>Manage your plan and renewal settings.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6 pt-0">
+                {loadingSubscription ? (
+                  <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>Loading subscription status...</span>
+                  </div>
+                ) : null}
+
+                {!loadingSubscription && subscriptionError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>Subscription status unavailable</AlertTitle>
+                    <AlertDescription>{subscriptionError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {!loadingSubscription && !subscriptionError && !subscription ? (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground text-sm">
+                      No paid subscription found on this account.
+                    </p>
+                    <Button asChild className="w-full sm:w-fit">
+                      <Link href="/pricing">View plans</Link>
+                    </Button>
+                  </div>
+                ) : null}
+
+                {!loadingSubscription && subscription ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge>{subscription.planName}</Badge>
+                      <Badge variant={subscription.status === "active" ? "secondary" : "outline"}>
+                        {subscription.status}
+                      </Badge>
+                      {subscription.cancelAtPeriodEnd ? (
+                        <Badge variant="outline">Cancels at period end</Badge>
+                      ) : (
+                        <Badge variant="secondary">Auto-renew on</Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 text-sm">
+                      <p>
+                        <span className="text-muted-foreground">Next billing date:</span>{" "}
+                        {new Date(subscription.paypalCurrentPeriodEnd).toLocaleDateString()}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">Last updated:</span>{" "}
+                        {new Date(subscription.updatedAt).toLocaleString()}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-muted-foreground">Subscription ID:</span>
+                        <code className="rounded bg-muted px-2 py-0.5 text-xs">{subscription.paypalSubscriptionId}</code>
+                        <Button size="sm" variant="outline" onClick={copySubscriptionId} className="h-7 gap-1.5 px-2">
+                          <Copy className="size-3.5" />
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => void loadSubscriptionStatus()}
+                        disabled={loadingSubscription || Boolean(managingSubscription)}
+                        className="gap-2"
+                      >
+                        <RefreshCw className="size-4" />
+                        Refresh
+                      </Button>
+                      {subscription.cancelAtPeriodEnd ? (
+                        <Button
+                          onClick={() => void manageSubscription("reactivate")}
+                          disabled={Boolean(managingSubscription)}
+                          className="gap-2"
+                        >
+                          {managingSubscription === "reactivate" ? <Loader2 className="size-4 animate-spin" /> : null}
+                          Re-enable Auto Renew
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="destructive"
+                          onClick={() => void manageSubscription("cancel")}
+                          disabled={Boolean(managingSubscription)}
+                          className="gap-2"
+                        >
+                          {managingSubscription === "cancel" ? <Loader2 className="size-4 animate-spin" /> : null}
+                          Cancel at Period End
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 

@@ -66,11 +66,34 @@ export type AppSettings = {
   currencySymbol: string
   payPeriod: PayPeriod
   country: string
+  notificationsEnabled: boolean
+  notificationTypes: string[]
+  quietHoursEnabled: boolean
+  quietHoursStart: string
+  quietHoursEnd: string
+  dashboardWidgets: {
+    quickActions: boolean
+    profitability: boolean
+    stats: boolean
+    weeklyChart: boolean
+    jobBreakdown: boolean
+    upcomingShifts: boolean
+  }
+}
+
+export type AttendanceEvent = {
+  id: string
+  date: string
+  jobId: string
+  type: "late" | "absent"
+  minutesLate?: number
+  note?: string
 }
 
 export type AppData = {
   jobs: JobTemplate[]
   shifts: Shift[]
+  attendanceEvents: AttendanceEvent[]
   expenses: Expense[]
   budgetCategories: BudgetCategory[]
   goals: Goal[]
@@ -192,6 +215,7 @@ const AU_PUBLIC_HOLIDAYS_2026 = [
 export const defaultData: AppData = {
   jobs: [],
   shifts: [],
+  attendanceEvents: [],
   expenses: [],
   budgetCategories: [],
   goals: [],
@@ -200,6 +224,19 @@ export const defaultData: AppData = {
     currencySymbol: "A$",
     payPeriod: "biweekly",
     country: "Australia",
+    notificationsEnabled: true,
+    notificationTypes: ["shift", "budget", "goal", "earnings", "payday", "motivation", "milestone"],
+    quietHoursEnabled: false,
+    quietHoursStart: "22:00",
+    quietHoursEnd: "07:00",
+    dashboardWidgets: {
+      quickActions: true,
+      profitability: true,
+      stats: true,
+      weeklyChart: true,
+      jobBreakdown: true,
+      upcomingShifts: true,
+    },
   },
   publicHolidays: AU_PUBLIC_HOLIDAYS_2026,
 }

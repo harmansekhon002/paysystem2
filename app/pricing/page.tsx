@@ -1,10 +1,16 @@
 "use client"
 
+import { useRef, useState } from "react"
 import { Check } from "lucide-react"
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js"
+import Link from "next/link"
 
 import { AppShell } from "@/components/app-shell"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
 
 type PaidPlan = {
   name: string
@@ -21,6 +27,16 @@ type PaidPlan = {
 }
 
 export default function PricingPage() {
+  const { toast } = useToast()
+  const [syncingSubscriptionId, setSyncingSubscriptionId] = useState<string | null>(null)
+  const [lastSyncState, setLastSyncState] = useState<{
+    status: "success" | "error"
+    message: string
+    subscriptionId?: string
+  } | null>(null)
+  const processedSubscriptionIds = useRef(new Set<string>())
+  const idempotencyBySubscriptionId = useRef(new Map<string, string>())
+
   const plusPlanId = process.env.NEXT_PUBLIC_PAYPAL_PLUS_MONTHLY_PLAN_ID || ""
   const proPlanId = process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID || ""
 
@@ -65,23 +81,70 @@ export default function PricingPage() {
     },
   ]
 
-  const handleSubscriptionApproved = async (subscriptionId: string, successMessage: string) => {
+  const getIdempotencyKeyForSubscription = (subscriptionId: string) => {
+    const existing = idempotencyBySubscriptionId.current.get(subscriptionId)
+    if (existing) return existing
+
+    const fallback = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const key = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : fallback
+    idempotencyBySubscriptionId.current.set(subscriptionId, key)
+    return key
+  }
+
+  const handleSubscriptionApproved = async (subscriptionId: string, successMessage: string, planName: string) => {
+    if (processedSubscriptionIds.current.has(subscriptionId) || syncingSubscriptionId === subscriptionId) {
+      return
+    }
+
+    setSyncingSubscriptionId(subscriptionId)
     try {
+      const idempotencyKey = getIdempotencyKeyForSubscription(subscriptionId)
       const response = await fetch("/api/subscription/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-idempotency-key": idempotencyKey,
+        },
         body: JSON.stringify({ subscriptionId }),
       })
 
       if (response.ok) {
-        alert(successMessage)
+        processedSubscriptionIds.current.add(subscriptionId)
+        setLastSyncState({
+          status: "success",
+          message: `${successMessage} Your billing profile is synced.`,
+          subscriptionId,
+        })
+        toast({
+          title: `${planName} activated`,
+          description: "Subscription is active and synced.",
+        })
       } else {
-        console.error("Failed to save subscription details")
-        alert("Subscription created, but failed to sync. Please contact support.")
+        setLastSyncState({
+          status: "error",
+          message: "Subscription created, but syncing failed. You can retry by subscribing again with the same key safely.",
+          subscriptionId,
+        })
+        toast({
+          title: "Subscription sync failed",
+          description: "Your payment may be approved. Open Settings > Subscription to verify status.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error activating subscription:", error)
-      alert("Error activating subscription. Please contact support.")
+      setLastSyncState({
+        status: "error",
+        message: "Could not sync subscription details due to a network error.",
+        subscriptionId,
+      })
+      toast({
+        title: "Network error",
+        description: "Could not sync subscription details. Please retry.",
+        variant: "destructive",
+      })
+    } finally {
+      setSyncingSubscriptionId(null)
     }
   }
 
@@ -96,6 +159,24 @@ export default function PricingPage() {
             <p className="text-muted-foreground mt-4 text-base leading-relaxed md:text-lg">
               Start free today, then unlock more insights and automation as your workload grows.
             </p>
+            {syncingSubscriptionId ? (
+              <div className="mt-4">
+                <Badge variant="secondary">Syncing subscription...</Badge>
+              </div>
+            ) : null}
+            {lastSyncState ? (
+              <div className="mt-4">
+                <Alert variant={lastSyncState.status === "error" ? "destructive" : "default"}>
+                  <AlertTitle>{lastSyncState.status === "error" ? "Sync issue" : "Subscription synced"}</AlertTitle>
+                  <AlertDescription>
+                    {lastSyncState.message}
+                    {lastSyncState.subscriptionId ? (
+                      <span className="mt-1 block text-xs font-mono">ID: {lastSyncState.subscriptionId}</span>
+                    ) : null}
+                  </AlertDescription>
+                </Alert>
+              </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
@@ -121,9 +202,9 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <button className="from-primary hover:to-primary mt-auto w-full rounded-xl bg-gradient-to-r to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors duration-200 hover:from-blue-500">
-                Get Started
-              </button>
+              <Button asChild className="from-primary hover:to-primary mt-auto w-full bg-gradient-to-r to-blue-500 text-sm font-semibold text-white shadow-md transition-colors duration-200 hover:from-blue-500">
+                <Link href="/register">Get Started</Link>
+              </Button>
               <p className="text-muted-foreground mt-3 text-center text-xs">No card required.</p>
             </Card>
 
@@ -164,6 +245,7 @@ export default function PricingPage() {
                     <>
                       <div className="w-full overflow-hidden rounded-xl border border-transparent">
                         <PayPalButtons
+                          disabled={Boolean(syncingSubscriptionId)}
                           style={{ layout: "vertical", shape: "rect", color: "blue", label: "subscribe" }}
                           createSubscription={(_, actions) => {
                             return actions.subscription.create({
@@ -172,10 +254,21 @@ export default function PricingPage() {
                           }}
                           onApprove={async data => {
                             if (!data.subscriptionID) {
-                              alert("Subscription approved, but no subscription ID was returned.")
+                              toast({
+                                title: "Missing subscription ID",
+                                description: "Approval succeeded but no subscription ID was returned by PayPal.",
+                                variant: "destructive",
+                              })
                               return
                             }
-                            await handleSubscriptionApproved(data.subscriptionID, plan.successMessage)
+                            await handleSubscriptionApproved(data.subscriptionID, plan.successMessage, plan.name)
+                          }}
+                          onError={() => {
+                            toast({
+                              title: "PayPal checkout failed",
+                              description: "Please retry in a few seconds.",
+                              variant: "destructive",
+                            })
                           }}
                         />
                       </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { Prisma } from "@prisma/client"
 import { LoginError, validateLoginCredentials } from "@/lib/auth"
+import { logServerError } from "@/lib/server-ops"
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     await validateLoginCredentials(email, password)
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error("[login]", error)
+    const errorId = logServerError("login", error)
 
     if (error instanceof LoginError) {
       return NextResponse.json(
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
         {
           error: "Database query failed. Please try again in a few moments.",
           code: "DB_QUERY_FAILED",
+          errorId,
         },
         { status: 503 }
       )
@@ -38,6 +40,7 @@ export async function POST(req: NextRequest) {
         {
           error: "Database connection failed. Check server configuration and DATABASE_URL.",
           code: "DB_UNAVAILABLE",
+          errorId,
         },
         { status: 503 }
       )
@@ -47,6 +50,7 @@ export async function POST(req: NextRequest) {
       {
         error: "Login failed due to a server error.",
         code: "UNKNOWN_AUTH_ERROR",
+        errorId,
       },
       { status: 500 }
     )

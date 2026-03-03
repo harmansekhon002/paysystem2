@@ -4,7 +4,7 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { AlertTriangle, Copy, Eye, EyeOff, LogIn, Loader2 } from "lucide-react"
+import { AlertTriangle, Copy, Eye, EyeOff, LogIn, Loader2, MailCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +19,7 @@ export default function LoginPage() {
     const [errorDetails, setErrorDetails] = useState("")
     const [copied, setCopied] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [verificationLink, setVerificationLink] = useState("")
 
     function sanitizeMessage(message: string) {
         const unsafePatterns = ["prisma.", "$queryraw", "stack", "invocation:", "failed to deserialize", "to_regclass"]
@@ -42,6 +43,7 @@ export default function LoginPage() {
         setError("")
         setErrorCode("")
         setErrorDetails("")
+        setVerificationLink("")
         setCopied(false)
         setIsLoading(true)
 
@@ -61,6 +63,15 @@ export default function LoginPage() {
                 setError(message)
                 setErrorCode(code)
                 setErrorDetails(`Login error\nCode: ${code}\nStatus: ${precheckResponse.status}\nMessage: ${message}`)
+                if (code === "EMAIL_NOT_VERIFIED") {
+                    const verifyRes = await fetch("/api/auth/request-email-verification", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: normalizedEmail }),
+                    })
+                    const verifyData = await verifyRes.json().catch(() => ({}))
+                    if (verifyData?.verificationUrl) setVerificationLink(String(verifyData.verificationUrl))
+                }
                 return
             }
 
@@ -117,6 +128,27 @@ export default function LoginPage() {
                                 {copied ? "Copied" : "Copy"}
                             </button>
                         </div>
+                        {errorCode === "EMAIL_NOT_VERIFIED" && (
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                {verificationLink ? (
+                                    <a
+                                        href={verificationLink}
+                                        className="inline-flex items-center gap-1 rounded-md border border-red-400/30 px-2 py-1 text-xs text-red-100 hover:bg-red-500/20"
+                                    >
+                                        <MailCheck className="size-3.5" />
+                                        Open verification link
+                                    </a>
+                                ) : (
+                                    <Link
+                                        href="/verify-email"
+                                        className="inline-flex items-center gap-1 rounded-md border border-red-400/30 px-2 py-1 text-xs text-red-100 hover:bg-red-500/20"
+                                    >
+                                        <MailCheck className="size-3.5" />
+                                        Verify email
+                                    </Link>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -185,6 +217,13 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
+                <Link
+                    href="/forgot-password"
+                    className="mb-2 inline-block font-medium text-primary hover:underline underline-offset-4"
+                >
+                    Forgot password?
+                </Link>
+                <br />
                 Don&apos;t have an account?{" "}
                 <Link
                     href="/register"
