@@ -15,9 +15,31 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://shiftwise.vercel.app"),
   title: 'ShiftWise - Smart Shift Management for Students',
   description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals. Built for students who hustle.',
   generator: 'v0.app',
+  openGraph: {
+    title: 'ShiftWise - Smart Shift Management for Students',
+    description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals.',
+    url: '/',
+    siteName: 'ShiftWise',
+    type: 'website',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'ShiftWise',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ShiftWise - Smart Shift Management for Students',
+    description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals.',
+    images: ['/twitter-image'],
+  },
   icons: {
     icon: [
       {
