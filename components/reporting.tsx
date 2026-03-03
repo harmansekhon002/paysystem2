@@ -316,6 +316,7 @@ export function ReportingDashboard() {
                   />
                   <Bar
                     dataKey="earnings"
+                    radius={[6, 6, 0, 0]}
                     stroke="transparent"
                     activeBar={
                       <Rectangle stroke="var(--color-border)" strokeWidth={1} />
