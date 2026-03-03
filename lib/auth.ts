@@ -5,6 +5,66 @@ import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { ensureUserTableInitialized } from "@/lib/db-init"
 
+export type LoginErrorCode =
+  | "MISSING_CREDENTIALS"
+  | "ACCOUNT_NOT_FOUND"
+  | "INVALID_PASSWORD"
+  | "DB_UNAVAILABLE"
+  | "UNKNOWN_AUTH_ERROR"
+
+export class LoginError extends Error {
+  code: LoginErrorCode
+
+  constructor(code: LoginErrorCode, message: string) {
+    super(message)
+    this.name = "LoginError"
+    this.code = code
+  }
+}
+
+export async function validateLoginCredentials(email: string, password: string) {
+  if (!email || !password) {
+    throw new LoginError("MISSING_CREDENTIALS", "Email and password are required")
+  }
+
+  const normalizedEmail = email.toLowerCase().trim()
+  let user = null
+
+  await ensureUserTableInitialized()
+
+  try {
+    user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    })
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+      await ensureUserTableInitialized({ force: true })
+      user = await prisma.user.findUnique({
+        where: { email: normalizedEmail },
+      })
+    } else if (error instanceof Prisma.PrismaClientInitializationError) {
+      throw new LoginError("DB_UNAVAILABLE", "Database connection failed. Please try again later.")
+    } else {
+      throw error
+    }
+  }
+
+  if (!user) {
+    throw new LoginError("ACCOUNT_NOT_FOUND", "No account found with that email")
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
+  if (!isPasswordValid) {
+    throw new LoginError("INVALID_PASSWORD", "Incorrect password")
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -22,44 +82,19 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required")
-        }
-
-        const normalizedEmail = credentials.email.toLowerCase().trim()
-        let user = null
-
-        await ensureUserTableInitialized()
-
         try {
-          user = await prisma.user.findUnique({
-            where: { email: normalizedEmail },
-          })
+          return await validateLoginCredentials(credentials?.email ?? "", credentials?.password ?? "")
         } catch (error) {
-          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
-            await ensureUserTableInitialized({ force: true })
-            user = await prisma.user.findUnique({
-              where: { email: normalizedEmail },
-            })
-          } else {
-            throw error
+          if (error instanceof LoginError) {
+            throw new Error(error.message)
           }
-        }
-
-        if (!user) {
-          throw new Error("No account found with that email")
-        }
-
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash)
-
-        if (!isPasswordValid) {
-          throw new Error("Incorrect password")
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+            throw new Error("Database initialization failed. Please try again in a moment.")
+          }
+          if (error instanceof Prisma.PrismaClientInitializationError) {
+            throw new Error("Database connection failed. Check server configuration.")
+          }
+          throw error
         }
       },
     }),

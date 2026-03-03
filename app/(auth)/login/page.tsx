@@ -4,7 +4,7 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react"
+import { AlertTriangle, Copy, Eye, EyeOff, LogIn, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,32 +15,74 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState("")
+    const [errorCode, setErrorCode] = useState("")
+    const [errorDetails, setErrorDetails] = useState("")
+    const [copied, setCopied] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+
+    function sanitizeMessage(message: string) {
+        const unsafePatterns = ["prisma.", "$queryraw", "stack", "invocation:", "failed to deserialize", "to_regclass"]
+        const normalized = message.toLowerCase()
+        if (unsafePatterns.some(pattern => normalized.includes(pattern))) {
+            return "We couldn't complete sign in due to a server/database issue. Please try again shortly."
+        }
+        return message.length > 180 ? `${message.slice(0, 180)}...` : message
+    }
+
+    async function handleCopyError() {
+        if (!error) return
+        const textToCopy = errorDetails || `${errorCode ? `[${errorCode}] ` : ""}${error}`
+        await navigator.clipboard.writeText(textToCopy)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+    }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+        setErrorCode("")
+        setErrorDetails("")
+        setCopied(false)
         setIsLoading(true)
 
         try {
+            const normalizedEmail = email.trim().toLowerCase()
+            const precheckResponse = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: normalizedEmail, password }),
+            })
+
+            if (!precheckResponse.ok) {
+                const payload = await precheckResponse.json().catch(() => ({}))
+                const code = String(payload?.code ?? `HTTP_${precheckResponse.status}`)
+                const rawMessage = String(payload?.error ?? "Login failed")
+                const message = sanitizeMessage(rawMessage)
+                setError(message)
+                setErrorCode(code)
+                setErrorDetails(`Login error\nCode: ${code}\nStatus: ${precheckResponse.status}\nMessage: ${message}`)
+                return
+            }
+
             const result = await signIn("credentials", {
-                email: email.trim().toLowerCase(),
+                email: normalizedEmail,
                 password,
                 redirect: false,
             })
 
             if (result?.error) {
-                setError(
-                    result.error === "CredentialsSignin"
-                        ? "Incorrect email or password"
-                        : result.error
-                )
+                setError("Authentication session creation failed after credential check.")
+                setErrorCode(result.error)
+                setErrorDetails(`Sign in error\nCode: ${result.error}\nMessage: Authentication session creation failed after credential check.`)
             } else {
                 router.push("/")
                 router.refresh()
             }
-        } catch {
-            setError("Something went wrong. Please try again.")
+        } catch (err) {
+            const detail = err instanceof Error ? err.message : "Unknown client-side exception"
+            setError("Login failed due to a client or network error.")
+            setErrorCode("CLIENT_EXCEPTION")
+            setErrorDetails(`Login error\nCode: CLIENT_EXCEPTION\nMessage: ${detail}`)
         } finally {
             setIsLoading(false)
         }
@@ -56,8 +98,25 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {/* Error message */}
                 {error && (
-                    <div className="rounded-xl border border-destructive/20 bg-destructive/8 px-4 py-3 text-sm text-destructive">
-                        {error}
+                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                    <AlertTriangle className="size-4 text-red-300" />
+                                    <p className="text-sm font-semibold text-red-200">Sign in failed</p>
+                                </div>
+                                <p className="text-sm leading-relaxed text-red-100">{error}</p>
+                                {errorCode && <p className="text-xs font-medium text-red-200/90">Error code: {errorCode}</p>}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCopyError}
+                                className="inline-flex items-center gap-1 rounded-md border border-red-400/30 px-2 py-1 text-xs text-red-100 hover:bg-red-500/20"
+                            >
+                                <Copy className="size-3.5" />
+                                {copied ? "Copied" : "Copy"}
+                            </button>
+                        </div>
                     </div>
                 )}
 

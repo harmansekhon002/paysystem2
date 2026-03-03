@@ -29,7 +29,7 @@ const USER_TABLE_INIT_STATEMENTS = [
 
 async function runUserTableInitialization() {
   const [tableInfo] = await prisma.$queryRawUnsafe<Array<{ user_table: string | null }>>(
-    `SELECT to_regclass('"User"') AS user_table`
+    `SELECT to_regclass('"User"')::text AS user_table`
   )
 
   if (tableInfo?.user_table) {
