@@ -365,6 +365,7 @@
 
   .mobile-settings {
     gap: 0.8rem !important;
+    overflow-x: clip;
   }
 
   .mobile-settings .mobile-settings-grid {

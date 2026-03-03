@@ -344,9 +344,9 @@ export default function SettingsPage() {
       <div className="mobile-page mobile-settings mx-auto flex w-full max-w-6xl flex-col gap-6 py-6 md:gap-8 md:py-10">
         <Card className="border-primary/20 bg-gradient-to-r from-primary/8 via-card to-card shadow-sm">
           <CardHeader className="space-y-3 p-5 md:space-y-4 md:p-8">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
               <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">Settings</h1>
-              <Badge variant="secondary" className="rounded-full px-3 py-1">
+              <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[10px] sm:px-3 sm:text-xs">
                 Account & App Settings
               </Badge>
             </div>
@@ -741,9 +741,9 @@ export default function SettingsPage() {
                             <span className="text-muted-foreground">Last updated:</span>{" "}
                             {new Date(subscription.updatedAt).toLocaleString()}
                           </p>
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <span className="text-muted-foreground">Subscription ID:</span>
-                            <code className="rounded bg-muted px-2 py-0.5 text-xs">{subscription.paypalSubscriptionId}</code>
+                            <code className="max-w-full break-all whitespace-normal rounded bg-muted px-2 py-0.5 text-xs">{subscription.paypalSubscriptionId}</code>
                             <Button size="sm" variant="outline" onClick={copySubscriptionId} className="h-7 gap-1.5 px-2">
                               <Copy className="size-3.5" />
                               Copy
@@ -981,7 +981,7 @@ export default function SettingsPage() {
                 <p className="mt-1 text-xs text-muted-foreground">App info, maintenance, and destructive actions.</p>
               </div>
               <div className="space-y-5">
-                <Card className="mobile-settings-card border-border/80 shadow-sm">
+                <Card className="mobile-settings-card hidden border-border/80 shadow-sm md:block">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
                       <Info className="text-primary size-4" />

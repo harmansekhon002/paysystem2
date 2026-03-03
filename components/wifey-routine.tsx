@@ -15,6 +15,7 @@ import {
   Smile,
 } from "lucide-react"
 import { useAppData } from "@/components/data-provider"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useZonedDateKey } from "@/hooks/use-zoned-date-key"
 import { triggerSpecialCelebration } from "@/lib/special-features"
 import {
@@ -278,6 +279,7 @@ function computeWeeklyRecoveryInsights(
 
 export function WifeyRoutine() {
   const { isSpecialUser, displayName, data, updateSpecialCompanion } = useAppData()
+  const isMobile = useIsMobile()
   const loveModeActive = isSpecialUser && data.settings.specialCompanion.loveThemeEnabled
   const parentalMode = !isSpecialUser
   const routineEnabled = isSpecialUser ? loveModeActive : true
@@ -569,8 +571,12 @@ export function WifeyRoutine() {
               </CardTitle>
               <CardDescription className="mt-1">
                 {parentalMode
-                  ? "Track hydration, exercise, paath, and study with guardian support."
-                  : `Hydration, exercise, paath, and study${isSpecialUser && data.settings.specialCompanion.lovesPuppies ? " with hubby motivation." : "."}`}
+                  ? isMobile
+                    ? "Hydration, study, and support in one place."
+                    : "Track hydration, exercise, paath, and study with guardian support."
+                  : isMobile
+                    ? "Hydration, routine, and support for today."
+                    : `Hydration, exercise, paath, and study${isSpecialUser && data.settings.specialCompanion.lovesPuppies ? " with hubby motivation." : "."}`}
               </CardDescription>
             </div>
             <Badge variant="secondary" className="rounded-full px-3 py-1">{completionPercent}% complete today</Badge>
@@ -578,9 +584,9 @@ export function WifeyRoutine() {
         </CardHeader>
       </Card>
 
-      <div className="space-y-1">
+      <div className="space-y-1 md:block">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Top priorities</p>
-        <p className="text-sm text-muted-foreground">Track today&apos;s routine first. Insights and extras are moved below.</p>
+        <p className="text-sm text-muted-foreground">{isMobile ? "Complete your key habits first." : "Track today&apos;s routine first. Insights and extras are moved below."}</p>
       </div>
 
       <Card className="border-primary/25">
@@ -591,8 +597,8 @@ export function WifeyRoutine() {
           </CardTitle>
           <CardDescription>
             {parentalMode
-              ? "One place for parent support requests and urgent help templates."
-              : "One place for support ping plus urgent reassurance templates."}
+              ? isMobile ? "Quick parent support tools." : "One place for parent support requests and urgent help templates."
+              : isMobile ? "Quick support and emergency templates." : "One place for support ping plus urgent reassurance templates."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -625,7 +631,7 @@ export function WifeyRoutine() {
           {supportState ? <p className="text-xs text-muted-foreground">{supportState}</p> : null}
           {!whatsappNumber ? (
             <p className="text-[11px] text-muted-foreground">
-              Tip: add guardian WhatsApp number in Settings for direct one-tap send.
+              {isMobile ? "Add WhatsApp number in Settings for one-tap support." : "Tip: add guardian WhatsApp number in Settings for direct one-tap send."}
             </p>
           ) : null}
         </CardContent>
@@ -638,7 +644,7 @@ export function WifeyRoutine() {
               <Droplets className="size-4 text-cyan-500" />
               Water Reminder
             </CardTitle>
-            <CardDescription>Target: {hydrationGoal} bottles today. Every hour, one sip check.</CardDescription>
+            <CardDescription>{isMobile ? `Target: ${hydrationGoal} bottles.` : `Target: ${hydrationGoal} bottles today. Every hour, one sip check.`}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {isSpecialUser ? (
@@ -676,7 +682,7 @@ export function WifeyRoutine() {
               <MoonStar className="size-4 text-indigo-500" />
               Sleep Hours
             </CardTitle>
-            <CardDescription>Log last night&apos;s sleep for recovery tracking.</CardDescription>
+            <CardDescription>{isMobile ? "Log sleep." : "Log last night&apos;s sleep for recovery tracking."}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Input
@@ -699,7 +705,7 @@ export function WifeyRoutine() {
               <BookOpenCheck className="size-4 text-primary" />
               Daily Checklist
             </CardTitle>
-            <CardDescription>Mark exercise, paath, and study from one compact card.</CardDescription>
+            <CardDescription>{isMobile ? "Mark routine tasks." : "Mark exercise, paath, and study from one compact card."}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2">
             <Button
@@ -781,7 +787,7 @@ export function WifeyRoutine() {
             <Brain className="size-4 text-primary" />
             AI Care Plan Of The Day
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{carePlan.summary}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{isMobile ? "Open for today’s care steps." : carePlan.summary}</p>
         </summary>
         <div className="space-y-3 border-t border-border/60 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -790,7 +796,7 @@ export function WifeyRoutine() {
             <Badge variant="outline">48h: {next48WorkloadHours.toFixed(1)}h</Badge>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
-            {carePlan.steps.map((step) => (
+            {carePlan.steps.slice(0, isMobile ? 2 : 3).map((step) => (
               <p key={step} className="rounded-md border border-border/60 px-3 py-2">
                 {step}
               </p>
@@ -831,7 +837,7 @@ export function WifeyRoutine() {
                 <Smile className="size-4 text-primary" />
                 Mood Log
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Open to log mood quickly.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Log mood in one tap.</p>
             </summary>
             <div className="space-y-3 border-t border-border/60 px-4 py-3">
               <div className="space-y-2">

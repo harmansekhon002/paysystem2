@@ -6,6 +6,12 @@ export const SPECIAL_CELEBRATION_EVENT = "shiftwise:special-celebration"
 
 type ThemeToastMode = "light" | "dark" | "love"
 
+function isSpecialContext(modeOverride?: ThemeToastMode) {
+  if (typeof document === "undefined") return false
+  if (modeOverride === "love") return true
+  return document.querySelector('[data-special-user="true"]') !== null
+}
+
 function getActiveThemeMode(): ThemeToastMode {
   if (typeof document === "undefined") return "light"
   if (document.querySelector(".love-theme")) return "love"
@@ -37,6 +43,7 @@ export function showLoveToast(feature: string, modeOverride?: ThemeToastMode) {
 }
 
 export function triggerSpecialCelebration(feature: string, modeOverride?: ThemeToastMode) {
+  if (!isSpecialContext(modeOverride)) return
   showLoveToast(feature, modeOverride)
   if (typeof window !== "undefined") {
     window.dispatchEvent(

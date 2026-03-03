@@ -345,7 +345,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       ) : null}
 
-      <div className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}>
+      <div
+        className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}
+        data-special-user={isSpecialUser ? "true" : "false"}
+      >
         <div className="fixed right-4 top-3 z-40 hidden pointer-events-none md:block">
           <WorldClock
             mode={activeThemeMode}
