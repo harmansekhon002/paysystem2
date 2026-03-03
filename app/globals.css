@@ -364,24 +364,24 @@
   }
 
   .mobile-settings {
-    gap: 0.8rem !important;
+    gap: 1rem !important;
     overflow-x: clip;
   }
 
   .mobile-settings .mobile-settings-grid {
-    gap: 1rem;
+    gap: 1.15rem;
   }
 
   .mobile-settings .mobile-settings-group {
-    border: 0;
-    background: transparent;
-    padding: 0;
+    border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+    background: color-mix(in oklch, var(--muted) 25%, transparent);
+    padding: 0.72rem;
   }
 
   .mobile-settings .mobile-settings-group > div:first-child {
-    margin-bottom: 0.45rem;
-    border-bottom-width: 0;
-    padding-bottom: 0;
+    margin-bottom: 0.7rem;
+    border-bottom-width: 1px;
+    padding-bottom: 0.5rem;
   }
 
   .mobile-settings .mobile-settings-card {
@@ -389,11 +389,15 @@
   }
 
   .mobile-settings .mobile-settings-card [data-slot="card-header"] {
-    padding: 0.95rem 0.95rem 0.55rem;
+    padding: 1.05rem 1.05rem 0.65rem;
   }
 
   .mobile-settings .mobile-settings-card [data-slot="card-content"] {
-    padding: 0 0.95rem 0.95rem;
+    padding: 0 1.05rem 1.05rem;
+  }
+
+  .mobile-settings [data-slot="card-title"] {
+    font-size: 1.02rem;
   }
 
   .mobile-settings .mobile-settings-quick-nav .mobile-settings-chip {
@@ -401,8 +405,8 @@
     border: 1px solid color-mix(in oklch, var(--border) 88%, transparent);
     border-radius: 9999px;
     background: color-mix(in oklch, var(--card) 90%, transparent);
-    padding: 0.4rem 0.72rem;
-    font-size: 0.73rem;
+    padding: 0.48rem 0.82rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--muted-foreground);
   }

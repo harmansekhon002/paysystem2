@@ -584,33 +584,37 @@ export function WifeyRoutine() {
         </CardHeader>
       </Card>
 
-      <div className="space-y-1 md:block">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Top priorities</p>
-        <p className="text-sm text-muted-foreground">{isMobile ? "Complete your key habits first." : "Track today&apos;s routine first. Insights and extras are moved below."}</p>
-      </div>
+      {!isMobile ? (
+        <div className="space-y-1 md:block">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Top priorities</p>
+          <p className="text-sm text-muted-foreground">Track today&apos;s routine first. Insights and extras are moved below.</p>
+        </div>
+      ) : null}
 
       <Card className="border-primary/25">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <LifeBuoy className="size-4 text-primary" />
-            {parentalMode ? "Parent Support + Emergency" : "Partner Reassurance + Emergency"}
+            {parentalMode ? (isMobile ? "Parent Help" : "Parent Support + Emergency") : (isMobile ? "Support" : "Partner Reassurance + Emergency")}
           </CardTitle>
-          <CardDescription>
-            {parentalMode
-              ? isMobile ? "Quick parent support tools." : "One place for parent support requests and urgent help templates."
-              : isMobile ? "Quick support and emergency templates." : "One place for support ping plus urgent reassurance templates."}
-          </CardDescription>
+          {!isMobile ? (
+            <CardDescription>
+              {parentalMode
+                ? "One place for parent support requests and urgent help templates."
+                : "One place for support ping plus urgent reassurance templates."}
+            </CardDescription>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quick support</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{isMobile ? "Action" : "Quick support"}</p>
             <Button onClick={() => void sendSupportPing()} className="w-full sm:w-fit">
-              {parentalMode ? "Need parent support now" : "I need support now"}
+              {isMobile ? "Request support" : parentalMode ? "Need parent support now" : "I need support now"}
             </Button>
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Emergency templates</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{isMobile ? "Templates" : "Emergency templates"}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {SUPPORT_TEMPLATES
                 .filter((template) => template.id !== "general")
@@ -631,7 +635,7 @@ export function WifeyRoutine() {
           {supportState ? <p className="text-xs text-muted-foreground">{supportState}</p> : null}
           {!whatsappNumber ? (
             <p className="text-[11px] text-muted-foreground">
-              {isMobile ? "Add WhatsApp number in Settings for one-tap support." : "Tip: add guardian WhatsApp number in Settings for direct one-tap send."}
+              {isMobile ? "Add WhatsApp in Settings for one-tap send." : "Tip: add guardian WhatsApp number in Settings for direct one-tap send."}
             </p>
           ) : null}
         </CardContent>
