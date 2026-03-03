@@ -325,7 +325,7 @@ export function Earnings() {
           <CardContent className="h-[220px] pt-0">
             {hasJobs && hasShifts ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={jobBarData} barSize={28}>
+                <BarChart data={jobBarData} barSize={32}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} />
                   <YAxis tick={{ fontSize: 11, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={v => `${currencySymbol}${v}`} />

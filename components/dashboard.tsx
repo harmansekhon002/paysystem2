@@ -174,7 +174,7 @@ export function Dashboard() {
           <CardContent className="h-[220px] pt-0">
             {hasShifts ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyChartData} barSize={28} barCategoryGap={30} barGap={8}>
+                <BarChart data={weeklyChartData} barSize={32} barCategoryGap={30} barGap={8}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                   <XAxis dataKey="day" tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} />
                   <YAxis tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={(v) => `${currencySymbol}${v}`} />
