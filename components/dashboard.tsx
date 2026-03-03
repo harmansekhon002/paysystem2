@@ -147,9 +147,9 @@ export function Dashboard() {
   }, [shifts, jobs, getJob])
 
   const isDark = resolvedTheme === "dark"
-  const axisColor = "hsl(var(--muted-foreground))"
-  const gridColor = "hsl(var(--border) / 0.5)"
-  const legendColor = "hsl(var(--muted-foreground))"
+  const axisColor = "var(--color-muted-foreground)"
+  const gridColor = "var(--color-border)"
+  const legendColor = "var(--color-muted-foreground)"
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -188,7 +188,7 @@ export function Dashboard() {
                       radius={[6, 6, 0, 0]}
                       stroke="transparent"
                       activeBar={
-                        <Rectangle stroke="hsl(var(--border) / 0.35)" strokeWidth={1} />
+                        <Rectangle stroke="var(--color-border)" strokeWidth={1} />
                       }
                     />
                 </BarChart>

@@ -115,8 +115,8 @@ export function Earnings() {
   const { toast } = useToast()
   const currencySymbol = data.settings.currencySymbol
   const { resolvedTheme } = useTheme();
-  const axisColor = "hsl(var(--muted-foreground))"
-  const gridColor = "hsl(var(--border) / 0.5)"
+  const axisColor = "var(--color-muted-foreground)"
+  const gridColor = "var(--color-border)"
   const [dialogOpen, setDialogOpen] = useState(false)
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
   const [template, setTemplate] = useState("custom")
@@ -343,7 +343,7 @@ export function Earnings() {
                     radius={[6, 6, 0, 0]}
                     stroke="transparent"
                     activeBar={
-                      <Rectangle stroke="hsl(var(--border) / 0.35)" strokeWidth={1} />
+                      <Rectangle stroke="var(--color-border)" strokeWidth={1} />
                     }
                   >
                     {jobBarData.map((e, i) => <Cell key={i} fill={e.color} />)}
