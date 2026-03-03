@@ -301,7 +301,7 @@ export function ReportingDashboard() {
           <CardContent>
             {earningsByJob.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={earningsByJob}>
+                <BarChart data={earningsByJob} barSize={28}>
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                   <XAxis dataKey="name" stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
                   <YAxis stroke={axisColor} fontSize={11} tick={{ fontSize: 11, fill: axisColor }} />
