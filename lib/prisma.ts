@@ -2,9 +2,9 @@ import { Prisma, PrismaClient } from "@prisma/client"
 
 const globalForPrisma = globalThis as { prisma?: PrismaClient }
 const databaseUrl =
+  process.env.DATABASE_URL ??
   process.env.POSTGRES_PRISMA_URL ??
-  process.env.POSTGRES_URL ??
-  process.env.DATABASE_URL
+  process.env.POSTGRES_URL
 
 if (!databaseUrl) {
   console.error(
