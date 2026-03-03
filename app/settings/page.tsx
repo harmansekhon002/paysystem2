@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bell, CalendarClock, Copy, Database, Globe2, Info, LayoutDashboard, Loader2, Palette, RefreshCw, UserRound, WalletCards } from "lucide-react"
+import { Bell, CalendarClock, Copy, Database, Globe2, Heart, Info, LayoutDashboard, Loader2, Palette, PawPrint, RefreshCw, Shield, UserRound, WalletCards } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 
@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { triggerSpecialCelebration } from "@/lib/special-features"
 
 type SubscriptionStatus = {
   paypalSubscriptionId: string
@@ -30,7 +31,7 @@ type SubscriptionStatus = {
 }
 
 export default function SettingsPage() {
-  const { data, updateSettings } = useAppData()
+  const { data, updateSettings, planName, updateSpecialCompanion, isSpecialUser, displayName } = useAppData()
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
   const [resetting, setResetting] = useState(false)
@@ -38,6 +39,7 @@ export default function SettingsPage() {
   const [loadingSubscription, setLoadingSubscription] = useState(true)
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
   const [managingSubscription, setManagingSubscription] = useState<"cancel" | "reactivate" | null>(null)
+  const [specialPin, setSpecialPin] = useState(data.settings.specialCompanion.pinCode)
   const [profile, setProfile] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("shiftwise:profile")
@@ -76,6 +78,10 @@ export default function SettingsPage() {
   useEffect(() => {
     void loadSubscriptionStatus()
   }, [])
+
+  useEffect(() => {
+    setSpecialPin(data.settings.specialCompanion.pinCode)
+  }, [data.settings.specialCompanion.pinCode])
 
   const manageSubscription = async (action: "cancel" | "reactivate") => {
     setManagingSubscription(action)
@@ -155,6 +161,31 @@ export default function SettingsPage() {
     }, 800)
   }
 
+  function handleSaveSpecialPin() {
+    const cleaned = specialPin.trim()
+    if (cleaned.length > 0 && !/^\d{4,8}$/.test(cleaned)) {
+      toast({
+        title: "Invalid pin",
+        description: "Use a 4 to 8 digit numeric pin.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    updateSpecialCompanion({
+      pinCode: cleaned,
+      pinEnabled: cleaned.length >= 4,
+    })
+    triggerSpecialCelebration("PIN updated")
+  }
+
+  function handleThemeSelect(value: string) {
+    setTheme(value)
+    if (isSpecialUser && data.settings.specialCompanion.loveThemeEnabled) {
+      updateSpecialCompanion({ loveThemeEnabled: false })
+    }
+  }
+
   const currencyOptions = [
     { code: "AUD", symbol: "A$" },
     { code: "USD", symbol: "US$" },
@@ -184,6 +215,7 @@ export default function SettingsPage() {
     { value: "payday", label: "Payday reminders" },
     { value: "motivation", label: "Daily motivation" },
     { value: "milestone", label: "Goal milestones" },
+    ...(isSpecialUser ? [{ value: "special", label: "Wifey reminders" }] : []),
   ]
   const dashboardWidgetOptions: Array<{
     key: keyof typeof data.settings.dashboardWidgets
@@ -196,6 +228,10 @@ export default function SettingsPage() {
     { key: "jobBreakdown", label: "Job breakdown chart" },
     { key: "upcomingShifts", label: "Upcoming shifts" },
   ]
+  const isLifetimePlan = Boolean(
+    subscription &&
+    (subscription.status.toLowerCase() === "lifetime" || subscription.planName.toLowerCase().includes("lifetime"))
+  )
 
   return (
     <AppShell>
@@ -291,6 +327,7 @@ export default function SettingsPage() {
                         <p className="text-muted-foreground text-sm">
                           No paid subscription found on this account.
                         </p>
+                        <Badge variant="secondary">Current plan: {planName}</Badge>
                         <Button asChild className="w-full sm:w-fit">
                           <Link href="/pricing">View plans</Link>
                         </Button>
@@ -301,10 +338,12 @@ export default function SettingsPage() {
                       <div className="space-y-4">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge>{subscription.planName}</Badge>
-                          <Badge variant={subscription.status === "active" ? "secondary" : "outline"}>
+                          <Badge variant={subscription.status === "active" || isLifetimePlan ? "secondary" : "outline"}>
                             {subscription.status}
                           </Badge>
-                          {subscription.cancelAtPeriodEnd ? (
+                          {isLifetimePlan ? (
+                            <Badge variant="secondary">Lifetime access</Badge>
+                          ) : subscription.cancelAtPeriodEnd ? (
                             <Badge variant="outline">Cancels at period end</Badge>
                           ) : (
                             <Badge variant="secondary">Auto-renew on</Badge>
@@ -312,8 +351,8 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-1.5 text-sm">
                           <p>
-                            <span className="text-muted-foreground">Next billing date:</span>{" "}
-                            {new Date(subscription.paypalCurrentPeriodEnd).toLocaleDateString()}
+                            <span className="text-muted-foreground">{isLifetimePlan ? "Renewal:" : "Next billing date:"}</span>{" "}
+                            {isLifetimePlan ? "No renewal required." : new Date(subscription.paypalCurrentPeriodEnd).toLocaleDateString()}
                           </p>
                           <p>
                             <span className="text-muted-foreground">Last updated:</span>{" "}
@@ -338,7 +377,7 @@ export default function SettingsPage() {
                             <RefreshCw className="size-4" />
                             Refresh
                           </Button>
-                          {subscription.cancelAtPeriodEnd ? (
+                          {!isLifetimePlan && subscription.cancelAtPeriodEnd ? (
                             <Button
                               onClick={() => void manageSubscription("reactivate")}
                               disabled={Boolean(managingSubscription)}
@@ -347,7 +386,8 @@ export default function SettingsPage() {
                               {managingSubscription === "reactivate" ? <Loader2 className="size-4 animate-spin" /> : null}
                               Re-enable Auto Renew
                             </Button>
-                          ) : (
+                          ) : null}
+                          {!isLifetimePlan && !subscription.cancelAtPeriodEnd ? (
                             <Button
                               variant="destructive"
                               onClick={() => void manageSubscription("cancel")}
@@ -357,7 +397,7 @@ export default function SettingsPage() {
                               {managingSubscription === "cancel" ? <Loader2 className="size-4 animate-spin" /> : null}
                               Cancel at Period End
                             </Button>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -570,19 +610,143 @@ export default function SettingsPage() {
                   <CardContent className="space-y-5 p-6 pt-0">
                     <div className="space-y-2">
                       <Label>Theme</Label>
-                      <Select value={theme} onValueChange={setTheme}>
-                        <SelectTrigger className="h-10">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="system">System</SelectItem>
-                          <SelectItem value="light">Light</SelectItem>
-                          <SelectItem value="dark">Dark</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        <Select value={theme} onValueChange={handleThemeSelect}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="system">System</SelectItem>
+                            <SelectItem value="light">Light</SelectItem>
+                            <SelectItem value="dark">Dark</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
+
+                {isSpecialUser ? (
+                  <Card id="settings-companion" className="border-rose-300/40 bg-gradient-to-br from-rose-500/10 to-orange-500/10 shadow-sm">
+                    <CardHeader className="p-6 pb-4">
+                      <div className="flex items-center gap-2">
+                        <Heart className="size-4 text-rose-500" />
+                        <CardTitle className="text-lg">{displayName}&apos;s Companion Settings</CardTitle>
+                      </div>
+                      <CardDescription>Private controls for pin unlock, privacy mode, reminders, and puppy vibes.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-5 p-6 pt-0">
+                      <div className="space-y-2">
+                        <Label htmlFor="companion-nickname">Display name</Label>
+                        <Input
+                          id="companion-nickname"
+                          value={data.settings.specialCompanion.nickname}
+                          onChange={(event) => updateSpecialCompanion({ nickname: event.target.value })}
+                          placeholder="Wifey"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="companion-pin">Quick unlock pin (4-8 digits)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="companion-pin"
+                            inputMode="numeric"
+                            type="password"
+                            placeholder="Enter pin"
+                            value={specialPin}
+                            onChange={(event) => setSpecialPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                          />
+                          <Button type="button" onClick={handleSaveSpecialPin} className="shrink-0">
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 rounded-lg border border-border/60 bg-card/60 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">Enable quick pin lock</p>
+                            <p className="text-xs text-muted-foreground">Use pin unlock after initial login session.</p>
+                          </div>
+                          <Switch
+                            checked={data.settings.specialCompanion.pinEnabled}
+                            onCheckedChange={(checked) => {
+                              if (checked && data.settings.specialCompanion.pinCode.trim().length < 4) {
+                                toast({
+                                  title: "Pin required",
+                                  description: "Save a 4-8 digit pin first.",
+                                  variant: "destructive",
+                                })
+                                return
+                              }
+                              updateSpecialCompanion({ pinEnabled: Boolean(checked) })
+                              triggerSpecialCelebration("Pin lock preference updated")
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">Privacy mode</p>
+                            <p className="text-xs text-muted-foreground">Blur dashboard content until manually revealed.</p>
+                          </div>
+                          <Switch
+                            checked={data.settings.specialCompanion.privacyMode}
+                            onCheckedChange={(checked) => {
+                              updateSpecialCompanion({ privacyMode: Boolean(checked) })
+                              triggerSpecialCelebration("Privacy mode updated")
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">Special reminders</p>
+                            <p className="text-xs text-muted-foreground">Water, exercise, paath, and study prompts from Harman.</p>
+                          </div>
+                          <Switch
+                            checked={data.settings.specialCompanion.remindersEnabled}
+                            onCheckedChange={(checked) => {
+                              updateSpecialCompanion({ remindersEnabled: Boolean(checked) })
+                              triggerSpecialCelebration("Reminder preferences updated")
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">Celebration effects</p>
+                            <p className="text-xs text-muted-foreground">Show hearts and puppy sparkles on special actions.</p>
+                          </div>
+                          <Switch
+                            checked={data.settings.specialCompanion.celebrationEnabled}
+                            onCheckedChange={(checked) => {
+                              updateSpecialCompanion({ celebrationEnabled: Boolean(checked) })
+                              triggerSpecialCelebration("Celebration effects updated")
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">Puppy touch</p>
+                            <p className="text-xs text-muted-foreground">Keep puppy accents in companion sections.</p>
+                          </div>
+                          <Switch
+                            checked={data.settings.specialCompanion.lovesPuppies}
+                            onCheckedChange={(checked) => {
+                              updateSpecialCompanion({ lovesPuppies: Boolean(checked) })
+                              triggerSpecialCelebration("Puppy mode updated")
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 rounded-md border border-dashed border-rose-300/50 bg-rose-500/5 px-3 py-2 text-xs text-muted-foreground">
+                        <Shield className="size-3.5 text-rose-500" />
+                        <PawPrint className="size-3.5 text-rose-500" />
+                        Companion mode is active only on this account.
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
             </div>
 

@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { Bell, X, ExternalLink, CheckCheck } from "lucide-react"
+import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAppData } from "@/components/data-provider"
@@ -13,6 +14,10 @@ import {
   incrementNotificationIgnoreCounts,
   clearNotificationIgnoreCount,
   type AppNotification,
+  type CompanionMoodEntry,
+  computeBurnoutRisk,
+  computeLoveStreaksFromHistory,
+  type RoutineHistorySnapshot,
 } from "@/lib/notifications"
 import type React from "react"
 
@@ -43,6 +48,7 @@ const TYPE_COLORS: Record<string, string> = {
   payday: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
   motivation: "bg-pink-500/15 text-pink-600 dark:text-pink-400",
   milestone: "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400",
+  special: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
 }
 
 const PRIORITY_STYLES: Record<AppNotification["priority"], string> = {
@@ -52,22 +58,136 @@ const PRIORITY_STYLES: Record<AppNotification["priority"], string> = {
   critical: "bg-red-500/15 text-red-600 dark:text-red-400",
 }
 
+type PanelThemeMode = "light" | "dark" | "love"
+
+function getActivePanelThemeMode(): PanelThemeMode {
+  if (typeof document === "undefined") return "light"
+  if (document.querySelector(".love-theme")) return "love"
+  if (document.documentElement.classList.contains("dark")) return "dark"
+  return "light"
+}
+
+function getPanelThemeVariables(mode: PanelThemeMode): React.CSSProperties {
+  if (mode === "love") {
+    return {
+      "--card": "oklch(0.992 0.02 8)",
+      "--card-foreground": "oklch(0.34 0.12 6)",
+      "--border": "oklch(0.89 0.04 10)",
+      "--primary": "oklch(0.68 0.2 6)",
+      "--muted": "oklch(0.955 0.03 10)",
+      "--muted-foreground": "oklch(0.5 0.09 6)",
+      "--secondary": "oklch(0.95 0.04 12)",
+    } as React.CSSProperties
+  }
+
+  if (mode === "dark") {
+    return {
+      "--card": "oklch(0.2 0.02 250)",
+      "--card-foreground": "oklch(0.93 0.02 250)",
+      "--border": "oklch(0.38 0.05 205)",
+      "--primary": "oklch(0.68 0.14 195)",
+      "--muted": "oklch(0.26 0.02 240)",
+      "--muted-foreground": "oklch(0.76 0.02 235)",
+      "--secondary": "oklch(0.3 0.03 220)",
+    } as React.CSSProperties
+  }
+
+  return {
+    "--card": "oklch(0.995 0.005 250)",
+    "--card-foreground": "oklch(0.22 0.02 250)",
+    "--border": "oklch(0.91 0.01 250)",
+    "--primary": "oklch(0.58 0.1 230)",
+    "--muted": "oklch(0.97 0.005 250)",
+    "--muted-foreground": "oklch(0.5 0.015 250)",
+    "--secondary": "oklch(0.96 0.01 250)",
+  } as React.CSSProperties
+}
+
 export function NotificationCenter() {
-  const { data } = useAppData()
+  const { data, isSpecialUser, displayName } = useAppData()
+  const loveModeActive = isSpecialUser && data.settings.specialCompanion.loveThemeEnabled
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
   const [motivationOffset, setMotivationOffset] = useState(0)
+  const [clockTick, setClockTick] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({})
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    const generated = generateNotifications(data, { motivationOffset })
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setClockTick((tick) => tick + 1)
+    }, 60 * 1000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split("T")[0]
+    let adaptiveMood: string | undefined
+    let moodHistory: CompanionMoodEntry[] | undefined
+    let loveStreaks: ReturnType<typeof computeLoveStreaksFromHistory> | undefined
+    let burnoutRisk: ReturnType<typeof computeBurnoutRisk> | undefined
+
+    if (loveModeActive) {
+      try {
+        const currentMoodRaw = localStorage.getItem(`shiftwise:wifey-mood:${todayStr}`)
+        if (currentMoodRaw) {
+          const parsed = JSON.parse(currentMoodRaw) as CompanionMoodEntry
+          adaptiveMood = parsed.mood
+        }
+
+        const moodHistoryRaw = localStorage.getItem("shiftwise:wifey-mood-history")
+        if (moodHistoryRaw) {
+          moodHistory = JSON.parse(moodHistoryRaw) as CompanionMoodEntry[]
+        }
+
+        const routineHistoryRaw = localStorage.getItem("shiftwise:wifey-routine-history")
+        if (routineHistoryRaw) {
+          const routineHistory = JSON.parse(routineHistoryRaw) as Record<string, RoutineHistorySnapshot>
+          loveStreaks = computeLoveStreaksFromHistory(routineHistory)
+          const cutoff = new Date()
+          cutoff.setDate(cutoff.getDate() + 2)
+          const cutoffDate = cutoff.toISOString().split("T")[0]
+
+          const todayWorkloadHours = data.shifts
+            .filter((shift) => shift.date === todayStr)
+            .reduce((sum, shift) => sum + shift.hours, 0)
+          const next48WorkloadHours = data.shifts
+            .filter((shift) => shift.date >= todayStr && shift.date <= cutoffDate)
+            .reduce((sum, shift) => sum + shift.hours, 0)
+
+          burnoutRisk = computeBurnoutRisk({
+            moodHistory: moodHistory ?? [],
+            routineHistory,
+            todayWorkloadHours,
+            next48WorkloadHours,
+          })
+        }
+      } catch {
+        // Ignore malformed local storage entries.
+      }
+    }
+
+    const generated = generateNotifications(data, {
+      motivationOffset,
+      isSpecialUser: loveModeActive,
+      specialName: displayName,
+      specialRemindersEnabled: loveModeActive && data.settings.specialCompanion.remindersEnabled,
+      adaptiveMood,
+      moodHistory,
+      loveStreaks,
+      burnoutRisk,
+    })
     const storedRead = getReadIds()
     setReadIds(storedRead)
     setNotifications(generated.map((n) => ({ ...n, read: storedRead.has(n.id) })))
-  }, [data, motivationOffset])
+  }, [data, displayName, loveModeActive, motivationOffset, clockTick])
 
   useEffect(() => {
     requestNotificationPermission()
@@ -80,15 +200,14 @@ export function NotificationCenter() {
   }, [notifications])
 
   const positionPanel = useCallback(() => {
-    const panelWidth = Math.min(360, window.innerWidth - 16)
-    const margin = 8
-    const left = Math.max(margin, window.innerWidth - panelWidth - margin)
-    const top = 56
+    const margin = window.innerWidth < 640 ? 8 : 16
+    const top = window.innerWidth < 768 ? 64 : margin
+    const panelWidth = Math.min(380, window.innerWidth - margin * 2)
 
     setPanelStyle({
       position: "fixed",
       top,
-      left,
+      right: margin,
       width: panelWidth,
       maxHeight: Math.max(280, window.innerHeight - top - margin),
     })
@@ -121,6 +240,8 @@ export function NotificationCenter() {
   }, [open, positionPanel])
 
   const unreadCount = notifications.filter((n) => !n.read).length
+  const panelThemeMode = isMounted ? getActivePanelThemeMode() : "light"
+  const panelThemeVars = useMemo(() => getPanelThemeVariables(panelThemeMode), [panelThemeMode])
 
   const markRead = useCallback(
     (id: string) => {
@@ -176,17 +297,29 @@ export function NotificationCenter() {
       </Button>
 
       {open && (
+        isMounted
+          ? createPortal(
         <div
           ref={panelRef}
-          style={panelStyle}
-          className="z-50 overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-black/10"
+          style={{ ...panelStyle, ...panelThemeVars }}
+          className={cn(
+            "z-[120] overflow-hidden rounded-2xl border border-border bg-card shadow-xl backdrop-blur-md",
+            panelThemeMode === "dark"
+              ? "shadow-black/45"
+              : panelThemeMode === "love"
+                ? "shadow-rose-200/50"
+                : "shadow-slate-200/60"
+          )}
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
-              <Bell className="size-4 text-primary" />
+              <Bell className={cn("size-4", panelThemeMode === "dark" ? "text-emerald-300" : "text-primary")} />
               <span className="text-sm font-semibold text-foreground">Notifications</span>
               {unreadCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[11px] font-semibold text-primary">
+                <span className={cn(
+                  "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
+                  panelThemeMode === "dark" ? "bg-emerald-400/20 text-emerald-200" : "bg-primary/15 text-primary"
+                )}>
                   {unreadCount}
                 </span>
               )}
@@ -234,6 +367,8 @@ export function NotificationCenter() {
             )}
           </div>
         </div>
+          , document.body)
+          : null
       )}
     </div>
   )

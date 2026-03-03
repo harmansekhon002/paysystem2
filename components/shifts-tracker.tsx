@@ -21,7 +21,7 @@ import {
 import { trackEvent } from "@/lib/analytics"
 
 export function ShiftsTracker() {
-  const { data, addShift, removeShift, updateShift, addJob, getJob } = useAppData()
+  const { data, addShift, removeShift, updateShift, addJob, getJob, planName, isPremium, usage, limits } = useAppData()
   const { toast } = useToast()
   const [view, setView] = useState<"list" | "calendar">("list")
   const [calMonth, setCalMonth] = useState(() => new Date())
@@ -145,7 +145,7 @@ export function ShiftsTracker() {
     const job = getJob(form.jobId)
     if (!job) return
     const earnings = calculateShiftEarnings(hours, job, form.rateType)
-    addShift({
+    const wasAdded = addShift({
       date: form.date,
       startTime: form.startTime,
       endTime: form.endTime,
@@ -156,6 +156,7 @@ export function ShiftsTracker() {
       earnings,
       note: form.note || undefined,
     })
+    if (!wasAdded) return
     trackEvent("shift_added", { hours, earnings, rateType: form.rateType })
     toast({ title: "Shift logged", description: `${formatCurrency(earnings, currencySymbol)} earned.` })
     setForm(f => ({ ...f, note: "" }))
@@ -242,7 +243,7 @@ export function ShiftsTracker() {
         const hours = calculateShiftHours(recurringForm.startTime, recurringForm.endTime, recurringForm.breakMinutes)
         const earnings = calculateShiftEarnings(hours, job, rateType)
 
-        addShift({
+        const wasAdded = addShift({
           date: dateStr,
           startTime: recurringForm.startTime,
           endTime: recurringForm.endTime,
@@ -253,16 +254,25 @@ export function ShiftsTracker() {
           earnings,
           note: `${recurringForm.name || "Recurring shift"}`,
         })
-        shiftsAdded++
+        if (wasAdded) shiftsAdded++
       })
     }
 
+    if (shiftsAdded === 0) return
     trackEvent("recurring_shifts_added", { count: shiftsAdded })
     toast({ title: "Recurring shifts added", description: `${shiftsAdded} shifts scheduled.` })
     setRecurringDialogOpen(false)
   }
 
   const exportToICalendar = () => {
+    if (!isPremium) {
+      toast({
+        title: "Upgrade required",
+        description: "Data export is available on paid plans. Visit Pricing to upgrade.",
+        variant: "destructive",
+      })
+      return
+    }
     const shifts = filteredShifts.length > 0 ? filteredShifts : data.shifts
     const lines = [
       "BEGIN:VCALENDAR",
@@ -380,6 +390,14 @@ export function ShiftsTracker() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Shifts</h1>
           <p className="mt-1 text-sm text-muted-foreground">Track hours with Australian penalty rates.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">Plan: {planName}</Badge>
+            {!isPremium ? (
+              <Badge variant="outline">
+                {usage.shiftsThisMonth}/{limits.maxShiftsPerMonth} shifts this month
+              </Badge>
+            ) : null}
+          </div>
         </div>
         <div className="w-full lg:w-auto">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-nowrap lg:items-center">

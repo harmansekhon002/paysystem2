@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Clock,
   DollarSign,
+  Heart,
   Plus,
   Receipt,
   TrendingUp,
@@ -106,7 +107,7 @@ function formatTime(date: Date) {
 }
 
 export function Dashboard() {
-  const { data, getJob, addShift, addExpense, updateShift } = useAppData()
+  const { data, getJob, addShift, addExpense, updateShift, planName, isPremium, usage, limits, isSpecialUser, displayName } = useAppData()
   const { resolvedTheme } = useTheme()
   const { toast } = useToast()
   const { shifts, jobs, expenses, budgetCategories } = data
@@ -127,6 +128,18 @@ export function Dashboard() {
       setQuickJobId(jobs[0].id)
     }
   }, [jobs, quickJobId])
+
+  useEffect(() => {
+    if (!isSpecialUser || typeof window === "undefined") return
+    const shouldWelcome = sessionStorage.getItem("shiftwise:wifey-login-welcome") === "1"
+    if (!shouldWelcome) return
+
+    sessionStorage.removeItem("shiftwise:wifey-login-welcome")
+    toast({
+      title: "Welcome wifey",
+      description: "Your dashboard is ready with your puppy touches.",
+    })
+  }, [isSpecialUser, toast])
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -240,7 +253,7 @@ export function Dashboard() {
     const rateType = detectRateType(today, data.publicHolidays)
     const earnings = calculateShiftEarnings(hours, job, rateType)
 
-    addShift({
+    const wasAdded = addShift({
       date: today,
       startTime: formatTime(start),
       endTime: formatTime(end),
@@ -251,6 +264,7 @@ export function Dashboard() {
       earnings,
       note: "Quick added from dashboard",
     })
+    if (!wasAdded) return
 
     toast({
       title: "Shift added",
@@ -315,8 +329,26 @@ export function Dashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground text-balance">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Your shift overview at a glance.</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground text-balance">
+          {isSpecialUser ? `Welcome ${displayName}` : "Dashboard"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isSpecialUser ? "Welcome wifey. Your shift overview with puppy motivation." : "Your shift overview at a glance."}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">Plan: {planName}</Badge>
+          {isSpecialUser ? (
+            <Badge variant="outline" className="gap-1">
+              <Heart className="size-3 text-rose-500" />
+              Companion mode
+            </Badge>
+          ) : null}
+          {!isPremium ? (
+            <Badge variant="outline">
+              {usage.shiftsThisMonth}/{limits.maxShiftsPerMonth} shifts
+            </Badge>
+          ) : null}
+        </div>
       </div>
 
       {widgetConfig.stats ? (

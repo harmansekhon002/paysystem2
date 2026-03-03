@@ -144,7 +144,7 @@ export interface UsageStats {
 
 type ShiftLike = { date: string }
 type ExpenseLike = { date: string }
-type GoalLike = { isCompleted?: boolean }
+type GoalLike = { isCompleted?: boolean; currentAmount?: number; targetAmount?: number }
 
 export function getUsageStats(shifts: ShiftLike[], expenses: ExpenseLike[], goals: GoalLike[]): UsageStats {
   const now = new Date()
@@ -152,7 +152,15 @@ export function getUsageStats(shifts: ShiftLike[], expenses: ExpenseLike[], goal
 
   const shiftsThisMonth = shifts.filter(s => new Date(s.date) >= startOfMonth).length
   const expensesThisMonth = expenses.filter(e => new Date(e.date) >= startOfMonth).length
-  const activeGoals = goals.filter(g => !g.isCompleted).length
+  const activeGoals = goals.filter((goal) => {
+    if (typeof goal.isCompleted === "boolean") {
+      return !goal.isCompleted
+    }
+    if (typeof goal.targetAmount === "number" && typeof goal.currentAmount === "number") {
+      return goal.currentAmount < goal.targetAmount
+    }
+    return true
+  }).length
 
   const allDates = [...shifts.map(s => s.date), ...expenses.map(e => e.date)].sort()
   const oldestDataDate = allDates[0] || now.toISOString().split("T")[0]

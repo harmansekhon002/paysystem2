@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState, type ComponentType } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
@@ -20,13 +20,23 @@ import {
   Menu,
   BarChart3,
   LogOut,
+  Heart,
+  BookHeart,
+  Users,
+  Eye,
+  EyeOff,
+  Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useAppData } from "@/components/data-provider"
 import { NotificationCenter } from "@/components/notification-center"
+import { WifeySplash } from "@/components/wifey-splash"
+import { LoveCelebration } from "@/components/love-celebration"
+import { triggerSpecialCelebration } from "@/lib/special-features"
 
-const navItems = [
+const baseNavItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Shifts", href: "/shifts", icon: CalendarClock },
   { label: "Earnings", href: "/earnings", icon: DollarSign },
@@ -37,27 +47,36 @@ const navItems = [
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
-function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+type NavItem = {
+  label: string
+  href: string
+  icon: ComponentType<{ className?: string }>
+}
+
+type ThemeMode = "light" | "dark" | "love"
+
+function ThemeToggle({ mode, onToggle }: { mode: ThemeMode; onToggle: () => void }) {
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={onToggle}
       className="size-8"
       aria-label="Toggle theme"
+      title={mode === "love" ? "Love theme" : mode === "dark" ? "Dark theme" : "Light theme"}
     >
-      <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <Sun className={cn("absolute size-4 transition-all", mode === "light" ? "rotate-0 scale-100" : "-rotate-90 scale-0")} />
+      <Moon className={cn("absolute size-4 transition-all", mode === "dark" ? "rotate-0 scale-100" : "rotate-90 scale-0")} />
+      <Heart className={cn("absolute size-4 transition-all", mode === "love" ? "scale-100 text-rose-500" : "scale-0")} />
     </Button>
   )
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarNav({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname()
   return (
     <nav className="flex flex-col gap-1">
-      {navItems.map((item) => {
+      {items.map((item) => {
         const isActive = pathname === item.href
         return (
           <Link
@@ -80,7 +99,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
-function BottomNav() {
+function BottomNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname()
   return (
     <nav
@@ -88,7 +107,7 @@ function BottomNav() {
       role="navigation"
       aria-label="Mobile navigation"
     >
-      {navItems.map((item) => {
+      {items.map((item) => {
         const isActive = pathname === item.href
         return (
           <Link
@@ -111,9 +130,100 @@ function BottomNav() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { resolvedTheme, setTheme } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { data, updateSettings, saveStatus, lastSavedAt } = useAppData()
+  const [showSplash, setShowSplash] = useState(false)
+  const [pinInput, setPinInput] = useState("")
+  const [pinError, setPinError] = useState("")
+  const [pinUnlocked, setPinUnlocked] = useState(true)
+  const [privacyReveal, setPrivacyReveal] = useState(false)
+
+  const { data, updateSettings, updateSpecialCompanion, saveStatus, lastSavedAt, planName, isSpecialUser, displayName } = useAppData()
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
+
+  const specialCompanion = data.settings.specialCompanion
+  const loveModeActive = isSpecialUser && specialCompanion.loveThemeEnabled
+
+  const specialNavItems = useMemo<NavItem[]>(() => {
+    if (!loveModeActive) return []
+    return [
+      { label: "Wifey Routine", href: "/wifey-routine", icon: BookHeart },
+      { label: "Couple Dash", href: "/couple-dashboard", icon: Users },
+    ]
+  }, [loveModeActive])
+
+  const navItems = useMemo<NavItem[]>(() => {
+    return [...baseNavItems, ...specialNavItems]
+  }, [specialNavItems])
+
+  const mobileNavItems = useMemo<NavItem[]>(() => {
+    if (loveModeActive) {
+      return [
+        { label: "Home", href: "/", icon: LayoutDashboard },
+        { label: "Shifts", href: "/shifts", icon: CalendarClock },
+        { label: "Routine", href: "/wifey-routine", icon: BookHeart },
+        { label: "Couple", href: "/couple-dashboard", icon: Users },
+        { label: "Settings", href: "/settings", icon: Settings },
+      ]
+    }
+
+    return [
+      { label: "Home", href: "/", icon: LayoutDashboard },
+      { label: "Shifts", href: "/shifts", icon: CalendarClock },
+      { label: "Earnings", href: "/earnings", icon: DollarSign },
+      { label: "Goals", href: "/goals", icon: Target },
+      { label: "Settings", href: "/settings", icon: Settings },
+    ]
+  }, [loveModeActive])
+
+  const requiresPin = isSpecialUser && specialCompanion.pinEnabled && specialCompanion.pinCode.trim().length > 0
+  const privacyModeEnabled = isSpecialUser && specialCompanion.privacyMode
+  const activeThemeMode: ThemeMode = loveModeActive ? "love" : resolvedTheme === "dark" ? "dark" : "light"
+
+  useEffect(() => {
+    if (!requiresPin) {
+      setPinUnlocked(true)
+      return
+    }
+
+    try {
+      const unlocked = sessionStorage.getItem("shiftwise:wifey-pin-unlocked") === "1"
+      setPinUnlocked(unlocked)
+    } catch {
+      setPinUnlocked(false)
+    }
+  }, [requiresPin])
+
+  useEffect(() => {
+    if (!loveModeActive) {
+      setShowSplash(false)
+      return
+    }
+
+    try {
+      const shown = sessionStorage.getItem("shiftwise:wifey-splash-shown")
+      if (shown === "1") {
+        setShowSplash(false)
+        return
+      }
+
+      setShowSplash(true)
+      const timeout = window.setTimeout(() => {
+        setShowSplash(false)
+        sessionStorage.setItem("shiftwise:wifey-splash-shown", "1")
+      }, 1800)
+
+      return () => window.clearTimeout(timeout)
+    } catch {
+      setShowSplash(false)
+    }
+  }, [loveModeActive])
+
+  useEffect(() => {
+    if (!privacyModeEnabled) {
+      setPrivacyReveal(false)
+    }
+  }, [privacyModeEnabled])
 
   const handleCurrencyCycle = () => {
     const currentIndex = currencyOptions.indexOf(data.settings.currency as (typeof currencyOptions)[number])
@@ -129,115 +239,223 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     updateSettings({ currency: nextCurrency, currencySymbol: symbolByCode[nextCurrency] })
   }
 
+  const handlePinUnlock = () => {
+    if (pinInput.trim() === specialCompanion.pinCode) {
+      setPinUnlocked(true)
+      setPinError("")
+      setPinInput("")
+      try {
+        sessionStorage.setItem("shiftwise:wifey-pin-unlocked", "1")
+      } catch {
+        // Ignore storage errors for lock state.
+      }
+      triggerSpecialCelebration("Pin unlock successful")
+      return
+    }
+
+    setPinError("Wrong pin. Try again.")
+  }
+
+  const handleThemeCycle = () => {
+    if (!isSpecialUser) {
+      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+      return
+    }
+
+    if (loveModeActive) {
+      updateSpecialCompanion({ loveThemeEnabled: false })
+      setTheme("light")
+      triggerSpecialCelebration("Light theme enabled", "light")
+      return
+    }
+
+    if (resolvedTheme === "light") {
+      setTheme("dark")
+      triggerSpecialCelebration("Dark theme enabled", "dark")
+      return
+    }
+
+    if (resolvedTheme === "dark") {
+      updateSpecialCompanion({ loveThemeEnabled: true })
+      setTheme("light")
+      triggerSpecialCelebration("Love theme enabled", "love")
+      return
+    }
+
+    setTheme("light")
+    triggerSpecialCelebration("Light theme enabled", "light")
+  }
+
   return (
-    <div className="flex min-h-svh bg-background">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:w-[240px] md:flex-col md:fixed md:inset-y-0 border-r border-border bg-card">
-        <div className="flex h-14 items-center gap-2.5 px-5">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
-            <Zap className="size-4 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold text-foreground">ShiftWise</span>
-        </div>
-        <div className="flex flex-1 flex-col px-3 py-2">
-          <SidebarNav />
-        </div>
-        <div className="relative border-t border-border px-4 py-3">
-          <div className="grid grid-cols-4 items-center gap-2">
-            <div className="flex justify-center">
-              <ThemeToggle />
-            </div>
-            <div className="flex justify-center">
-              <NotificationCenter />
-            </div>
-            <div className="flex justify-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCurrencyCycle}
-                className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                aria-label="Change currency"
-                title="Click to change currency"
-              >
-                {data.settings.currency}
-              </Button>
-            </div>
-            <div className="flex justify-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="size-8 text-muted-foreground hover:text-foreground"
-                aria-label="Sign out"
-              >
-                <LogOut className="size-4" />
-              </Button>
-            </div>
-            <div className="col-span-4 flex justify-center border-t border-border pt-2 text-[10px] text-muted-foreground">
-              {saveStatus === "saving" && "Saving..."}
-              {saveStatus === "saved" && `Saved ${lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}`}
-              {saveStatus === "error" && "Save failed"}
-              {saveStatus === "idle" && "Ready"}
-            </div>
-          </div>
-        </div>
-      </aside>
+    <>
+      {showSplash ? <WifeySplash name={displayName} /> : null}
+      <LoveCelebration enabled={loveModeActive && specialCompanion.celebrationEnabled} />
 
-      {/* Mobile header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-md md:hidden">
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 -ml-1.5"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-          </Button>
-          <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
-            <Zap className="size-4 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold text-foreground">ShiftWise</span>
-        </div>
-        <div className="relative flex items-center gap-1">
-          <NotificationCenter />
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="size-8 text-muted-foreground hover:text-foreground"
-            aria-label="Sign out"
-          >
-            <LogOut className="size-4" />
-          </Button>
-        </div>
-      </header>
-
-      {/* Mobile sidebar overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
-          <div
-            className="absolute left-0 top-14 bottom-0 w-[260px] border-r border-border bg-card p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <SidebarNav onNavigate={() => setMobileOpen(false)} />
+      {requiresPin && !pinUnlocked ? (
+        <div className="fixed inset-0 z-[125] flex items-center justify-center bg-background/95 px-4 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <div className="mb-4 flex items-center gap-2 text-primary">
+              <Shield className="size-5" />
+              <h2 className="text-lg font-semibold">Unlock for {displayName}</h2>
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">Enter your personal pin to open your dashboard without typing full login each time.</p>
+            <div className="space-y-3">
+              <Input
+                inputMode="numeric"
+                type="password"
+                placeholder="Enter pin"
+                value={pinInput}
+                onChange={(event) => setPinInput(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    handlePinUnlock()
+                  }
+                }}
+                autoFocus
+              />
+              {pinError ? <p className="text-sm text-destructive">{pinError}</p> : null}
+              <Button className="w-full" onClick={handlePinUnlock}>Unlock</Button>
+            </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Main content */}
-      <main className="flex-1 md:ml-[240px]">
-        <div className="min-h-svh pt-14 pb-20 md:pt-0 md:pb-0">
-          <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-8">
-            {children}
+      <div className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}>
+        {/* Desktop sidebar */}
+        <aside className="hidden border-r border-border bg-card md:fixed md:inset-y-0 md:flex md:w-[240px] md:flex-col">
+          <div className="flex h-14 items-center gap-2.5 px-5">
+            <div className={cn("flex size-7 items-center justify-center rounded-lg bg-primary", loveModeActive && "bg-gradient-to-br from-primary to-accent")}>
+              {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className="size-4 text-primary-foreground" />}
+            </div>
+            <span className="text-sm font-semibold text-foreground">
+              {loveModeActive ? `ShiftWise x ${displayName}` : "ShiftWise"}
+            </span>
           </div>
-        </div>
-      </main>
+          <div className="flex flex-1 flex-col px-3 py-2">
+            {loveModeActive ? (
+              <div className="mb-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-accent/30 px-3 py-2 text-xs text-muted-foreground">
+                Welcome wifey.
+              </div>
+            ) : null}
+            <SidebarNav items={navItems} />
+          </div>
+          <div className="relative border-t border-border px-4 py-3">
+            <div className="grid grid-cols-4 items-center gap-2">
+              <div className="flex justify-center">
+                <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
+              </div>
+              <div className="flex justify-center">
+                <NotificationCenter />
+              </div>
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCurrencyCycle}
+                  className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  aria-label="Change currency"
+                  title="Click to change currency"
+                >
+                  {data.settings.currency}
+                </Button>
+              </div>
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="size-8 text-muted-foreground hover:text-foreground"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="size-4" />
+                </Button>
+              </div>
+              <div className="col-span-4 flex justify-center border-t border-border pt-2 text-[10px] text-muted-foreground">
+                {saveStatus === "saving" && "Saving..."}
+                {saveStatus === "saved" && `Saved ${lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}`}
+                {saveStatus === "error" && "Save failed"}
+                {saveStatus === "idle" && "Ready"}
+              </div>
+              <div className="col-span-4 flex justify-center text-[10px] text-muted-foreground">
+                Plan: {planName}
+              </div>
+            </div>
+          </div>
+        </aside>
 
-      <BottomNav />
-    </div>
+        {/* Mobile header */}
+        <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-md md:hidden">
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 -ml-1.5"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+            </Button>
+            <div className={cn("flex size-7 items-center justify-center rounded-lg bg-primary", loveModeActive && "bg-gradient-to-br from-primary to-accent")}>
+              {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className="size-4 text-primary-foreground" />}
+            </div>
+            <span className="text-sm font-semibold text-foreground">{loveModeActive ? `${displayName}'s ShiftWise` : "ShiftWise"}</span>
+          </div>
+          <div className="relative flex items-center gap-1">
+            <NotificationCenter />
+            <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="size-8 text-muted-foreground hover:text-foreground"
+              aria-label="Sign out"
+            >
+              <LogOut className="size-4" />
+            </Button>
+          </div>
+        </header>
+
+        {/* Mobile sidebar overlay */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
+            <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
+            <div
+              className="absolute left-0 top-14 bottom-0 w-[260px] border-r border-border bg-card p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <SidebarNav items={navItems} onNavigate={() => setMobileOpen(false)} />
+            </div>
+          </div>
+        )}
+
+        {/* Main content */}
+        <main className="flex-1 md:ml-[240px]">
+          <div className="min-h-svh pt-14 pb-20 md:pt-0 md:pb-0">
+            <div className={cn("mx-auto max-w-5xl px-4 py-6 transition-all md:px-8 md:py-8", privacyModeEnabled && !privacyReveal && "blur-md")}>
+              {children}
+            </div>
+          </div>
+        </main>
+
+        <BottomNav items={mobileNavItems} />
+
+        {privacyModeEnabled ? (
+          <div className="fixed bottom-24 right-4 z-[110] md:bottom-6 md:right-6">
+            <Button
+              type="button"
+              onClick={() => {
+                setPrivacyReveal((prev) => !prev)
+                triggerSpecialCelebration("Privacy reveal toggled")
+              }}
+              className="gap-2 rounded-full"
+              variant={privacyReveal ? "outline" : "default"}
+            >
+              {privacyReveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              {privacyReveal ? "Hide again" : "Reveal for now"}
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </>
   )
 }

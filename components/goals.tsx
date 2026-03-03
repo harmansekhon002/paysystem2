@@ -33,7 +33,7 @@ function getGoalStatus(goal: { currentAmount: number; targetAmount: number; dead
 }
 
 export function Goals() {
-  const { data, addGoal, updateGoal, removeGoal } = useAppData()
+  const { data, addGoal, updateGoal, removeGoal, planName, isPremium, usage, limits } = useAppData()
   const { toast } = useToast()
   const currencySymbol = data.settings.currencySymbol
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -83,13 +83,14 @@ export function Goals() {
   const handleAddGoal = () => {
     if (form.name && form.targetAmount) {
       const targetAmount = parseFloat(form.targetAmount)
-      addGoal({
+      const wasAdded = addGoal({
         name: form.name,
         targetAmount,
         currentAmount: parseFloat(form.currentAmount) || 0,
         deadline: form.deadline,
         icon: "Target",
       })
+      if (!wasAdded) return
       trackEvent("goal_added", { name: form.name, targetAmount })
       toast({ title: "Goal created", description: form.name })
       setForm({ name: "", targetAmount: "", currentAmount: "", deadline: defaultDeadline })
@@ -125,6 +126,14 @@ export function Goals() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Goals</h1>
           <p className="mt-1 text-sm text-muted-foreground">Save towards what matters.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">Plan: {planName}</Badge>
+            {!isPremium ? (
+              <Badge variant="outline">
+                {usage.activeGoals}/{limits.maxGoals} active goals
+              </Badge>
+            ) : null}
+          </div>
         </div>
         <div className="flex gap-2">
           {typeof window !== "undefined" && "Notification" in window && (

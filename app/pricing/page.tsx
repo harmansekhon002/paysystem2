@@ -6,6 +6,7 @@ import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js"
 import Link from "next/link"
 
 import { AppShell } from "@/components/app-shell"
+import { useAppData } from "@/components/data-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,7 @@ type PaidPlan = {
 
 export default function PricingPage() {
   const { toast } = useToast()
+  const { planName, refreshPlan } = useAppData()
   const [syncingSubscriptionId, setSyncingSubscriptionId] = useState<string | null>(null)
   const [lastSyncState, setLastSyncState] = useState<{
     status: "success" | "error"
@@ -110,6 +112,7 @@ export default function PricingPage() {
 
       if (response.ok) {
         processedSubscriptionIds.current.add(subscriptionId)
+        await refreshPlan()
         setLastSyncState({
           status: "success",
           message: `${successMessage} Your billing profile is synced.`,
@@ -159,6 +162,9 @@ export default function PricingPage() {
             <p className="text-muted-foreground mt-4 text-base leading-relaxed md:text-lg">
               Start free today, then unlock more insights and automation as your workload grows.
             </p>
+            <div className="mt-3">
+              <Badge variant="secondary">Current plan: {planName}</Badge>
+            </div>
             {syncingSubscriptionId ? (
               <div className="mt-4">
                 <Badge variant="secondary">Syncing subscription...</Badge>

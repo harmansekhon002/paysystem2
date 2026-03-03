@@ -61,6 +61,17 @@ export type Goal = {
 
 export type PayPeriod = "weekly" | "biweekly" | "monthly" | "per_shift"
 
+export type SpecialCompanionSettings = {
+  nickname: string
+  lovesPuppies: boolean
+  loveThemeEnabled: boolean
+  pinEnabled: boolean
+  pinCode: string
+  privacyMode: boolean
+  remindersEnabled: boolean
+  celebrationEnabled: boolean
+}
+
 export type AppSettings = {
   currency: string
   currencySymbol: string
@@ -79,6 +90,7 @@ export type AppSettings = {
     jobBreakdown: boolean
     upcomingShifts: boolean
   }
+  specialCompanion: SpecialCompanionSettings
 }
 
 export type AttendanceEvent = {
@@ -225,7 +237,7 @@ export const defaultData: AppData = {
     payPeriod: "biweekly",
     country: "Australia",
     notificationsEnabled: true,
-    notificationTypes: ["shift", "budget", "goal", "earnings", "payday", "motivation", "milestone"],
+    notificationTypes: ["shift", "budget", "goal", "earnings", "payday", "motivation", "milestone", "special"],
     quietHoursEnabled: false,
     quietHoursStart: "22:00",
     quietHoursEnd: "07:00",
@@ -236,6 +248,16 @@ export const defaultData: AppData = {
       weeklyChart: true,
       jobBreakdown: true,
       upcomingShifts: true,
+    },
+    specialCompanion: {
+      nickname: "Wifey",
+      lovesPuppies: true,
+      loveThemeEnabled: false,
+      pinEnabled: false,
+      pinCode: "",
+      privacyMode: false,
+      remindersEnabled: true,
+      celebrationEnabled: true,
     },
   },
   publicHolidays: AU_PUBLIC_HOLIDAYS_2026,

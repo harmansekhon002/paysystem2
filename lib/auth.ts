@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { ensureUserTableInitialized } from "@/lib/db-init"
+import { isAdminLogin, getAdminCredentials } from "@/lib/admin-access"
+import { ensureSpecialUserAccount, isSpecialCredentials, isSpecialUserEmail } from "@/lib/special-user"
 
 export type LoginErrorCode =
   | "MISSING_CREDENTIALS"
@@ -29,6 +31,26 @@ export async function validateLoginCredentials(email: string, password: string) 
   }
 
   const normalizedEmail = email.toLowerCase().trim()
+  if (isAdminLogin(normalizedEmail, password)) {
+    const admin = getAdminCredentials()
+    return {
+      id: "admin-root",
+      email: admin.email,
+      name: "Admin",
+      isSpecialUser: false,
+    }
+  }
+
+  if (isSpecialCredentials(normalizedEmail, password)) {
+    const specialUser = await ensureSpecialUserAccount()
+    return {
+      id: specialUser.id,
+      email: specialUser.email,
+      name: specialUser.name,
+      isSpecialUser: true,
+    }
+  }
+
   let user = null
 
   await ensureUserTableInitialized()
@@ -74,6 +96,7 @@ export async function validateLoginCredentials(email: string, password: string) 
     id: user.id,
     email: user.email,
     name: user.name,
+    isSpecialUser: isSpecialUserEmail(user.email),
   }
 }
 
@@ -115,12 +138,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        token.isSpecialUser = Boolean((user as { isSpecialUser?: boolean }).isSpecialUser)
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string
+        session.user.isSpecialUser = Boolean(token.isSpecialUser)
       }
       return session
     },

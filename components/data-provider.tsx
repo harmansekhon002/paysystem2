@@ -1,18 +1,49 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react"
+import { useSession } from "next-auth/react"
 import {
   type AppData, type Shift, type JobTemplate, type Expense, type Goal,
   type BudgetCategory, type AppSettings, type AttendanceEvent,
   defaultData, generateId, getJobColor
 } from "@/lib/store"
+import { type PremiumFeature, checkLimit, freeTierLimits, getUsageStats, hasFeatureAccess, upsellMessages } from "@/lib/premium"
+import { toast } from "@/hooks/use-toast"
+
+type PlanTier = "free" | "plus" | "pro" | "admin" | "lifetime" | "custom"
+
+type SubscriptionStatusResponse = {
+  hasSubscription?: boolean
+  subscription?: {
+    planName?: string
+    status?: string
+  } | null
+}
+
+type SessionResponse = {
+  user?: {
+    id?: string
+    email?: string
+    name?: string | null
+    isSpecialUser?: boolean
+  }
+}
 
 type DataContextType = {
   data: AppData
   saveStatus: "idle" | "saving" | "saved" | "error"
   lastSavedAt: string | null
+  planTier: PlanTier
+  planName: string
+  isPremium: boolean
+  isSpecialUser: boolean
+  displayName: string
+  usage: ReturnType<typeof getUsageStats>
+  limits: typeof freeTierLimits
+  canUseFeature: (feature: PremiumFeature) => boolean
+  refreshPlan: () => Promise<void>
   // Shifts
-  addShift: (shift: Omit<Shift, "id">) => void
+  addShift: (shift: Omit<Shift, "id">) => boolean
   removeShift: (id: string) => void
   updateShift: (id: string, shift: Partial<Shift>) => void
   // Jobs
@@ -31,11 +62,12 @@ type DataContextType = {
   updateBudgetCategory: (id: string, cat: Partial<BudgetCategory>) => void
   removeBudgetCategory: (id: string) => void
   // Goals
-  addGoal: (goal: Omit<Goal, "id">) => void
+  addGoal: (goal: Omit<Goal, "id">) => boolean
   updateGoal: (id: string, goal: Partial<Goal>) => void
   removeGoal: (id: string) => void
   // Settings
   updateSettings: (settings: Partial<AppSettings>) => void
+  updateSpecialCompanion: (settings: Partial<AppSettings["specialCompanion"]>) => void
   // Public holidays
   addPublicHoliday: (date: string) => void
   removePublicHoliday: (date: string) => void
@@ -57,7 +89,14 @@ function mergeStoredData(raw: Partial<AppData>): AppData {
     expenses: raw.expenses ?? defaultData.expenses,
     budgetCategories: raw.budgetCategories ?? defaultData.budgetCategories,
     goals: raw.goals ?? defaultData.goals,
-    settings: { ...defaultData.settings, ...raw.settings },
+    settings: {
+      ...defaultData.settings,
+      ...raw.settings,
+      specialCompanion: {
+        ...defaultData.settings.specialCompanion,
+        ...(raw.settings?.specialCompanion ?? {}),
+      },
+    },
     publicHolidays: raw.publicHolidays ?? defaultData.publicHolidays,
   }
 }
@@ -76,6 +115,39 @@ function isLegacyDemoSeed(raw: Partial<AppData>): boolean {
   )
 }
 
+function normalizePlanTier(payload: SubscriptionStatusResponse): PlanTier {
+  const rawStatus = payload.subscription?.status?.toLowerCase() ?? ""
+  const planName = payload.subscription?.planName?.toLowerCase() ?? ""
+
+  if (payload.hasSubscription && (rawStatus === "lifetime" || planName.includes("lifetime"))) {
+    return "lifetime"
+  }
+
+  const activeStatuses = new Set(["active", "trialing", "approved", "approval_pending"])
+  if (!payload.hasSubscription || !activeStatuses.has(rawStatus)) {
+    return "free"
+  }
+
+  if (planName.includes("plus")) return "plus"
+  if (planName.includes("pro") || planName.includes("premium")) return "pro"
+  return "custom"
+}
+
+function getPlanLabel(planTier: PlanTier): string {
+  if (planTier === "admin") return "Admin"
+  if (planTier === "lifetime") return "Lifetime"
+  if (planTier === "plus") return "Plus"
+  if (planTier === "pro") return "Pro"
+  if (planTier === "custom") return "Paid"
+  return "Free"
+}
+
+function isAdminSession(user?: { id?: string; email?: string }) {
+  const id = user?.id?.toLowerCase().trim()
+  const email = user?.email?.toLowerCase().trim()
+  return id === "admin-root" || email === "admin" || email === "admin@admin.com"
+}
+
 export function useAppData() {
   const context = useContext(DataContext)
   if (!context) throw new Error("useAppData must be used within DataProvider")
@@ -83,47 +155,135 @@ export function useAppData() {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { status } = useSession()
   const [data, setData] = useState<AppData>(defaultData)
   const [hydrated, setHydrated] = useState(false)
+  const [storageReady, setStorageReady] = useState(false)
+  const [storageKey, setStorageKey] = useState(`${STORAGE_KEY}:guest`)
+  const [currentUser, setCurrentUser] = useState<SessionResponse["user"] | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [planTier, setPlanTier] = useState<PlanTier>("free")
+  const isPremium = planTier !== "free"
+  const planName = getPlanLabel(planTier)
+  const isSpecialUser = Boolean(currentUser?.isSpecialUser)
+  const displayName = isSpecialUser
+    ? data.settings.specialCompanion.nickname || currentUser?.name || "Wifey"
+    : currentUser?.name?.split(" ")[0] || "there"
 
-  useEffect(() => {
-    if (typeof window === "undefined") return
+  const usage = useMemo(() => {
+    return getUsageStats(data.shifts, data.expenses, data.goals)
+  }, [data.shifts, data.expenses, data.goals])
+
+  const refreshPlan = useCallback(async () => {
+    const getStorageKey = (user?: SessionResponse["user"]) => {
+      const identity = user?.id || user?.email?.toLowerCase().trim() || "guest"
+      return `${STORAGE_KEY}:${identity}`
+    }
+
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored) as Partial<AppData>
-        if (isLegacyDemoSeed(parsed)) {
-          localStorage.removeItem(STORAGE_KEY)
-          setData(defaultData)
+      try {
+        const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" })
+        if (sessionResponse.ok) {
+          const session = (await sessionResponse.json()) as SessionResponse
+          setCurrentUser(session.user ?? null)
+          setStorageKey(getStorageKey(session.user))
+          setStorageReady(true)
+
+          if (isAdminSession(session.user)) {
+            setPlanTier("admin")
+            return
+          }
         } else {
-          setData(mergeStoredData(parsed))
+          setCurrentUser(null)
+          setStorageKey(getStorageKey(undefined))
+          setStorageReady(true)
         }
+      } catch {
+        setCurrentUser(null)
+        setStorageKey(getStorageKey(undefined))
+        setStorageReady(true)
       }
+
+      const response = await fetch("/api/subscription/status", { cache: "no-store" })
+      if (!response.ok) {
+        setPlanTier("free")
+        return
+      }
+      const payload = (await response.json()) as SubscriptionStatusResponse
+      setPlanTier(normalizePlanTier(payload))
     } catch {
-      // Ignore corrupted storage and use defaults.
-    } finally {
-      setHydrated(true)
+      setPlanTier("free")
     }
   }, [])
 
   useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return
+    if (typeof window === "undefined" || !storageReady) return
+    setHydrated(false)
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (stored) {
+        const parsed = JSON.parse(stored) as Partial<AppData>
+        if (isLegacyDemoSeed(parsed)) {
+          localStorage.removeItem(storageKey)
+          setData(defaultData)
+        } else {
+          setData(mergeStoredData(parsed))
+        }
+      } else {
+        setData(defaultData)
+      }
+    } catch {
+      // Ignore corrupted storage and use defaults.
+      setData(defaultData)
+    } finally {
+      setHydrated(true)
+    }
+  }, [storageKey, storageReady])
+
+  useEffect(() => {
+    void refreshPlan()
+  }, [refreshPlan, status])
+
+  useEffect(() => {
+    if (!hydrated || !storageReady || typeof window === "undefined") return
     try {
       setSaveStatus("saving")
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      localStorage.setItem(storageKey, JSON.stringify(data))
       setSaveStatus("saved")
       setLastSavedAt(new Date().toISOString())
     } catch {
       setSaveStatus("error")
     }
-  }, [data, hydrated])
+  }, [data, hydrated, storageKey, storageReady])
+
+  useEffect(() => {
+    if (!isSpecialUser) return
+    if (data.settings.notificationTypes.includes("special")) return
+
+    setData(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        notificationTypes: [...prev.settings.notificationTypes, "special"],
+      },
+    }))
+  }, [data.settings.notificationTypes, isSpecialUser])
 
   // Shifts
   const addShift = useCallback((shift: Omit<Shift, "id">) => {
+    const shiftLimit = checkLimit("maxShiftsPerMonth", usage.shiftsThisMonth, isPremium)
+    if (!shiftLimit.allowed) {
+      toast({
+        title: upsellMessages.SHIFT_LIMIT.title,
+        description: `${upsellMessages.SHIFT_LIMIT.message} Current plan: ${planName}.`,
+        variant: "destructive",
+      })
+      return false
+    }
     setData(prev => ({ ...prev, shifts: [...prev.shifts, { ...shift, id: generateId() }] }))
-  }, [])
+    return true
+  }, [isPremium, planName, usage.shiftsThisMonth])
 
   const removeShift = useCallback((id: string) => {
     setData(prev => ({ ...prev, shifts: prev.shifts.filter(s => s.id !== id) }))
@@ -211,8 +371,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Goals
   const addGoal = useCallback((goal: Omit<Goal, "id">) => {
+    const goalLimit = checkLimit("maxGoals", usage.activeGoals, isPremium)
+    if (!goalLimit.allowed) {
+      toast({
+        title: upsellMessages.GOAL_LIMIT.title,
+        description: `${upsellMessages.GOAL_LIMIT.message} Current plan: ${planName}.`,
+        variant: "destructive",
+      })
+      return false
+    }
     setData(prev => ({ ...prev, goals: [...prev.goals, { ...goal, id: generateId() }] }))
-  }, [])
+    return true
+  }, [isPremium, planName, usage.activeGoals])
 
   const updateGoal = useCallback((id: string, updates: Partial<Goal>) => {
     setData(prev => ({
@@ -228,6 +398,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Settings
   const updateSettings = useCallback((settings: Partial<AppSettings>) => {
     setData(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))
+  }, [])
+
+  const updateSpecialCompanion = useCallback((settings: Partial<AppSettings["specialCompanion"]>) => {
+    setData(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        specialCompanion: {
+          ...prev.settings.specialCompanion,
+          ...settings,
+        },
+      },
+    }))
   }, [])
 
   // Public holidays
@@ -250,12 +433,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return data.jobs.find(j => j.id === id)
   }, [data.jobs])
 
+  const canUseFeature = useCallback((feature: PremiumFeature) => {
+    if (planTier === "pro" || planTier === "admin" || planTier === "lifetime") return true
+    if (planTier === "plus") {
+      return feature !== "advanced_analytics"
+    }
+    return hasFeatureAccess("free", feature, false)
+  }, [planTier])
+
   return (
     <DataContext.Provider
       value={{
         data,
         saveStatus,
         lastSavedAt,
+        planTier,
+        planName,
+        isPremium,
+        isSpecialUser,
+        displayName,
+        usage,
+        limits: freeTierLimits,
+        canUseFeature,
+        refreshPlan,
         addShift, removeShift, updateShift,
         addJob, updateJob, removeJob,
         addExpense, updateExpense, removeExpense,
@@ -263,6 +463,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addBudgetCategory, updateBudgetCategory, removeBudgetCategory,
         addGoal, updateGoal, removeGoal,
         updateSettings,
+        updateSpecialCompanion,
         addPublicHoliday, removePublicHoliday,
         getJob,
       }}

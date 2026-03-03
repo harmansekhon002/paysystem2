@@ -49,9 +49,11 @@ function CustomChartTooltip({
 
 import { useMemo } from "react"
 import { TrendingUp, TrendingDown, Calendar, DollarSign, Clock, Target } from "lucide-react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { useAppData } from "@/components/data-provider"
 import { formatCurrency, type RateType, RATE_TYPE_LABELS } from "@/lib/store"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Rectangle } from "recharts"
@@ -59,7 +61,7 @@ import { PieChart } from "@/components/ui/pie-chart"
 import { useState } from "react"
 
 export function ReportingDashboard() {
-  const { data } = useAppData()
+  const { data, canUseFeature, planName } = useAppData()
   const [timeRange, setTimeRange] = useState<"week" | "month" | "quarter" | "year">("month")
   const currencySymbol = data.settings.currencySymbol
 
@@ -164,6 +166,25 @@ export function ReportingDashboard() {
   const { resolvedTheme } = useTheme();
   const axisColor = "var(--color-muted-foreground)";
   const gridColor = "var(--color-border)";
+
+  if (!canUseFeature("advanced_analytics")) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Analytics is a Pro feature</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Your current plan is {planName}. Upgrade to Pro to unlock advanced analytics and forecasting.
+          </p>
+          <Button asChild>
+            <Link href="/pricing">View plans</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">

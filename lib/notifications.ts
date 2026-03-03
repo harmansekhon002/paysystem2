@@ -12,6 +12,7 @@ export type NotificationType =
   | "payday"
   | "motivation"
   | "milestone"
+  | "special"
 
 export type AppNotification = {
   id: string
@@ -28,6 +29,236 @@ export type AppNotification = {
     link?: string
     markReadOnly?: boolean
   }>
+}
+
+export type CompanionMoodEntry = {
+  date: string
+  mood: string
+  note?: string
+  savedAt?: string
+}
+
+export type RoutineHistorySnapshot = {
+  waterBottles?: number
+  sleepHours?: number
+  exerciseDone?: boolean
+  paathDone?: boolean
+  studyDone?: boolean
+}
+
+export type LoveStreakStats = {
+  hydration: number
+  discipline: number
+  allHabits: number
+}
+
+export type BurnoutRisk = {
+  level: "low" | "moderate" | "high"
+  score: number
+  reasons: string[]
+  recommendation: string
+}
+
+const LOW_MOOD_VALUES = new Set(["sad", "stressed", "tired", "low", "anxious", "down"])
+const HIGH_MOOD_VALUES = new Set(["happy", "excited", "focused", "calm", "grateful"])
+
+function isIsoDate(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function toDayStart(dateString: string) {
+  return new Date(`${dateString}T00:00:00`)
+}
+
+function isConsecutivePreviousDay(current: string, previous: string) {
+  const currentDate = toDayStart(current)
+  const previousDate = toDayStart(previous)
+  const deltaMs = currentDate.getTime() - previousDate.getTime()
+  return deltaMs === 24 * 60 * 60 * 1000
+}
+
+function getConsecutiveStreak<T>(
+  history: Record<string, T>,
+  predicate: (entry: T) => boolean
+) {
+  const orderedDates = Object.keys(history)
+    .filter(isIsoDate)
+    .sort((a, b) => b.localeCompare(a))
+
+  if (orderedDates.length === 0) return 0
+  if (!predicate(history[orderedDates[0]])) return 0
+
+  let streak = 1
+  for (let index = 1; index < orderedDates.length; index += 1) {
+    const previousDate = orderedDates[index - 1]
+    const currentDate = orderedDates[index]
+    if (!isConsecutivePreviousDay(previousDate, currentDate)) break
+    if (!predicate(history[currentDate])) break
+    streak += 1
+  }
+
+  return streak
+}
+
+export function computeLoveStreaksFromHistory(history: Record<string, RoutineHistorySnapshot>): LoveStreakStats {
+  return {
+    hydration: getConsecutiveStreak(history, (entry) => (entry.waterBottles ?? 0) >= 6),
+    discipline: getConsecutiveStreak(history, (entry) => Boolean(entry.exerciseDone && entry.paathDone && entry.studyDone)),
+    allHabits: getConsecutiveStreak(
+      history,
+      (entry) => (entry.waterBottles ?? 0) >= 6 && Boolean(entry.exerciseDone && entry.paathDone && entry.studyDone)
+    ),
+  }
+}
+
+export function getLowMoodStreak(history: CompanionMoodEntry[]): number {
+  const latestByDate = new Map<string, CompanionMoodEntry>()
+  history.forEach((entry) => {
+    if (!isIsoDate(entry.date)) return
+    const existing = latestByDate.get(entry.date)
+    const existingTime = existing?.savedAt ? Date.parse(existing.savedAt) : 0
+    const nextTime = entry.savedAt ? Date.parse(entry.savedAt) : 0
+    if (!existing || nextTime >= existingTime) {
+      latestByDate.set(entry.date, entry)
+    }
+  })
+
+  const orderedDates = [...latestByDate.keys()].sort((a, b) => b.localeCompare(a))
+  if (orderedDates.length === 0) return 0
+
+  const first = latestByDate.get(orderedDates[0])
+  if (!first || !LOW_MOOD_VALUES.has(first.mood.toLowerCase().trim())) return 0
+
+  let streak = 1
+  for (let index = 1; index < orderedDates.length; index += 1) {
+    const previousDate = orderedDates[index - 1]
+    const currentDate = orderedDates[index]
+    if (!isConsecutivePreviousDay(previousDate, currentDate)) break
+
+    const currentEntry = latestByDate.get(currentDate)
+    if (!currentEntry || !LOW_MOOD_VALUES.has(currentEntry.mood.toLowerCase().trim())) break
+    streak += 1
+  }
+
+  return streak
+}
+
+function getLatestMoodByDate(history: CompanionMoodEntry[]) {
+  const latestByDate = new Map<string, CompanionMoodEntry>()
+  history.forEach((entry) => {
+    if (!isIsoDate(entry.date)) return
+    const existing = latestByDate.get(entry.date)
+    const existingTime = existing?.savedAt ? Date.parse(existing.savedAt) : 0
+    const nextTime = entry.savedAt ? Date.parse(entry.savedAt) : 0
+    if (!existing || nextTime >= existingTime) {
+      latestByDate.set(entry.date, entry)
+    }
+  })
+  return latestByDate
+}
+
+export function computeBurnoutRisk(params: {
+  moodHistory: CompanionMoodEntry[]
+  routineHistory: Record<string, RoutineHistorySnapshot>
+  todayWorkloadHours: number
+  next48WorkloadHours: number
+}): BurnoutRisk {
+  const { moodHistory, routineHistory, todayWorkloadHours, next48WorkloadHours } = params
+
+  let score = 0
+  const reasons: string[] = []
+
+  const moodByDate = getLatestMoodByDate(moodHistory)
+  const moodDates = [...moodByDate.keys()].sort((a, b) => b.localeCompare(a))
+  const lowMoodStreak = getLowMoodStreak(moodHistory)
+  const lowMoodDaysRecent = moodDates
+    .slice(0, 5)
+    .filter((date) => {
+      const mood = moodByDate.get(date)?.mood?.toLowerCase().trim() ?? ""
+      return LOW_MOOD_VALUES.has(mood)
+    }).length
+
+  if (lowMoodStreak >= 2) {
+    score += 25
+    reasons.push(`${lowMoodStreak}-day low mood streak`)
+  }
+  if (lowMoodStreak >= 4) {
+    score += 15
+  }
+  if (lowMoodDaysRecent >= 3) {
+    score += 12
+    reasons.push(`${lowMoodDaysRecent} low-mood days in last 5 days`)
+  }
+
+  const routineDates = Object.keys(routineHistory)
+    .filter(isIsoDate)
+    .sort((a, b) => b.localeCompare(a))
+    .slice(0, 7)
+  const routineEntries = routineDates.map((date) => routineHistory[date])
+
+  if (routineEntries.length > 0) {
+    const averageSleep = routineEntries.reduce((sum, entry) => sum + (entry.sleepHours ?? 0), 0) / routineEntries.length
+    const averageHydration = routineEntries.reduce((sum, entry) => sum + (entry.waterBottles ?? 0), 0) / routineEntries.length
+    const lowRecoveryDays = routineEntries.filter((entry) => (entry.sleepHours ?? 0) < 6 || (entry.waterBottles ?? 0) < 4).length
+    const missedRoutineDays = routineEntries
+      .slice(0, 4)
+      .filter((entry) => !entry.exerciseDone && !entry.paathDone && !entry.studyDone).length
+
+    if (averageSleep < 6.5) {
+      score += 20
+      reasons.push(`low weekly sleep (${averageSleep.toFixed(1)}h avg)`)
+    }
+    if (averageSleep < 5.5) {
+      score += 10
+    }
+
+    if (averageHydration < 4.5) {
+      score += 15
+      reasons.push(`low weekly hydration (${averageHydration.toFixed(1)} bottles avg)`)
+    }
+    if (averageHydration < 3) {
+      score += 10
+    }
+
+    if (lowRecoveryDays >= 3) {
+      score += 10
+      reasons.push(`${lowRecoveryDays} recent low-recovery days`)
+    }
+
+    if (missedRoutineDays >= 2) {
+      score += Math.min(15, missedRoutineDays * 5)
+      reasons.push(`${missedRoutineDays} missed routine days this week`)
+    }
+  }
+
+  if (todayWorkloadHours >= 8) {
+    score += 12
+    reasons.push(`heavy workload today (${todayWorkloadHours.toFixed(1)}h)`)
+  }
+  if (next48WorkloadHours >= 12) {
+    score += 15
+    reasons.push(`high upcoming workload (${next48WorkloadHours.toFixed(1)}h in 48h)`)
+  }
+  if (next48WorkloadHours >= 18) {
+    score += 10
+  }
+
+  const boundedScore = Math.max(0, Math.min(100, score))
+  const level: BurnoutRisk["level"] = boundedScore >= 70 ? "high" : boundedScore >= 45 ? "moderate" : "low"
+
+  const recommendation =
+    level === "high"
+      ? "Reduce pressure immediately, prioritize recovery basics, and use support ping if needed."
+      : level === "moderate"
+        ? "Keep tasks light, avoid over-committing, and protect sleep/hydration for the next 48 hours."
+        : "Current load looks manageable. Maintain routine consistency and recovery habits."
+
+  return {
+    level,
+    score: boundedScore,
+    reasons: reasons.slice(0, 4),
+    recommendation,
+  }
 }
 
 // ─── Motivational Quotes ──────────────────────────────────────────────────────
@@ -108,6 +339,13 @@ export function generateNotifications(
   data: AppData,
   options?: {
     motivationOffset?: number
+    isSpecialUser?: boolean
+    specialName?: string
+    specialRemindersEnabled?: boolean
+    adaptiveMood?: string
+    moodHistory?: CompanionMoodEntry[]
+    loveStreaks?: LoveStreakStats
+    burnoutRisk?: BurnoutRisk
   }
 ): AppNotification[] {
   if (!data.settings.notificationsEnabled) return []
@@ -359,6 +597,173 @@ export function generateNotifications(
       link: "/shifts",
       actions: [{ label: "Log shift", link: "/shifts" }],
     })
+  }
+
+  // ── 8. Special companion reminders ───────────────────────────────────────────
+  const specialRemindersEnabled = options?.specialRemindersEnabled ?? true
+  if (options?.isSpecialUser && specialRemindersEnabled && enabledTypes.has("special")) {
+    const specialName = options.specialName || "wifey"
+    const hour = now.getHours()
+    const adaptiveMood = options.adaptiveMood?.toLowerCase().trim() ?? ""
+    const isLowMood = LOW_MOOD_VALUES.has(adaptiveMood)
+    const isHighMood = HIGH_MOOD_VALUES.has(adaptiveMood)
+    const burnoutRisk = options.burnoutRisk
+    const highBurnout = burnoutRisk?.level === "high"
+    const moderateBurnout = burnoutRisk?.level === "moderate"
+    const lowMoodStreak = getLowMoodStreak(options.moodHistory ?? [])
+    const loveStreaks = options.loveStreaks ?? { hydration: 0, discipline: 0, allHabits: 0 }
+
+    const waterBody = isLowMood
+      ? `${specialName}, gentle hydration check. Even half a bottle counts right now. - love Harman`
+      : isHighMood
+        ? `${specialName}, your energy looks high today. Keep it flowing with one water bottle. - love Harman`
+        : `${specialName}, drink one full water bottle now. - love Harman`
+
+    const exerciseBody = isLowMood
+      ? "Take a gentle 10-20 min walk/stretch and breathe. - love Harman"
+      : "Move your body for 20-30 mins today. - love Harman"
+
+    const paathBody = isLowMood
+      ? "Take 5 mindful minutes for paath and calm your mind. - love Harman"
+      : "Take your paath time for peace and focus today. - love Harman"
+
+    const studyBody = isLowMood
+      ? "Try one short focus block (15-20 mins). Small wins matter. - love Harman"
+      : "Put in your focused study session today. - love Harman"
+
+    pushNotification({
+      id: `special-water-${todayStr}-${hour}`,
+      type: "special",
+      priority: highBurnout ? "normal" : isLowMood ? "normal" : "high",
+      title: "Hydration time 💧",
+      body: waterBody,
+      emoji: "💧",
+      timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0),
+      read: false,
+      link: "/wifey-routine",
+      actions: [{ label: "Mark in routine", link: "/wifey-routine" }],
+    })
+
+    if (!highBurnout) {
+      pushNotification({
+        id: `special-exercise-${todayStr}`,
+        type: "special",
+        priority: isLowMood ? "normal" : hour >= 8 && hour <= 12 ? "high" : "normal",
+        title: "Exercise check 🏃‍♀️",
+        body: exerciseBody,
+        emoji: "🏃‍♀️",
+        timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0),
+        read: false,
+        link: "/wifey-routine",
+        actions: [{ label: "Open routine", link: "/wifey-routine" }],
+      })
+    }
+
+    pushNotification({
+      id: `special-paath-${todayStr}`,
+      type: "special",
+      priority: highBurnout ? "normal" : isLowMood ? "normal" : hour >= 6 && hour <= 10 ? "high" : "normal",
+      title: "Paath reminder 🙏",
+      body: paathBody,
+      emoji: "🙏",
+      timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 0, 0),
+      read: false,
+      link: "/wifey-routine",
+      actions: [{ label: "Mark done", link: "/wifey-routine" }],
+    })
+
+    if (!highBurnout) {
+      pushNotification({
+        id: `special-study-${todayStr}`,
+        type: "special",
+        priority: isLowMood ? "normal" : hour >= 18 && hour <= 22 ? "high" : "normal",
+        title: "Study block 📚",
+        body: studyBody,
+        emoji: "📚",
+        timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 19, 0, 0),
+        read: false,
+        link: "/wifey-routine",
+        actions: [{ label: "Start now", link: "/wifey-routine" }],
+      })
+    }
+
+    if (highBurnout || moderateBurnout) {
+      pushNotification({
+        id: `special-burnout-guard-${todayStr}-${burnoutRisk?.score ?? 0}`,
+        type: "special",
+        priority: highBurnout ? "high" : "normal",
+        title: "Burnout guard active 🛡️",
+        body: burnoutRisk?.recommendation ?? "Keep intensity low and protect recovery for the next 48 hours.",
+        emoji: "🛡️",
+        timestamp: new Date(),
+        read: false,
+        link: "/wifey-routine",
+        actions: [{ label: "Open care plan", link: "/wifey-routine" }],
+      })
+    }
+
+    if (highBurnout) {
+      pushNotification({
+        id: `special-recovery-break-${todayStr}`,
+        type: "special",
+        priority: "high",
+        title: "Recovery break first 🌿",
+        body: "Skip heavy targets today. Hydrate, rest, paath, and one gentle task are enough. - love Harman",
+        emoji: "🌿",
+        timestamp: new Date(),
+        read: false,
+        link: "/wifey-routine",
+        actions: [{ label: "Use support mode", link: "/wifey-routine" }],
+      })
+    }
+
+    if (lowMoodStreak >= 2) {
+      pushNotification({
+        id: `special-care-nudge-${todayStr}-${lowMoodStreak}`,
+        type: "special",
+        priority: lowMoodStreak >= 4 ? "critical" : "high",
+        title: "Care mode check-in 🤍",
+        body: `${specialName}, you've had ${lowMoodStreak} low days in a row. Take it easy, hydrate, and do one light routine step. I'm proud of you. - love Harman`,
+        emoji: "🤍",
+        timestamp: new Date(),
+        read: false,
+        link: "/wifey-routine",
+        actions: [
+          { label: "Open routine", link: "/wifey-routine" },
+          { label: "See couple dash", link: "/couple-dashboard" },
+        ],
+      })
+    }
+
+    const bestLoveStreak = Math.max(loveStreaks.hydration, loveStreaks.discipline, loveStreaks.allHabits)
+    if (bestLoveStreak >= 3 && !highBurnout) {
+      const streakLabel =
+        loveStreaks.allHabits === bestLoveStreak
+          ? "all-habits"
+          : loveStreaks.discipline === bestLoveStreak
+            ? "discipline"
+            : "hydration"
+
+      const streakBody =
+        streakLabel === "all-habits"
+          ? `${bestLoveStreak}-day all-habits streak. You're unstoppable right now. - love Harman`
+          : streakLabel === "discipline"
+            ? `${bestLoveStreak}-day discipline streak on exercise + paath + study. Amazing consistency. - love Harman`
+            : `${bestLoveStreak}-day hydration streak. Keep the momentum strong. - love Harman`
+
+      pushNotification({
+        id: `special-love-streak-${todayStr}-${streakLabel}-${bestLoveStreak}`,
+        type: "special",
+        priority: bestLoveStreak >= 7 ? "high" : "normal",
+        title: "Love streak reward 🔥",
+        body: streakBody,
+        emoji: "🔥",
+        timestamp: new Date(),
+        read: false,
+        link: "/wifey-routine",
+        actions: [{ label: "Track today", link: "/wifey-routine" }],
+      })
+    }
   }
 
   // Sort: unread first, then by timestamp desc

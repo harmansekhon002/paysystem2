@@ -86,6 +86,17 @@ export default function LoginPage() {
                 setErrorCode(result.error)
                 setErrorDetails(`Sign in error\nCode: ${result.error}\nMessage: Authentication session creation failed after credential check.`)
             } else {
+                try {
+                    const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" })
+                    if (sessionResponse.ok) {
+                        const session = await sessionResponse.json() as { user?: { isSpecialUser?: boolean } }
+                        if (session.user?.isSpecialUser) {
+                            sessionStorage.setItem("shiftwise:wifey-login-welcome", "1")
+                        }
+                    }
+                } catch {
+                    // Ignore non-blocking welcome marker failures.
+                }
                 router.push("/")
                 router.refresh()
             }
