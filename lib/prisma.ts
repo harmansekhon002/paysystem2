@@ -1,10 +1,21 @@
 import { Prisma, PrismaClient } from "@prisma/client"
 
 const globalForPrisma = globalThis as { prisma?: PrismaClient }
+const databaseUrl =
+  process.env.POSTGRES_PRISMA_URL ??
+  process.env.POSTGRES_URL ??
+  process.env.DATABASE_URL
+
+if (!databaseUrl) {
+  console.error(
+    "No database URL found. Expected POSTGRES_PRISMA_URL, POSTGRES_URL, or DATABASE_URL."
+  )
+}
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    datasources: databaseUrl ? { db: { url: databaseUrl } } : undefined,
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   })
 
