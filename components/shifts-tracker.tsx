@@ -21,7 +21,7 @@ import {
 import { trackEvent } from "@/lib/analytics"
 
 export function ShiftsTracker() {
-  const { data, addShift, removeShift, updateShift, addJob, getJob, addAttendanceEvent, removeAttendanceEvent } = useAppData()
+  const { data, addShift, removeShift, updateShift, addJob, getJob } = useAppData()
   const { toast } = useToast()
   const [view, setView] = useState<"list" | "calendar">("list")
   const [calMonth, setCalMonth] = useState(() => new Date())
@@ -63,14 +63,6 @@ export function ShiftsTracker() {
     breakMinutes: 30,
     note: "",
   }))
-
-  const [attendanceForm, setAttendanceForm] = useState({
-    date: todayStr,
-    jobId: data.jobs[0]?.id || "",
-    type: "late" as "late" | "absent",
-    minutesLate: "10",
-    note: "",
-  })
 
   const [jobForm, setJobForm] = useState({
     name: "",
@@ -381,43 +373,6 @@ export function ShiftsTracker() {
   }, [data])
 
   const calMonthLabel = calMonth.toLocaleDateString("en-AU", { month: "long", year: "numeric" })
-
-  const attendanceEvents = useMemo(
-    () => [...data.attendanceEvents].sort((a, b) => b.date.localeCompare(a.date)),
-    [data.attendanceEvents]
-  )
-
-  const handleLogAttendance = () => {
-    if (!attendanceForm.jobId) {
-      toast({ title: "Select workplace", description: "Choose a workplace first.", variant: "destructive" })
-      return
-    }
-
-    const minutesLate = parseInt(attendanceForm.minutesLate, 10)
-    if (attendanceForm.type === "late" && (!Number.isFinite(minutesLate) || minutesLate <= 0)) {
-      toast({ title: "Invalid minutes late", description: "Enter a valid value.", variant: "destructive" })
-      return
-    }
-
-    addAttendanceEvent({
-      date: attendanceForm.date,
-      jobId: attendanceForm.jobId,
-      type: attendanceForm.type,
-      minutesLate: attendanceForm.type === "late" ? minutesLate : undefined,
-      note: attendanceForm.note.trim() || undefined,
-    })
-
-    toast({
-      title: attendanceForm.type === "late" ? "Late arrival logged" : "Absence logged",
-      description: `${getJob(attendanceForm.jobId)?.name || "Workplace"} · ${attendanceForm.date}`,
-    })
-
-    setAttendanceForm((prev) => ({
-      ...prev,
-      note: "",
-      minutesLate: prev.type === "late" ? prev.minutesLate : "10",
-    }))
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -868,99 +823,6 @@ export function ShiftsTracker() {
           </div>
         </div>
       </div>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Late / Absent Tracker</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          <div className="grid gap-3 md:grid-cols-5">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Date</Label>
-              <Input
-                type="date"
-                value={attendanceForm.date}
-                onChange={(e) => setAttendanceForm((f) => ({ ...f, date: e.target.value }))}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Workplace</Label>
-              <Select value={attendanceForm.jobId} onValueChange={(v) => setAttendanceForm((f) => ({ ...f, jobId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select workplace" /></SelectTrigger>
-                <SelectContent>
-                  {data.jobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>{job.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Type</Label>
-              <Select
-                value={attendanceForm.type}
-                onValueChange={(value) => setAttendanceForm((f) => ({ ...f, type: value as "late" | "absent" }))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="late">Late</SelectItem>
-                  <SelectItem value="absent">Absent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Minutes Late</Label>
-              <Input
-                type="number"
-                min={1}
-                disabled={attendanceForm.type !== "late"}
-                value={attendanceForm.minutesLate}
-                onChange={(e) => setAttendanceForm((f) => ({ ...f, minutesLate: e.target.value }))}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Note</Label>
-              <Input
-                placeholder="Optional"
-                value={attendanceForm.note}
-                onChange={(e) => setAttendanceForm((f) => ({ ...f, note: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <Button onClick={handleLogAttendance}>Log Attendance Event</Button>
-            <span className="text-xs text-muted-foreground">
-              {attendanceEvents.length} event{attendanceEvents.length === 1 ? "" : "s"} logged
-            </span>
-          </div>
-          {attendanceEvents.length > 0 ? (
-            <div className="flex flex-col divide-y divide-border rounded-md border">
-              {attendanceEvents.slice(0, 6).map((event) => {
-                const job = getJob(event.jobId)
-                return (
-                  <div key={event.id} className="flex items-center justify-between px-3 py-2">
-                    <div className="min-w-0">
-                      <p className="text-sm">
-                        <span className="font-medium">{job?.name || "Unknown workplace"}</span>{" "}
-                        <Badge variant="secondary" className="ml-1 text-[10px]">
-                          {event.type === "late" ? `${event.minutesLate ?? 0}m late` : "Absent"}
-                        </Badge>
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {event.date}{event.note ? ` · ${event.note}` : ""}
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="size-7" onClick={() => removeAttendanceEvent(event.id)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No late/absent events recorded yet.</p>
-          )}
-        </CardContent>
-      </Card>
 
       <Tabs value={view} onValueChange={v => setView(v as "list" | "calendar")}>
         <TabsList>

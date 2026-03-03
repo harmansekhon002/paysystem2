@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { handleDbWriteFailure } from "@/lib/db-resilience"
+import { verifyPayPalWebhookSignature } from "@/lib/paypal-server"
 
 type PayPalWebhookEvent = {
   event_type?: string
@@ -13,10 +14,29 @@ type PayPalWebhookEvent = {
 // Webhook endpoint to receive events from PayPal
 export async function POST(req: Request) {
   try {
+    const isProduction = process.env.NODE_ENV === "production"
+    const webhookVerificationConfigured =
+      Boolean(process.env.PAYPAL_WEBHOOK_ID?.trim()) &&
+      Boolean(process.env.PAYPAL_CLIENT_ID?.trim()) &&
+      Boolean(process.env.PAYPAL_CLIENT_SECRET?.trim())
+
+    if (isProduction && !webhookVerificationConfigured) {
+      return NextResponse.json(
+        { error: "Webhook verification is not configured on the server." },
+        { status: 503 }
+      )
+    }
+
     const rawBody = await req.text()
     const event = JSON.parse(rawBody) as PayPalWebhookEvent
 
-    // Verify webhook signature here if configured (recommended for production)
+    if (webhookVerificationConfigured) {
+      const verified = await verifyPayPalWebhookSignature(req, event)
+      if (!verified) {
+        return NextResponse.json({ error: "Invalid webhook signature." }, { status: 401 })
+      }
+    }
+
     if (!prisma?.subscription) {
       throw new Error('Prisma client is not initialized')
     }
@@ -26,7 +46,7 @@ export async function POST(req: Request) {
       case 'BILLING.SUBSCRIPTION.CANCELLED': {
         const subscriptionId = event.resource?.id
         if (!subscriptionId) break
-        await prisma.subscription.update({
+        await prisma.subscription.updateMany({
           where: { paypalSubscriptionId: subscriptionId },
           data: { status: 'canceled', cancelAtPeriodEnd: true }
         })
@@ -37,7 +57,7 @@ export async function POST(req: Request) {
       case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED': {
         const subscriptionId = event.resource?.id
         if (!subscriptionId) break
-        await prisma.subscription.update({
+        await prisma.subscription.updateMany({
           where: { paypalSubscriptionId: subscriptionId },
           data: { status: 'past_due' }
         })
@@ -53,7 +73,7 @@ export async function POST(req: Request) {
         if (subscriptionId) {
           // Update the current period end 
           // (Requires fetching actual subscription details from PayPal API for exact dates)
-          await prisma.subscription.update({
+          await prisma.subscription.updateMany({
             where: { paypalSubscriptionId: subscriptionId },
             data: {
               status: 'active',

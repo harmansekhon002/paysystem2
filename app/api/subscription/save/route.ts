@@ -3,6 +3,15 @@ import { getToken } from "next-auth/jwt"
 import { prisma } from '@/lib/prisma'
 import { handleDbWriteFailure } from "@/lib/db-resilience"
 import { prepareIdempotency } from "@/lib/idempotency"
+import { fetchPayPalSubscription } from "@/lib/paypal-server"
+
+function normalizeSubscriptionStatus(status: string | undefined) {
+    const normalized = String(status ?? "").toLowerCase()
+    if (normalized === "active") return "active"
+    if (normalized === "cancelled" || normalized === "canceled") return "canceled"
+    if (normalized === "suspended" || normalized === "past_due") return "past_due"
+    return "active"
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -37,24 +46,47 @@ export async function POST(req: NextRequest) {
             return idempotency.replay
         }
 
-        // We verify the subscription via the PayPal API in a production environment
-        // For now, we save it directly to the database.
         if (!prisma?.subscription) throw new Error("Prisma client is not initialized")
+
+        const isProduction = process.env.NODE_ENV === "production"
+        const clientIdConfigured = Boolean(process.env.PAYPAL_CLIENT_ID?.trim())
+        const clientSecretConfigured = Boolean(process.env.PAYPAL_CLIENT_SECRET?.trim())
+
+        let planId = process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID || ""
+        let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        let status = "active"
+
+        if (clientIdConfigured && clientSecretConfigured) {
+            const subscription = await fetchPayPalSubscription(subscriptionId)
+            planId = subscription.plan_id || planId
+            if (subscription.billing_info?.next_billing_time) {
+                const parsed = new Date(subscription.billing_info.next_billing_time)
+                if (!Number.isNaN(parsed.getTime())) {
+                    currentPeriodEnd = parsed
+                }
+            }
+            status = normalizeSubscriptionStatus(subscription.status)
+        } else if (isProduction) {
+            return NextResponse.json(
+                { error: "PayPal API credentials are not configured on the server." },
+                { status: 503 }
+            )
+        }
 
         await prisma.subscription.upsert({
             where: { userId },
             update: {
                 paypalSubscriptionId: subscriptionId,
-                paypalPlanId: process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID || '', // Assuming monthly for now
-                status: 'active',
-                paypalCurrentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                paypalPlanId: planId,
+                status,
+                paypalCurrentPeriodEnd: currentPeriodEnd,
             },
             create: {
                 userId,
                 paypalSubscriptionId: subscriptionId,
-                paypalPlanId: process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID || '',
-                status: 'active',
-                paypalCurrentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                paypalPlanId: planId,
+                status,
+                paypalCurrentPeriodEnd: currentPeriodEnd,
             }
         })
 

@@ -122,11 +122,11 @@ export function checkLimit(
 }
 
 // PayPal integration helpers
-export async function cancelPayPalSubscription(subscriptionId: string): Promise<void> {
-  const response = await fetch("/api/subscription/cancel", {
+export async function cancelPayPalSubscription(): Promise<void> {
+  const response = await fetch("/api/subscription/manage", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ subscriptionId }),
+    body: JSON.stringify({ action: "cancel" }),
   })
 
   if (!response.ok) {

@@ -106,7 +106,7 @@ function formatTime(date: Date) {
 }
 
 export function Dashboard() {
-  const { data, getJob, addShift, addExpense } = useAppData()
+  const { data, getJob, addShift, addExpense, updateShift } = useAppData()
   const { resolvedTheme } = useTheme()
   const { toast } = useToast()
   const { shifts, jobs, expenses, budgetCategories } = data
@@ -120,6 +120,7 @@ export function Dashboard() {
   const [quickExpenseAmount, setQuickExpenseAmount] = useState<string>("")
   const [quickExpenseCategory, setQuickExpenseCategory] = useState<string>("Transport")
   const [quickExpenseDescription, setQuickExpenseDescription] = useState<string>("Quick expense")
+  const MISSED_SHIFT_TAG = "[MISSED]"
 
   useEffect(() => {
     if (!quickJobId && jobs.length > 0) {
@@ -278,6 +279,34 @@ export function Dashboard() {
     })
   }
 
+  const isMissedShift = (note?: string) => Boolean(note?.includes(MISSED_SHIFT_TAG))
+
+  const markShiftMissed = (shift: (typeof shifts)[number]) => {
+    if (isMissedShift(shift.note)) return
+    const nextNote = shift.note?.trim()
+      ? `${MISSED_SHIFT_TAG} ${shift.note.trim()}`
+      : MISSED_SHIFT_TAG
+
+    updateShift(shift.id, { note: nextNote })
+    toast({
+      title: "Marked as missed",
+      description: "This shift is now flagged as missed.",
+    })
+  }
+
+  const undoMissedShift = (shift: (typeof shifts)[number]) => {
+    if (!isMissedShift(shift.note)) return
+    const nextNote = shift.note
+      ?.replace(MISSED_SHIFT_TAG, "")
+      .trim()
+
+    updateShift(shift.id, { note: nextNote || undefined })
+    toast({
+      title: "Missed flag removed",
+      description: "This shift is no longer marked as missed.",
+    })
+  }
+
   const isDark = resolvedTheme === "dark"
   const axisColor = "var(--color-muted-foreground)"
   const gridColor = "var(--color-border)"
@@ -376,6 +405,7 @@ export function Dashboard() {
             <div className="flex flex-col divide-y divide-border">
               {stats.upcomingShifts.map((shift) => {
                 const job = getJob(shift.jobId)
+                const missed = isMissedShift(shift.note)
                 return (
                   <div key={shift.id} className="flex items-center gap-3 py-3">
                     <div className="size-2 shrink-0 rounded-full" style={{ background: job?.color || "#94a3b8" }} />
@@ -385,6 +415,11 @@ export function Dashboard() {
                         <Badge variant="secondary" className="h-4 px-1.5 py-0 text-[10px]">
                           {RATE_TYPE_LABELS[shift.rateType]}
                         </Badge>
+                        {missed ? (
+                          <Badge variant="destructive" className="h-4 px-1.5 py-0 text-[10px]">
+                            Missed
+                          </Badge>
+                        ) : null}
                       </div>
                       <span className="text-xs text-muted-foreground">
                         {new Date(`${shift.date}T00:00:00`).toLocaleDateString("en-AU", {
@@ -398,6 +433,20 @@ export function Dashboard() {
                     <span className="shrink-0 text-sm font-medium text-foreground">
                       {formatCurrency(shift.earnings, currencySymbol)}
                     </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => {
+                        if (missed) {
+                          undoMissedShift(shift)
+                          return
+                        }
+                        markShiftMissed(shift)
+                      }}
+                    >
+                      {missed ? "Undo" : "Missed"}
+                    </Button>
                   </div>
                 )
               })}

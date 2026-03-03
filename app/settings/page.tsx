@@ -215,392 +215,424 @@ export default function SettingsPage() {
         </Card>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          <div className="flex flex-col gap-8 lg:col-span-7">
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <UserRound className="text-primary size-4" />
-                  <CardTitle className="text-lg">Profile</CardTitle>
-                </div>
-                <CardDescription>Stored locally on this device.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5 p-6 pt-0">
-                <div className="space-y-2">
-                  <Label htmlFor="profile-name">Name</Label>
-                  <Input
-                    id="profile-name"
-                    name="name"
-                    type="text"
-                    value={profile.name}
-                    onChange={handleProfileChange}
-                    placeholder="Your name"
-                    autoComplete="name"
-                    className="h-10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="profile-email">Email</Label>
-                  <Input
-                    id="profile-email"
-                    name="email"
-                    type="email"
-                    value={profile.email}
-                    onChange={handleProfileChange}
-                    placeholder="you@email.com"
-                    autoComplete="email"
-                    className="h-10"
-                  />
-                </div>
-                <Button onClick={handleProfileSave} className="w-full sm:w-fit">
-                  Save Profile
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <Bell className="text-primary size-4" />
-                  <CardTitle className="text-lg">Notifications</CardTitle>
-                </div>
-                <CardDescription>Control alerts, categories, and quiet hours.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5 p-6 pt-0">
-                <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-medium">Enable notifications</p>
-                    <p className="text-xs text-muted-foreground">Master switch for app notifications.</p>
-                  </div>
-                  <Switch
-                    checked={data.settings.notificationsEnabled}
-                    onCheckedChange={(checked) => updateSettings({ notificationsEnabled: Boolean(checked) })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Notification types</Label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {notificationTypeOptions.map((type) => {
-                      const checked = data.settings.notificationTypes.includes(type.value)
-                      return (
-                        <label key={type.value} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              const enabled = Boolean(next)
-                              const nextTypes = enabled
-                                ? Array.from(new Set([...data.settings.notificationTypes, type.value]))
-                                : data.settings.notificationTypes.filter(t => t !== type.value)
-                              updateSettings({ notificationTypes: nextTypes })
-                            }}
-                          />
-                          <span>{type.label}</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-medium">Quiet hours</p>
-                      <p className="text-xs text-muted-foreground">Pause notification generation during selected time.</p>
+          <div className="flex flex-col gap-8 lg:col-span-8">
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Account</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Identity and billing details.</p>
+              </div>
+              <div className="space-y-5">
+                <Card id="settings-profile" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <UserRound className="text-primary size-4" />
+                      <CardTitle className="text-lg">Profile</CardTitle>
                     </div>
-                    <Switch
-                      checked={data.settings.quietHoursEnabled}
-                      onCheckedChange={(checked) => updateSettings({ quietHoursEnabled: Boolean(checked) })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="quiet-start">Start</Label>
+                    <CardDescription>Stored locally on this device.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-name">Name</Label>
                       <Input
-                        id="quiet-start"
-                        type="time"
+                        id="profile-name"
+                        name="name"
+                        type="text"
+                        value={profile.name}
+                        onChange={handleProfileChange}
+                        placeholder="Your name"
+                        autoComplete="name"
                         className="h-10"
-                        value={data.settings.quietHoursStart}
-                        onChange={e => updateSettings({ quietHoursStart: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="quiet-end">End</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-email">Email</Label>
                       <Input
-                        id="quiet-end"
-                        type="time"
+                        id="profile-email"
+                        name="email"
+                        type="email"
+                        value={profile.email}
+                        onChange={handleProfileChange}
+                        placeholder="you@email.com"
+                        autoComplete="email"
                         className="h-10"
-                        value={data.settings.quietHoursEnd}
-                        onChange={e => updateSettings({ quietHoursEnd: e.target.value })}
                       />
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <Globe2 className="text-primary size-4" />
-                  <CardTitle className="text-lg">Region and Pay</CardTitle>
-                </div>
-                <CardDescription>Used in earnings and summary calculations.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5 p-6 pt-0">
-                <div className="space-y-2">
-                  <Label>Country</Label>
-                  <Select value={data.settings.country} onValueChange={v => updateSettings({ country: v })}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countryOptions.map(c => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Select
-                    value={data.settings.currency}
-                    onValueChange={value => {
-                      const selected = currencyOptions.find(c => c.code === value)
-                      if (!selected) return
-                      updateSettings({ currency: selected.code, currencySymbol: selected.symbol })
-                    }}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currencyOptions.map(c => (
-                        <SelectItem key={c.code} value={c.code}>
-                          {c.code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Pay period</Label>
-                  <Select
-                    value={data.settings.payPeriod}
-                    onValueChange={value => updateSettings({ payPeriod: value as typeof data.settings.payPeriod })}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {payPeriodOptions.map(p => (
-                        <SelectItem key={p.value} value={p.value}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex flex-col gap-8 lg:col-span-5">
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <LayoutDashboard className="text-primary size-4" />
-                  <CardTitle className="text-lg">Dashboard Widgets</CardTitle>
-                </div>
-                <CardDescription>Choose what appears on your home dashboard.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 p-6 pt-0">
-                {dashboardWidgetOptions.map((widget) => (
-                  <label key={widget.key} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
-                    <Checkbox
-                      checked={data.settings.dashboardWidgets[widget.key]}
-                      onCheckedChange={(next) =>
-                        updateSettings({
-                          dashboardWidgets: {
-                            ...data.settings.dashboardWidgets,
-                            [widget.key]: Boolean(next),
-                          },
-                        })
-                      }
-                    />
-                    <span>{widget.label}</span>
-                  </label>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <Palette className="text-primary size-4" />
-                  <CardTitle className="text-lg">Appearance</CardTitle>
-                </div>
-                <CardDescription>Choose how ShiftWise looks for you.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5 p-6 pt-0">
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="system">System</SelectItem>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-destructive/40 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <Database className="text-destructive size-4" />
-                  <CardTitle className="text-lg">Data Reset</CardTitle>
-                </div>
-                <CardDescription>Clear all local app data from this browser.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5 p-6 pt-0">
-                <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-full sm:w-fit">
-                  {resetting ? "Resetting..." : "Reset All Data"}
-                </Button>
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <WalletCards className="text-primary size-4" />
-                  <CardTitle className="text-lg">Subscription</CardTitle>
-                </div>
-                <CardDescription>Manage your plan and renewal settings.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6 pt-0">
-                {loadingSubscription ? (
-                  <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                    <Loader2 className="size-4 animate-spin" />
-                    <span>Loading subscription status...</span>
-                  </div>
-                ) : null}
-
-                {!loadingSubscription && subscriptionError ? (
-                  <Alert variant="destructive">
-                    <AlertTitle>Subscription status unavailable</AlertTitle>
-                    <AlertDescription>{subscriptionError}</AlertDescription>
-                  </Alert>
-                ) : null}
-
-                {!loadingSubscription && !subscriptionError && !subscription ? (
-                  <div className="space-y-3">
-                    <p className="text-muted-foreground text-sm">
-                      No paid subscription found on this account.
-                    </p>
-                    <Button asChild className="w-full sm:w-fit">
-                      <Link href="/pricing">View plans</Link>
+                    <Button onClick={handleProfileSave} className="w-full sm:w-fit">
+                      Save Profile
                     </Button>
-                  </div>
-                ) : null}
+                  </CardContent>
+                </Card>
 
-                {!loadingSubscription && subscription ? (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge>{subscription.planName}</Badge>
-                      <Badge variant={subscription.status === "active" ? "secondary" : "outline"}>
-                        {subscription.status}
-                      </Badge>
-                      {subscription.cancelAtPeriodEnd ? (
-                        <Badge variant="outline">Cancels at period end</Badge>
-                      ) : (
-                        <Badge variant="secondary">Auto-renew on</Badge>
-                      )}
+                <Card id="settings-subscription" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <WalletCards className="text-primary size-4" />
+                      <CardTitle className="text-lg">Subscription</CardTitle>
                     </div>
-                    <div className="space-y-1.5 text-sm">
-                      <p>
-                        <span className="text-muted-foreground">Next billing date:</span>{" "}
-                        {new Date(subscription.paypalCurrentPeriodEnd).toLocaleDateString()}
-                      </p>
-                      <p>
-                        <span className="text-muted-foreground">Last updated:</span>{" "}
-                        {new Date(subscription.updatedAt).toLocaleString()}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-muted-foreground">Subscription ID:</span>
-                        <code className="rounded bg-muted px-2 py-0.5 text-xs">{subscription.paypalSubscriptionId}</code>
-                        <Button size="sm" variant="outline" onClick={copySubscriptionId} className="h-7 gap-1.5 px-2">
-                          <Copy className="size-3.5" />
-                          Copy
+                    <CardDescription>Manage your plan and renewal settings.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 p-6 pt-0">
+                    {loadingSubscription ? (
+                      <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                        <Loader2 className="size-4 animate-spin" />
+                        <span>Loading subscription status...</span>
+                      </div>
+                    ) : null}
+
+                    {!loadingSubscription && subscriptionError ? (
+                      <Alert variant="destructive">
+                        <AlertTitle>Subscription status unavailable</AlertTitle>
+                        <AlertDescription>{subscriptionError}</AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    {!loadingSubscription && !subscriptionError && !subscription ? (
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground text-sm">
+                          No paid subscription found on this account.
+                        </p>
+                        <Button asChild className="w-full sm:w-fit">
+                          <Link href="/pricing">View plans</Link>
                         </Button>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => void loadSubscriptionStatus()}
-                        disabled={loadingSubscription || Boolean(managingSubscription)}
-                        className="gap-2"
-                      >
-                        <RefreshCw className="size-4" />
-                        Refresh
-                      </Button>
-                      {subscription.cancelAtPeriodEnd ? (
-                        <Button
-                          onClick={() => void manageSubscription("reactivate")}
-                          disabled={Boolean(managingSubscription)}
-                          className="gap-2"
-                        >
-                          {managingSubscription === "reactivate" ? <Loader2 className="size-4 animate-spin" /> : null}
-                          Re-enable Auto Renew
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="destructive"
-                          onClick={() => void manageSubscription("cancel")}
-                          disabled={Boolean(managingSubscription)}
-                          className="gap-2"
-                        >
-                          {managingSubscription === "cancel" ? <Loader2 className="size-4 animate-spin" /> : null}
-                          Cancel at Period End
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
+                    ) : null}
 
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="p-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <Info className="text-primary size-4" />
-                  <CardTitle className="text-lg">About ShiftWise</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6 pt-0 text-sm">
-                <p className="text-muted-foreground leading-relaxed">
-                  ShiftWise helps you track shifts, earnings, expenses, and goals with support for Australian penalty rates and more.
-                </p>
-                <Separator />
-                <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                  <WalletCards className="size-3.5" />
-                  <span>Version 1.0.0</span>
-                  <CalendarClock className="ml-2 size-3.5" />
-                  <span>2026</span>
-                </div>
-              </CardContent>
-            </Card>
+                    {!loadingSubscription && subscription ? (
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge>{subscription.planName}</Badge>
+                          <Badge variant={subscription.status === "active" ? "secondary" : "outline"}>
+                            {subscription.status}
+                          </Badge>
+                          {subscription.cancelAtPeriodEnd ? (
+                            <Badge variant="outline">Cancels at period end</Badge>
+                          ) : (
+                            <Badge variant="secondary">Auto-renew on</Badge>
+                          )}
+                        </div>
+                        <div className="space-y-1.5 text-sm">
+                          <p>
+                            <span className="text-muted-foreground">Next billing date:</span>{" "}
+                            {new Date(subscription.paypalCurrentPeriodEnd).toLocaleDateString()}
+                          </p>
+                          <p>
+                            <span className="text-muted-foreground">Last updated:</span>{" "}
+                            {new Date(subscription.updatedAt).toLocaleString()}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground">Subscription ID:</span>
+                            <code className="rounded bg-muted px-2 py-0.5 text-xs">{subscription.paypalSubscriptionId}</code>
+                            <Button size="sm" variant="outline" onClick={copySubscriptionId} className="h-7 gap-1.5 px-2">
+                              <Copy className="size-3.5" />
+                              Copy
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => void loadSubscriptionStatus()}
+                            disabled={loadingSubscription || Boolean(managingSubscription)}
+                            className="gap-2"
+                          >
+                            <RefreshCw className="size-4" />
+                            Refresh
+                          </Button>
+                          {subscription.cancelAtPeriodEnd ? (
+                            <Button
+                              onClick={() => void manageSubscription("reactivate")}
+                              disabled={Boolean(managingSubscription)}
+                              className="gap-2"
+                            >
+                              {managingSubscription === "reactivate" ? <Loader2 className="size-4 animate-spin" /> : null}
+                              Re-enable Auto Renew
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="destructive"
+                              onClick={() => void manageSubscription("cancel")}
+                              disabled={Boolean(managingSubscription)}
+                              className="gap-2"
+                            >
+                              {managingSubscription === "cancel" ? <Loader2 className="size-4 animate-spin" /> : null}
+                              Cancel at Period End
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Preferences</h2>
+                <p className="mt-1 text-xs text-muted-foreground">How the app communicates and calculates values.</p>
+              </div>
+              <div className="space-y-5">
+                <Card id="settings-notifications" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Bell className="text-primary size-4" />
+                      <CardTitle className="text-lg">Notifications</CardTitle>
+                    </div>
+                    <CardDescription>Control alerts, categories, and quiet hours.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">Enable notifications</p>
+                        <p className="text-xs text-muted-foreground">Master switch for app notifications.</p>
+                      </div>
+                      <Switch
+                        checked={data.settings.notificationsEnabled}
+                        onCheckedChange={(checked) => updateSettings({ notificationsEnabled: Boolean(checked) })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Notification types</Label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {notificationTypeOptions.map((type) => {
+                          const checked = data.settings.notificationTypes.includes(type.value)
+                          return (
+                            <label key={type.value} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(next) => {
+                                  const enabled = Boolean(next)
+                                  const nextTypes = enabled
+                                    ? Array.from(new Set([...data.settings.notificationTypes, type.value]))
+                                    : data.settings.notificationTypes.filter(t => t !== type.value)
+                                  updateSettings({ notificationTypes: nextTypes })
+                                }}
+                              />
+                              <span>{type.label}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Quiet hours</p>
+                          <p className="text-xs text-muted-foreground">Pause notification generation during selected time.</p>
+                        </div>
+                        <Switch
+                          checked={data.settings.quietHoursEnabled}
+                          onCheckedChange={(checked) => updateSettings({ quietHoursEnabled: Boolean(checked) })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="quiet-start">Start</Label>
+                          <Input
+                            id="quiet-start"
+                            type="time"
+                            className="h-10"
+                            value={data.settings.quietHoursStart}
+                            onChange={e => updateSettings({ quietHoursStart: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="quiet-end">End</Label>
+                          <Input
+                            id="quiet-end"
+                            type="time"
+                            className="h-10"
+                            value={data.settings.quietHoursEnd}
+                            onChange={e => updateSettings({ quietHoursEnd: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card id="settings-region-pay" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Globe2 className="text-primary size-4" />
+                      <CardTitle className="text-lg">Region and Pay</CardTitle>
+                    </div>
+                    <CardDescription>Used in earnings and summary calculations.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <div className="space-y-2">
+                      <Label>Country</Label>
+                      <Select value={data.settings.country} onValueChange={v => updateSettings({ country: v })}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countryOptions.map(c => (
+                            <SelectItem key={c.value} value={c.value}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Select
+                        value={data.settings.currency}
+                        onValueChange={value => {
+                          const selected = currencyOptions.find(c => c.code === value)
+                          if (!selected) return
+                          updateSettings({ currency: selected.code, currencySymbol: selected.symbol })
+                        }}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencyOptions.map(c => (
+                            <SelectItem key={c.code} value={c.code}>
+                              {c.code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Pay period</Label>
+                      <Select
+                        value={data.settings.payPeriod}
+                        onValueChange={value => updateSettings({ payPeriod: value as typeof data.settings.payPeriod })}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {payPeriodOptions.map(p => (
+                            <SelectItem key={p.value} value={p.value}>
+                              {p.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-8 lg:col-span-4">
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Personalization</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Customize visual layout and theme.</p>
+              </div>
+              <div className="space-y-5">
+                <Card id="settings-widgets" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <LayoutDashboard className="text-primary size-4" />
+                      <CardTitle className="text-lg">Dashboard Widgets</CardTitle>
+                    </div>
+                    <CardDescription>Choose what appears on your home dashboard.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 p-6 pt-0">
+                    {dashboardWidgetOptions.map((widget) => (
+                      <label key={widget.key} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                        <Checkbox
+                          checked={data.settings.dashboardWidgets[widget.key]}
+                          onCheckedChange={(next) =>
+                            updateSettings({
+                              dashboardWidgets: {
+                                ...data.settings.dashboardWidgets,
+                                [widget.key]: Boolean(next),
+                              },
+                            })
+                          }
+                        />
+                        <span>{widget.label}</span>
+                      </label>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card id="settings-appearance" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Palette className="text-primary size-4" />
+                      <CardTitle className="text-lg">Appearance</CardTitle>
+                    </div>
+                    <CardDescription>Choose how ShiftWise looks for you.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <div className="space-y-2">
+                      <Label>Theme</Label>
+                      <Select value={theme} onValueChange={setTheme}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="system">System</SelectItem>
+                          <SelectItem value="light">Light</SelectItem>
+                          <SelectItem value="dark">Dark</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">System</h2>
+                <p className="mt-1 text-xs text-muted-foreground">App info, maintenance, and destructive actions.</p>
+              </div>
+              <div className="space-y-5">
+                <Card className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Info className="text-primary size-4" />
+                      <CardTitle className="text-lg">About ShiftWise</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4 p-6 pt-0 text-sm">
+                    <p className="text-muted-foreground leading-relaxed">
+                      ShiftWise helps you track shifts, earnings, expenses, and goals with support for Australian penalty rates and more.
+                    </p>
+                    <Separator />
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                      <WalletCards className="size-3.5" />
+                      <span>Version 1.0.0</span>
+                      <CalendarClock className="ml-2 size-3.5" />
+                      <span>2026</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card id="settings-data-reset" className="border-destructive/40 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Database className="text-destructive size-4" />
+                      <CardTitle className="text-lg">Data Reset</CardTitle>
+                    </div>
+                    <CardDescription>Clear all local app data from this browser.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-full sm:w-fit">
+                      {resetting ? "Resetting..." : "Reset All Data"}
+                    </Button>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
