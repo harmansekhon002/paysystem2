@@ -1,6 +1,7 @@
 "use client"
 
 import type { AppData } from "@/lib/store"
+import { getClockPartsInTimeZone, getDateKeyInTimeZone, resolveTimeZone } from "@/lib/timezone"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,20 @@ export type BurnoutRisk = {
 
 const LOW_MOOD_VALUES = new Set(["sad", "stressed", "tired", "low", "anxious", "down"])
 const HIGH_MOOD_VALUES = new Set(["happy", "excited", "focused", "calm", "grateful"])
+const DEFAULT_HYDRATION_GOAL = 8
+const MIN_HYDRATION_GOAL = 4
+const MAX_HYDRATION_GOAL = 12
+
+export function clampHydrationGoal(goal?: number) {
+  const parsed = Number(goal)
+  if (!Number.isFinite(parsed)) return DEFAULT_HYDRATION_GOAL
+  return Math.max(MIN_HYDRATION_GOAL, Math.min(MAX_HYDRATION_GOAL, Math.round(parsed)))
+}
+
+export function getHydrationStreakTarget(goal?: number) {
+  const dailyGoal = clampHydrationGoal(goal)
+  return Math.max(4, dailyGoal - 2)
+}
 
 function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -100,13 +115,17 @@ function getConsecutiveStreak<T>(
   return streak
 }
 
-export function computeLoveStreaksFromHistory(history: Record<string, RoutineHistorySnapshot>): LoveStreakStats {
+export function computeLoveStreaksFromHistory(
+  history: Record<string, RoutineHistorySnapshot>,
+  hydrationTarget: number = 6
+): LoveStreakStats {
+  const resolvedHydrationTarget = Math.max(1, Math.round(hydrationTarget))
   return {
-    hydration: getConsecutiveStreak(history, (entry) => (entry.waterBottles ?? 0) >= 6),
+    hydration: getConsecutiveStreak(history, (entry) => (entry.waterBottles ?? 0) >= resolvedHydrationTarget),
     discipline: getConsecutiveStreak(history, (entry) => Boolean(entry.exerciseDone && entry.paathDone && entry.studyDone)),
     allHabits: getConsecutiveStreak(
       history,
-      (entry) => (entry.waterBottles ?? 0) >= 6 && Boolean(entry.exerciseDone && entry.paathDone && entry.studyDone)
+      (entry) => (entry.waterBottles ?? 0) >= resolvedHydrationTarget && Boolean(entry.exerciseDone && entry.paathDone && entry.studyDone)
     ),
   }
 }
@@ -346,13 +365,16 @@ export function generateNotifications(
     moodHistory?: CompanionMoodEntry[]
     loveStreaks?: LoveStreakStats
     burnoutRisk?: BurnoutRisk
+    timeZone?: string
   }
 ): AppNotification[] {
   if (!data.settings.notificationsEnabled) return []
 
   const notifications: AppNotification[] = []
   const now = new Date()
-  const todayStr = now.toISOString().split("T")[0]
+  const timeZone = resolveTimeZone(options?.timeZone ?? data.settings.timeZone)
+  const nowParts = getClockPartsInTimeZone(timeZone, now)
+  const todayStr = getDateKeyInTimeZone(timeZone, now)
   const enabledTypes = new Set(data.settings.notificationTypes)
   const currencySymbol = data.settings.currencySymbol || "$"
   const keys = new Set<string>()
@@ -362,7 +384,7 @@ export function generateNotifications(
     if (!data.settings.quietHoursEnabled) return false
     const [startH, startM] = data.settings.quietHoursStart.split(":").map(Number)
     const [endH, endM] = data.settings.quietHoursEnd.split(":").map(Number)
-    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+    const nowMinutes = nowParts.hour * 60 + nowParts.minute
     const startMinutes = startH * 60 + startM
     const endMinutes = endH * 60 + endM
     if (startMinutes === endMinutes) return false
@@ -411,14 +433,14 @@ export function generateNotifications(
     title: "Daily Motivation ✨",
     body: `"${q.quote}" — ${q.author}`,
     emoji: "✨",
-    timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0),
+    timestamp: new Date(nowParts.year, nowParts.month - 1, nowParts.day, 8, 0, 0),
     read: false,
     actions: [{ label: "Open goals", link: "/goals" }],
   })
 
   // ── 2. Upcoming shifts (next 48 hours) ───────────────────────────────────────
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
-  const in48Str = in48h.toISOString().split("T")[0]
+  const in48Str = getDateKeyInTimeZone(timeZone, in48h)
 
   const upcomingShifts = data.shifts
     .filter((s) => s.date >= todayStr && s.date <= in48Str)
@@ -440,7 +462,7 @@ export function generateNotifications(
       title: `Upcoming Shift 📅`,
       body: `${job?.name ?? "Shift"} — ${dayLabel} ${shift.startTime}–${shift.endTime} (${shift.hours}h)`,
       emoji: "📅",
-      timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 0, 0),
+      timestamp: new Date(nowParts.year, nowParts.month - 1, nowParts.day, 7, 0, 0),
       read: false,
       link: "/shifts",
       actions: [
@@ -451,7 +473,7 @@ export function generateNotifications(
   }
 
   // ── 3. Budget nearing limit ──────────────────────────────────────────────────
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+  const monthStart = `${String(nowParts.year)}-${String(nowParts.month).padStart(2, "0")}-01`
   const monthExpenses = data.expenses.filter((e) => e.date >= monthStart)
 
   for (const cat of data.budgetCategories) {
@@ -561,11 +583,11 @@ export function generateNotifications(
   }
 
   // ── 6. Payday reminder (end of pay period) ───────────────────────────────────
-  const dayOfMonth = now.getDate()
+  const dayOfMonth = nowParts.day
   const isPaydayWeek = dayOfMonth >= 25 || dayOfMonth <= 2
   if (enabledTypes.has("payday") && isPaydayWeek && data.settings.payPeriod !== "per_shift") {
     pushNotification({
-      id: `payday-${now.getFullYear()}-${now.getMonth()}`,
+      id: `payday-${nowParts.year}-${nowParts.month}`,
       type: "payday",
       priority: "normal",
       title: "Payday Approaching 💸",
@@ -579,16 +601,18 @@ export function generateNotifications(
   }
 
   // ── 7. No shifts logged this week ────────────────────────────────────────────
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7))
+  const todayDate = new Date(`${todayStr}T00:00:00Z`)
+  const todayWeekday = todayDate.getUTCDay()
+  const monday = new Date(todayDate)
+  monday.setUTCDate(todayDate.getUTCDate() - ((todayWeekday + 6) % 7))
   const mondayStr = monday.toISOString().split("T")[0]
   const shiftsThisWeek = data.shifts.filter((s) => s.date >= mondayStr && s.date <= todayStr)
 
-  if (enabledTypes.has("shift") && shiftsThisWeek.length === 0 && now.getDay() >= 3) {
+  if (enabledTypes.has("shift") && shiftsThisWeek.length === 0 && todayWeekday >= 3) {
     pushNotification({
       id: `no-shifts-${mondayStr}`,
       type: "shift",
-      priority: now.getDay() >= 5 ? "high" : "normal",
+      priority: todayWeekday >= 5 ? "high" : "normal",
       title: "No Shifts Logged 📋",
       body: "You haven't logged any shifts this week. Remember to record your work hours!",
       emoji: "📋",
@@ -603,7 +627,8 @@ export function generateNotifications(
   const specialRemindersEnabled = options?.specialRemindersEnabled ?? true
   if (options?.isSpecialUser && specialRemindersEnabled && enabledTypes.has("special")) {
     const specialName = options.specialName || "wifey"
-    const hour = now.getHours()
+    const hour = nowParts.hour
+    const hydrationGoal = clampHydrationGoal(data.settings.specialCompanion.waterBottleGoal)
     const adaptiveMood = options.adaptiveMood?.toLowerCase().trim() ?? ""
     const isLowMood = LOW_MOOD_VALUES.has(adaptiveMood)
     const isHighMood = HIGH_MOOD_VALUES.has(adaptiveMood)
@@ -614,10 +639,10 @@ export function generateNotifications(
     const loveStreaks = options.loveStreaks ?? { hydration: 0, discipline: 0, allHabits: 0 }
 
     const waterBody = isLowMood
-      ? `${specialName}, gentle hydration check. Even half a bottle counts right now. - love Harman`
+      ? `${specialName}, gentle hydration check. Even half a bottle counts right now. Goal: ${hydrationGoal} today. - love Harman`
       : isHighMood
-        ? `${specialName}, your energy looks high today. Keep it flowing with one water bottle. - love Harman`
-        : `${specialName}, drink one full water bottle now. - love Harman`
+        ? `${specialName}, your energy looks high today. Keep it flowing with one water bottle. Goal: ${hydrationGoal} today. - love Harman`
+        : `${specialName}, drink one full water bottle now. Goal: ${hydrationGoal} today. - love Harman`
 
     const exerciseBody = isLowMood
       ? "Take a gentle 10-20 min walk/stretch and breathe. - love Harman"
@@ -638,7 +663,7 @@ export function generateNotifications(
       title: "Hydration time 💧",
       body: waterBody,
       emoji: "💧",
-      timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0),
+      timestamp: new Date(nowParts.year, nowParts.month - 1, nowParts.day, hour, 0, 0),
       read: false,
       link: "/wifey-routine",
       actions: [{ label: "Mark in routine", link: "/wifey-routine" }],
@@ -652,7 +677,7 @@ export function generateNotifications(
         title: "Exercise check 🏃‍♀️",
         body: exerciseBody,
         emoji: "🏃‍♀️",
-        timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0),
+        timestamp: new Date(nowParts.year, nowParts.month - 1, nowParts.day, 8, 0, 0),
         read: false,
         link: "/wifey-routine",
         actions: [{ label: "Open routine", link: "/wifey-routine" }],
@@ -666,7 +691,7 @@ export function generateNotifications(
       title: "Paath reminder 🙏",
       body: paathBody,
       emoji: "🙏",
-      timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 0, 0),
+      timestamp: new Date(nowParts.year, nowParts.month - 1, nowParts.day, 7, 0, 0),
       read: false,
       link: "/wifey-routine",
       actions: [{ label: "Mark done", link: "/wifey-routine" }],
@@ -680,7 +705,7 @@ export function generateNotifications(
         title: "Study block 📚",
         body: studyBody,
         emoji: "📚",
-        timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 19, 0, 0),
+        timestamp: new Date(nowParts.year, nowParts.month - 1, nowParts.day, 19, 0, 0),
         read: false,
         link: "/wifey-routine",
         actions: [{ label: "Start now", link: "/wifey-routine" }],

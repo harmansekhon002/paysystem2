@@ -327,7 +327,7 @@ export function Dashboard() {
   const legendColor = "var(--color-muted-foreground)"
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mobile-page flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground text-balance">
           {isSpecialUser ? `Welcome ${displayName}` : "Dashboard"}

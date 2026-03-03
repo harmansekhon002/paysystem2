@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAppData } from "@/components/data-provider"
 import {
+  getHydrationStreakTarget,
   generateNotifications,
   requestNotificationPermission,
   showBrowserNotification,
@@ -19,6 +20,7 @@ import {
   computeLoveStreaksFromHistory,
   type RoutineHistorySnapshot,
 } from "@/lib/notifications"
+import { getDateKeyInTimeZone, resolveTimeZone } from "@/lib/timezone"
 import type React from "react"
 
 const STORAGE_KEY = "shiftwise_read_notifications"
@@ -93,19 +95,20 @@ function getPanelThemeVariables(mode: PanelThemeMode): React.CSSProperties {
   }
 
   return {
-    "--card": "oklch(0.995 0.005 250)",
-    "--card-foreground": "oklch(0.22 0.02 250)",
-    "--border": "oklch(0.91 0.01 250)",
-    "--primary": "oklch(0.58 0.1 230)",
-    "--muted": "oklch(0.97 0.005 250)",
-    "--muted-foreground": "oklch(0.5 0.015 250)",
-    "--secondary": "oklch(0.96 0.01 250)",
+    "--card": "oklch(0.99 0.018 72)",
+    "--card-foreground": "oklch(0.32 0.12 40)",
+    "--border": "oklch(0.9 0.035 62)",
+    "--primary": "oklch(0.69 0.18 52)",
+    "--muted": "oklch(0.965 0.02 70)",
+    "--muted-foreground": "oklch(0.48 0.09 42)",
+    "--secondary": "oklch(0.95 0.025 68)",
   } as React.CSSProperties
 }
 
 export function NotificationCenter() {
   const { data, isSpecialUser, displayName } = useAppData()
   const loveModeActive = isSpecialUser && data.settings.specialCompanion.loveThemeEnabled
+  const timeZone = resolveTimeZone(data.settings.timeZone)
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
@@ -128,7 +131,8 @@ export function NotificationCenter() {
   }, [])
 
   useEffect(() => {
-    const todayStr = new Date().toISOString().split("T")[0]
+    const now = new Date()
+    const todayStr = getDateKeyInTimeZone(timeZone, now)
     let adaptiveMood: string | undefined
     let moodHistory: CompanionMoodEntry[] | undefined
     let loveStreaks: ReturnType<typeof computeLoveStreaksFromHistory> | undefined
@@ -150,10 +154,11 @@ export function NotificationCenter() {
         const routineHistoryRaw = localStorage.getItem("shiftwise:wifey-routine-history")
         if (routineHistoryRaw) {
           const routineHistory = JSON.parse(routineHistoryRaw) as Record<string, RoutineHistorySnapshot>
-          loveStreaks = computeLoveStreaksFromHistory(routineHistory)
-          const cutoff = new Date()
+          const hydrationTarget = getHydrationStreakTarget(data.settings.specialCompanion.waterBottleGoal)
+          loveStreaks = computeLoveStreaksFromHistory(routineHistory, hydrationTarget)
+          const cutoff = new Date(now)
           cutoff.setDate(cutoff.getDate() + 2)
-          const cutoffDate = cutoff.toISOString().split("T")[0]
+          const cutoffDate = getDateKeyInTimeZone(timeZone, cutoff)
 
           const todayWorkloadHours = data.shifts
             .filter((shift) => shift.date === todayStr)
@@ -183,11 +188,12 @@ export function NotificationCenter() {
       moodHistory,
       loveStreaks,
       burnoutRisk,
+      timeZone,
     })
     const storedRead = getReadIds()
     setReadIds(storedRead)
     setNotifications(generated.map((n) => ({ ...n, read: storedRead.has(n.id) })))
-  }, [data, displayName, loveModeActive, motivationOffset, clockTick])
+  }, [data, displayName, loveModeActive, motivationOffset, clockTick, timeZone])
 
   useEffect(() => {
     requestNotificationPermission()

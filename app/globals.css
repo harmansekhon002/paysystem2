@@ -56,39 +56,41 @@
   --card-foreground: oklch(0.92 0.008 250);
   --popover: oklch(0.18 0.015 260);
   --popover-foreground: oklch(0.92 0.008 250);
-  --primary: oklch(0.65 0.14 175);
+  --primary: oklch(0.67 0.15 160);
   --primary-foreground: oklch(0.12 0.015 260);
   --secondary: oklch(0.22 0.015 260);
   --secondary-foreground: oklch(0.88 0.008 250);
   --muted: oklch(0.22 0.015 260);
   --muted-foreground: oklch(0.58 0.015 250);
-  --accent: oklch(0.25 0.04 175);
-  --accent-foreground: oklch(0.75 0.12 175);
+  --accent: oklch(0.3 0.08 155);
+  --accent-foreground: oklch(0.9 0.06 145);
   --destructive: oklch(0.55 0.2 25);
   --destructive-foreground: oklch(0.55 0.2 25);
   --border: oklch(0.26 0.015 260);
   --input: oklch(0.26 0.015 260);
-  --ring: oklch(0.65 0.14 175);
-  --chart-1: oklch(0.65 0.14 175);
-  --chart-2: oklch(0.6 0.1 220);
-  --chart-3: oklch(0.68 0.12 145);
+  --ring: oklch(0.67 0.15 160);
+  --chart-1: oklch(0.67 0.15 160);
+  --chart-2: oklch(0.62 0.13 150);
+  --chart-3: oklch(0.72 0.12 135);
   --chart-4: oklch(0.62 0.08 280);
   --chart-5: oklch(0.55 0.06 200);
   --sidebar: oklch(0.16 0.015 260);
   --sidebar-foreground: oklch(0.92 0.008 250);
-  --sidebar-primary: oklch(0.65 0.14 175);
+  --sidebar-primary: oklch(0.67 0.15 160);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.22 0.015 260);
   --sidebar-accent-foreground: oklch(0.88 0.008 250);
   --sidebar-border: oklch(0.26 0.015 260);
-  --sidebar-ring: oklch(0.65 0.14 175);
+  --sidebar-ring: oklch(0.67 0.15 160);
   --success: oklch(0.6 0.16 145);
   --success-foreground: oklch(0.99 0 0);
   --warning: oklch(0.75 0.15 75);
   --warning-foreground: oklch(0.3 0.08 75);
-  --card-hover-gradient: linear-gradient(135deg, rgba(34, 197, 94, 0.62) 0%, rgba(59, 130, 246, 0.62) 100%);
-  --card-hover-glow: rgba(34, 197, 94, 0.46);
-  --app-background-gradient: none;
+  --card-hover-gradient: linear-gradient(135deg, rgba(34, 197, 94, 0.66) 0%, rgba(22, 163, 74, 0.62) 52%, rgba(74, 222, 128, 0.58) 100%);
+  --card-hover-glow: rgba(34, 197, 94, 0.5);
+  --app-background-gradient:
+    radial-gradient(1050px 520px at 10% -10%, rgba(34, 197, 94, 0.14) 0%, transparent 60%),
+    radial-gradient(900px 500px at 92% 8%, rgba(16, 185, 129, 0.12) 0%, transparent 58%);
 }
 
 .love-theme {
@@ -267,5 +269,59 @@
 
   .card-hover-gradient:hover::after {
     opacity: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-page {
+    gap: 1rem !important;
+  }
+
+  .mobile-page > div:first-child h1 {
+    font-size: 1.55rem;
+    line-height: 1.2;
+  }
+
+  .mobile-page > div:first-child p {
+    max-width: 36ch;
+  }
+
+  .mobile-page [data-slot="card"] {
+    gap: 0.9rem;
+    border-radius: 1rem;
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+    box-shadow: 0 10px 22px -16px rgba(15, 23, 42, 0.35);
+  }
+
+  .mobile-page [data-slot="card-header"] {
+    gap: 0.4rem;
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .mobile-page [data-slot="card-content"],
+  .mobile-page [data-slot="card-footer"] {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .mobile-page [data-slot="card-title"] {
+    line-height: 1.28;
+  }
+
+  .mobile-page [data-slot="button"] {
+    min-height: 2.5rem;
+  }
+
+  .mobile-page [data-slot="input"],
+  .mobile-page [data-slot="select-trigger"],
+  .mobile-page textarea {
+    min-height: 2.5rem;
+    font-size: 16px;
+  }
+
+  .mobile-page [data-slot="select-content"] {
+    max-height: min(52vh, 420px);
   }
 }

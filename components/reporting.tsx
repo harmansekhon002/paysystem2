@@ -186,14 +186,14 @@ export function ReportingDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-3">
+    <div className="mobile-page flex flex-col gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Analytics</h1>
           <p className="mt-1 text-sm text-muted-foreground">Advanced insights and trends.</p>
         </div>
         <Select value={timeRange} onValueChange={v => setTimeRange(v as typeof timeRange)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

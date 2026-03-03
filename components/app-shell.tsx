@@ -23,6 +23,7 @@ import {
   Heart,
   BookHeart,
   Users,
+  Clock3,
   Eye,
   EyeOff,
   Shield,
@@ -35,6 +36,7 @@ import { NotificationCenter } from "@/components/notification-center"
 import { WifeySplash } from "@/components/wifey-splash"
 import { LoveCelebration } from "@/components/love-celebration"
 import { triggerSpecialCelebration } from "@/lib/special-features"
+import { resolveTimeZone } from "@/lib/timezone"
 
 const baseNavItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -44,7 +46,6 @@ const baseNavItems = [
   { label: "Goals", href: "/goals", icon: Target },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Pricing", href: "/pricing", icon: CreditCard },
-  { label: "Settings", href: "/settings", icon: Settings },
 ]
 
 type NavItem = {
@@ -108,7 +109,7 @@ function BottomNav({ items, mode }: { items: NavItem[]; mode: ThemeMode }) {
   return (
     <nav
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border px-1 py-1.5 md:hidden",
+        "fixed bottom-0 left-0 right-0 z-50 border-t border-border px-2 py-1.5 backdrop-blur-md md:hidden",
         mode === "light"
           ? "bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50"
           : "bg-card"
@@ -116,29 +117,92 @@ function BottomNav({ items, mode }: { items: NavItem[]; mode: ThemeMode }) {
       role="navigation"
       aria-label="Mobile navigation"
     >
-      {items.map((item) => {
-        const isActive = pathname === item.href
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] transition-colors",
-              isActive
-                ? mode === "light"
-                  ? "bg-gradient-to-r from-yellow-200/85 via-orange-200/80 to-red-200/75 font-semibold text-orange-900"
-                  : "font-medium text-primary"
-                : mode === "light"
-                  ? "text-muted-foreground hover:text-orange-800"
-                  : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <item.icon className="size-5" />
-            <span>{item.label}</span>
-          </Link>
-        )
-      })}
+      <div className="flex items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {items.map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex min-w-[72px] shrink-0 flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] transition-colors",
+                isActive
+                  ? mode === "light"
+                    ? "bg-gradient-to-r from-yellow-200/85 via-orange-200/80 to-red-200/75 font-semibold text-orange-900"
+                    : "font-medium text-primary"
+                  : mode === "light"
+                    ? "text-muted-foreground hover:text-orange-800"
+                    : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <item.icon className="size-[18px]" />
+              <span className="max-w-[66px] truncate text-center">{item.label}</span>
+            </Link>
+          )
+        })}
+      </div>
     </nav>
+  )
+}
+
+function formatZoneTime(timeZone: string, date: Date): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date)
+}
+
+function WorldClock({
+  mode,
+  primaryLabel,
+  primaryTimeZone,
+  secondaryLabel,
+  secondaryTimeZone,
+}: {
+  mode: ThemeMode
+  primaryLabel: string
+  primaryTimeZone: string
+  secondaryLabel: string
+  secondaryTimeZone: string
+}) {
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30 * 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const firstTime = formatZoneTime(resolveTimeZone(primaryTimeZone), now)
+  const secondTime = formatZoneTime(resolveTimeZone(secondaryTimeZone), now)
+  const firstLabel = primaryLabel.trim() || "Clock 1"
+  const secondLabel = secondaryLabel.trim() || "Clock 2"
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border px-3 py-2 shadow-sm backdrop-blur-md",
+        mode === "light"
+          ? "border-orange-300/50 bg-white/90"
+          : "border-border bg-card/90"
+      )}
+    >
+      <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <Clock3 className="size-3" />
+        World Clock
+      </div>
+      <div className="space-y-1 text-xs">
+        <div className="flex items-center justify-between gap-4">
+          <span className="font-medium text-muted-foreground">{firstLabel}</span>
+          <span className="font-semibold text-foreground">{firstTime}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="font-medium text-muted-foreground">{secondLabel}</span>
+          <span className="font-semibold text-foreground">{secondTime}</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -165,9 +229,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ]
   }, [loveModeActive])
 
+  const studentParentNavItems = useMemo<NavItem[]>(() => {
+    if (isSpecialUser) return []
+    return [
+      { label: "Student Routine", href: "/wifey-routine", icon: BookHeart },
+      { label: "Parent Dash", href: "/couple-dashboard", icon: Users },
+    ]
+  }, [isSpecialUser])
+
+  const settingsNavItem = useMemo<NavItem>(() => ({ label: "Settings", href: "/settings", icon: Settings }), [])
   const navItems = useMemo<NavItem[]>(() => {
-    return [...baseNavItems, ...specialNavItems]
-  }, [specialNavItems])
+    return [...baseNavItems, ...specialNavItems, ...studentParentNavItems, settingsNavItem]
+  }, [settingsNavItem, specialNavItems, studentParentNavItems])
 
   const mobileNavItems = useMemo<NavItem[]>(() => {
     if (loveModeActive) {
@@ -183,6 +256,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return [
       { label: "Home", href: "/", icon: LayoutDashboard },
       { label: "Shifts", href: "/shifts", icon: CalendarClock },
+      { label: "Routine", href: "/wifey-routine", icon: BookHeart },
+      { label: "Parent", href: "/couple-dashboard", icon: Users },
       { label: "Earnings", href: "/earnings", icon: DollarSign },
       { label: "Goals", href: "/goals", icon: Target },
       { label: "Settings", href: "/settings", icon: Settings },
@@ -334,6 +409,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <div className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}>
+        <div className="fixed right-4 top-3 z-40 hidden pointer-events-none md:block">
+          <WorldClock
+            mode={activeThemeMode}
+            primaryLabel={data.settings.worldClockPrimaryLabel}
+            primaryTimeZone={data.settings.worldClockPrimaryTimeZone}
+            secondaryLabel={data.settings.worldClockSecondaryLabel}
+            secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
+          />
+        </div>
         {/* Desktop sidebar */}
         <aside className={cn(
           "hidden border-r border-border md:fixed md:inset-y-0 md:flex md:w-[240px] md:flex-col",
@@ -435,20 +519,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}>
               {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className={cn("size-4", activeThemeMode === "light" ? "text-white" : "text-primary-foreground")} />}
             </div>
-            <span className="text-sm font-semibold text-foreground">{loveModeActive ? `${displayName}'s ShiftWise` : "ShiftWise"}</span>
+            <span className="max-w-[140px] truncate text-sm font-semibold text-foreground">{loveModeActive ? `${displayName}'s ShiftWise` : "ShiftWise"}</span>
           </div>
           <div className="relative flex items-center gap-1">
             <NotificationCenter />
             <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="size-8 text-muted-foreground hover:text-foreground"
-              aria-label="Sign out"
-            >
-              <LogOut className="size-4" />
-            </Button>
           </div>
         </header>
 
@@ -458,21 +533,66 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
             <div
               className={cn(
-                "absolute left-0 top-14 bottom-0 w-[260px] border-r border-border p-4",
+                "absolute left-0 top-14 bottom-0 w-[min(86vw,320px)] border-r border-border p-4",
                 activeThemeMode === "light"
                   ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
                   : "bg-card"
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <SidebarNav items={navItems} mode={activeThemeMode} onNavigate={() => setMobileOpen(false)} />
+              <div className="flex h-full flex-col">
+                <SidebarNav items={navItems} mode={activeThemeMode} onNavigate={() => setMobileOpen(false)} />
+                <div className="mt-4">
+                  <WorldClock
+                    mode={activeThemeMode}
+                    primaryLabel={data.settings.worldClockPrimaryLabel}
+                    primaryTimeZone={data.settings.worldClockPrimaryTimeZone}
+                    secondaryLabel={data.settings.worldClockSecondaryLabel}
+                    secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
+                  />
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border/70 pt-3">
+                  <div className="flex justify-center">
+                    <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
+                  </div>
+                  <div className="flex justify-center">
+                    <NotificationCenter />
+                  </div>
+                  <div className="flex justify-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCurrencyCycle}
+                      className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                      aria-label="Change currency"
+                      title="Change currency"
+                    >
+                      {data.settings.currency}
+                    </Button>
+                  </div>
+                  <div className="flex justify-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => signOut({ callbackUrl: "/login" })}
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                      aria-label="Sign out"
+                    >
+                      <LogOut className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-2 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
+                  Plan: {planName}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Main content */}
         <main className="flex-1 md:ml-[240px]">
-          <div className="min-h-svh pt-14 pb-20 md:pt-0 md:pb-0">
+          <div className="min-h-svh pt-14 pb-24 md:pt-0 md:pb-0">
             <div className={cn("mx-auto max-w-5xl px-4 py-6 transition-all md:px-8 md:py-8", privacyModeEnabled && !privacyReveal && "blur-md")}>
               {children}
             </div>

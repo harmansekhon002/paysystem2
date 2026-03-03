@@ -25,8 +25,8 @@ test.describe("Shifts Tracker", () => {
   test("should switch to calendar view", async ({ page }) => {
     await page.getByRole("tab", { name: "Calendar" }).click()
     // Calendar days should be visible
-    await expect(page.getByText("Mon")).toBeVisible()
-    await expect(page.getByText("Tue")).toBeVisible()
+    await expect(page.getByText("Mon", { exact: true })).toBeVisible()
+    await expect(page.getByText("Tue", { exact: true })).toBeVisible()
   })
 
   test("should open filter popover", async ({ page }) => {

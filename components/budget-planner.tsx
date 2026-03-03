@@ -143,8 +143,8 @@ export default function BudgetPlanner() {
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between">
+    <div className="mobile-page flex flex-col gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Budget</h1>
           <p className="mt-1 text-sm text-muted-foreground">Track spending against your own categories.</p>

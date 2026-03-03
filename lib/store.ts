@@ -65,6 +65,7 @@ export type SpecialCompanionSettings = {
   nickname: string
   lovesPuppies: boolean
   loveThemeEnabled: boolean
+  waterBottleGoal: number
   pinEnabled: boolean
   pinCode: string
   privacyMode: boolean
@@ -77,6 +78,12 @@ export type AppSettings = {
   currencySymbol: string
   payPeriod: PayPeriod
   country: string
+  timeZone: string
+  whatsappNumber: string
+  worldClockPrimaryLabel: string
+  worldClockPrimaryTimeZone: string
+  worldClockSecondaryLabel: string
+  worldClockSecondaryTimeZone: string
   notificationsEnabled: boolean
   notificationTypes: string[]
   quietHoursEnabled: boolean
@@ -236,6 +243,12 @@ export const defaultData: AppData = {
     currencySymbol: "A$",
     payPeriod: "biweekly",
     country: "Australia",
+    timeZone: "Asia/Kolkata",
+    whatsappNumber: "",
+    worldClockPrimaryLabel: "Brisbane",
+    worldClockPrimaryTimeZone: "Australia/Brisbane",
+    worldClockSecondaryLabel: "Punjab",
+    worldClockSecondaryTimeZone: "Asia/Kolkata",
     notificationsEnabled: true,
     notificationTypes: ["shift", "budget", "goal", "earnings", "payday", "motivation", "milestone", "special"],
     quietHoursEnabled: false,
@@ -253,6 +266,7 @@ export const defaultData: AppData = {
       nickname: "Wifey",
       lovesPuppies: true,
       loveThemeEnabled: false,
+      waterBottleGoal: 8,
       pinEnabled: false,
       pinCode: "",
       privacyMode: false,

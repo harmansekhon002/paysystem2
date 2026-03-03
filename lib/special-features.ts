@@ -24,13 +24,13 @@ function getThemeToastClass(modeOverride?: ThemeToastMode) {
     return "border-emerald-300/30 bg-gradient-to-br from-slate-950 via-emerald-900/90 to-blue-900/95 text-emerald-100 shadow-2xl shadow-black/45"
   }
 
-  return "border-slate-200/80 bg-gradient-to-br from-white/98 via-slate-50 to-blue-50 text-slate-800 shadow-xl shadow-slate-200/60"
+  return "border-amber-200/80 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 text-orange-900 shadow-xl shadow-amber-200/55"
 }
 
 export function showLoveToast(feature: string, modeOverride?: ThemeToastMode) {
   toast({
     title: "From your love Harman",
-    description: `${feature} is ready for you, wifey.`,
+    description: feature,
     className: getThemeToastClass(modeOverride),
     duration: 4200,
   })

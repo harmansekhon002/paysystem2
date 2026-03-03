@@ -192,8 +192,8 @@ export function Earnings() {
   }, [data.jobs, data.shifts])
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between">
+    <div className="mobile-page flex flex-col gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Earnings</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage jobs and track income with penalty rates.</p>

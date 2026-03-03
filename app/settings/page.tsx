@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Bell, CalendarClock, Copy, Database, Globe2, Heart, Info, LayoutDashboard, Loader2, Palette, PawPrint, RefreshCw, Shield, UserRound, WalletCards } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useEffect, useMemo, useState } from "react"
+import { Bell, CalendarClock, Copy, Database, Globe2, Heart, Info, LayoutDashboard, Loader2, PawPrint, RefreshCw, Shield, UserRound, WalletCards } from "lucide-react"
 import Link from "next/link"
 
 import { AppShell } from "@/components/app-shell"
@@ -19,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { triggerSpecialCelebration } from "@/lib/special-features"
+import { resolveTimeZone } from "@/lib/timezone"
 
 type SubscriptionStatus = {
   paypalSubscriptionId: string
@@ -30,9 +30,94 @@ type SubscriptionStatus = {
   planName: string
 }
 
+const TIME_ZONE_OPTIONS = [
+  "Pacific/Honolulu",
+  "America/Anchorage",
+  "America/Vancouver",
+  "America/Whitehorse",
+  "America/Dawson",
+  "America/Los_Angeles",
+  "America/Tijuana",
+  "America/Edmonton",
+  "America/Cambridge_Bay",
+  "America/Inuvik",
+  "America/Yellowknife",
+  "America/Calgary",
+  "America/Denver",
+  "America/Phoenix",
+  "America/Chicago",
+  "America/Winnipeg",
+  "America/Rankin_Inlet",
+  "America/Resolute",
+  "America/Regina",
+  "America/Swift_Current",
+  "America/Toronto",
+  "America/Nipigon",
+  "America/Thunder_Bay",
+  "America/Iqaluit",
+  "America/Pangnirtung",
+  "America/Atikokan",
+  "America/Creston",
+  "America/Fort_Nelson",
+  "America/Blanc-Sablon",
+  "America/Moncton",
+  "America/Halifax",
+  "America/Glace_Bay",
+  "America/Goose_Bay",
+  "America/St_Johns",
+  "America/New_York",
+  "America/Sao_Paulo",
+  "America/Argentina/Buenos_Aires",
+  "Atlantic/Reykjavik",
+  "Europe/Dublin",
+  "Europe/London",
+  "Europe/Lisbon",
+  "Europe/Paris",
+  "Europe/Amsterdam",
+  "Europe/Berlin",
+  "Europe/Rome",
+  "Europe/Madrid",
+  "Europe/Zurich",
+  "Europe/Stockholm",
+  "Europe/Athens",
+  "Europe/Helsinki",
+  "Europe/Istanbul",
+  "Europe/Moscow",
+  "Africa/Cairo",
+  "Africa/Johannesburg",
+  "Asia/Jerusalem",
+  "Asia/Riyadh",
+  "Asia/Kolkata",
+  "Asia/Dubai",
+  "Asia/Karachi",
+  "Asia/Kathmandu",
+  "Asia/Dhaka",
+  "Asia/Colombo",
+  "Asia/Bangkok",
+  "Asia/Singapore",
+  "Asia/Hong_Kong",
+  "Asia/Shanghai",
+  "Asia/Taipei",
+  "Asia/Seoul",
+  "Asia/Tokyo",
+  "Asia/Manila",
+  "Asia/Jakarta",
+  "Asia/Ho_Chi_Minh",
+  "Asia/Kuala_Lumpur",
+  "Asia/Novosibirsk",
+  "Australia/Perth",
+  "Australia/Darwin",
+  "Australia/Adelaide",
+  "Australia/Brisbane",
+  "Australia/Sydney",
+  "Australia/Hobart",
+  "Pacific/Auckland",
+  "Pacific/Fiji",
+  "UTC",
+]
+
 export default function SettingsPage() {
   const { data, updateSettings, planName, updateSpecialCompanion, isSpecialUser, displayName } = useAppData()
-  const { theme, setTheme } = useTheme()
   const { toast } = useToast()
   const [resetting, setResetting] = useState(false)
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null)
@@ -47,6 +132,11 @@ export default function SettingsPage() {
     }
     return { name: "", email: "" }
   })
+  const companionWaterGoal = (() => {
+    const parsed = Number(data.settings.specialCompanion.waterBottleGoal)
+    if (!Number.isFinite(parsed)) return 8
+    return Math.max(4, Math.min(12, Math.round(parsed)))
+  })()
 
   const loadSubscriptionStatus = async () => {
     setLoadingSubscription(true)
@@ -179,13 +269,6 @@ export default function SettingsPage() {
     triggerSpecialCelebration("PIN updated")
   }
 
-  function handleThemeSelect(value: string) {
-    setTheme(value)
-    if (isSpecialUser && data.settings.specialCompanion.loveThemeEnabled) {
-      updateSpecialCompanion({ loveThemeEnabled: false })
-    }
-  }
-
   const currencyOptions = [
     { code: "AUD", symbol: "A$" },
     { code: "USD", symbol: "US$" },
@@ -207,6 +290,29 @@ export default function SettingsPage() {
     { value: "UK", label: "UK" },
     { value: "Other", label: "Other" },
   ]
+  const selectedTimeZone = resolveTimeZone(data.settings.timeZone)
+  const timeZoneSelectOptions = useMemo(
+    () => (TIME_ZONE_OPTIONS.includes(selectedTimeZone) ? TIME_ZONE_OPTIONS : [selectedTimeZone, ...TIME_ZONE_OPTIONS]),
+    [selectedTimeZone]
+  )
+  const worldClockPrimaryZone = resolveTimeZone(data.settings.worldClockPrimaryTimeZone)
+  const worldClockSecondaryZone = resolveTimeZone(data.settings.worldClockSecondaryTimeZone)
+  const worldClockZoneOptions = useMemo<string[]>(() => {
+    const items = [worldClockPrimaryZone, worldClockSecondaryZone, ...TIME_ZONE_OPTIONS]
+    return Array.from(new Set(items))
+  }, [worldClockPrimaryZone, worldClockSecondaryZone])
+  const selectedTimeZoneNow = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: selectedTimeZone,
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date())
+    } catch {
+      return "Unavailable"
+    }
+  }, [selectedTimeZone])
+
   const notificationTypeOptions = [
     { value: "shift", label: "Shift reminders" },
     { value: "budget", label: "Budget alerts" },
@@ -235,27 +341,27 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 py-10">
+      <div className="mobile-page mx-auto flex w-full max-w-6xl flex-col gap-6 py-6 md:gap-8 md:py-10">
         <Card className="border-primary/20 bg-gradient-to-r from-primary/8 via-card to-card shadow-sm">
-          <CardHeader className="space-y-4 p-7 md:p-8">
+          <CardHeader className="space-y-3 p-5 md:space-y-4 md:p-8">
             <div className="flex items-center justify-between gap-3">
-              <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
+              <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">Settings</h1>
               <Badge variant="secondary" className="rounded-full px-3 py-1">
                 Account & App Settings
               </Badge>
             </div>
             <CardDescription className="text-sm md:text-base">
-              Manage your profile, region, pay cycle, and app appearance in one place.
+              Manage profile, billing, notifications, regional settings, and dashboard preferences in one place.
             </CardDescription>
           </CardHeader>
         </Card>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           <div className="flex flex-col gap-8 lg:col-span-8">
             <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Account</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Identity and billing details.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Identity details for this device.</p>
               </div>
               <div className="space-y-5">
                 <Card id="settings-profile" className="border-border/80 shadow-sm">
@@ -298,7 +404,272 @@ export default function SettingsPage() {
                     </Button>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Preferences</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Regional, communication, and notification behavior.</p>
+              </div>
+              <div className="space-y-5">
+                <Card id="settings-region-pay" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Globe2 className="text-primary size-4" />
+                      <CardTitle className="text-lg">Region and Pay</CardTitle>
+                    </div>
+                    <CardDescription>Used in earnings and summary calculations.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <div className="space-y-2">
+                      <Label>Country</Label>
+                      <Select value={data.settings.country} onValueChange={v => updateSettings({ country: v })}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countryOptions.map(c => (
+                            <SelectItem key={c.value} value={c.value}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Select
+                        value={data.settings.currency}
+                        onValueChange={value => {
+                          const selected = currencyOptions.find(c => c.code === value)
+                          if (!selected) return
+                          updateSettings({ currency: selected.code, currencySymbol: selected.symbol })
+                        }}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencyOptions.map(c => (
+                            <SelectItem key={c.code} value={c.code}>
+                              {c.code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Pay period</Label>
+                      <Select
+                        value={data.settings.payPeriod}
+                        onValueChange={value => updateSettings({ payPeriod: value as typeof data.settings.payPeriod })}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {payPeriodOptions.map(p => (
+                            <SelectItem key={p.value} value={p.value}>
+                              {p.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>WhatsApp number</Label>
+                      <Input
+                        type="tel"
+                        inputMode="tel"
+                        placeholder="+91 7009424374"
+                        value={data.settings.whatsappNumber}
+                        onChange={(event) => updateSettings({ whatsappNumber: event.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Used for one-tap support and insights messages.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Daily reset time zone</Label>
+                      <Select
+                        value={selectedTimeZone}
+                        onValueChange={(value) => updateSettings({ timeZone: value })}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timeZoneSelectOptions.map((zone) => (
+                            <SelectItem key={zone} value={zone}>
+                              {zone}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Routine tasks and daily insights reset at 12:00 AM in this zone. Current time: {selectedTimeZoneNow}
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 rounded-lg border border-border/60 bg-card/50 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">World clock</p>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Clock 1 label</Label>
+                          <Input
+                            value={data.settings.worldClockPrimaryLabel}
+                            onChange={(event) => updateSettings({ worldClockPrimaryLabel: event.target.value })}
+                            placeholder="Brisbane"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Clock 1 time zone</Label>
+                          <Select
+                            value={worldClockPrimaryZone}
+                            onValueChange={(value) => updateSettings({ worldClockPrimaryTimeZone: value })}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {worldClockZoneOptions.map((zone) => (
+                                <SelectItem key={`clock1-${zone}`} value={zone}>
+                                  {zone}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Clock 2 label</Label>
+                          <Input
+                            value={data.settings.worldClockSecondaryLabel}
+                            onChange={(event) => updateSettings({ worldClockSecondaryLabel: event.target.value })}
+                            placeholder="Punjab"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Clock 2 time zone</Label>
+                          <Select
+                            value={worldClockSecondaryZone}
+                            onValueChange={(value) => updateSettings({ worldClockSecondaryTimeZone: value })}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {worldClockZoneOptions.map((zone) => (
+                                <SelectItem key={`clock2-${zone}`} value={zone}>
+                                  {zone}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card id="settings-notifications" className="border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Bell className="text-primary size-4" />
+                      <CardTitle className="text-lg">Notifications</CardTitle>
+                    </div>
+                    <CardDescription>Control alerts, categories, and quiet hours.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">Enable notifications</p>
+                        <p className="text-xs text-muted-foreground">Master switch for app notifications.</p>
+                      </div>
+                      <Switch
+                        checked={data.settings.notificationsEnabled}
+                        onCheckedChange={(checked) => updateSettings({ notificationsEnabled: Boolean(checked) })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Notification types</Label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {notificationTypeOptions.map((type) => {
+                          const checked = data.settings.notificationTypes.includes(type.value)
+                          return (
+                            <label key={type.value} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(next) => {
+                                  const enabled = Boolean(next)
+                                  const nextTypes = enabled
+                                    ? Array.from(new Set([...data.settings.notificationTypes, type.value]))
+                                    : data.settings.notificationTypes.filter(t => t !== type.value)
+                                  updateSettings({ notificationTypes: nextTypes })
+                                }}
+                              />
+                              <span>{type.label}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Quiet hours</p>
+                          <p className="text-xs text-muted-foreground">Pause notification generation during selected time.</p>
+                        </div>
+                        <Switch
+                          checked={data.settings.quietHoursEnabled}
+                          onCheckedChange={(checked) => updateSettings({ quietHoursEnabled: Boolean(checked) })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="quiet-start">Start</Label>
+                          <Input
+                            id="quiet-start"
+                            type="time"
+                            className="h-10"
+                            value={data.settings.quietHoursStart}
+                            onChange={e => updateSettings({ quietHoursStart: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="quiet-end">End</Label>
+                          <Input
+                            id="quiet-end"
+                            type="time"
+                            className="h-10"
+                            value={data.settings.quietHoursEnd}
+                            onChange={e => updateSettings({ quietHoursEnd: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-8 lg:col-span-4">
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Billing</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Plan status and renewal controls.</p>
+              </div>
+              <div className="space-y-5">
                 <Card id="settings-subscription" className="border-border/80 shadow-sm">
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center gap-2">
@@ -405,170 +776,11 @@ export default function SettingsPage() {
                 </Card>
               </div>
             </div>
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
-              <div className="mb-4 border-b border-border/60 pb-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Preferences</h2>
-                <p className="mt-1 text-xs text-muted-foreground">How the app communicates and calculates values.</p>
-              </div>
-              <div className="space-y-5">
-                <Card id="settings-notifications" className="border-border/80 shadow-sm">
-                  <CardHeader className="p-6 pb-4">
-                    <div className="flex items-center gap-2">
-                      <Bell className="text-primary size-4" />
-                      <CardTitle className="text-lg">Notifications</CardTitle>
-                    </div>
-                    <CardDescription>Control alerts, categories, and quiet hours.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5 p-6 pt-0">
-                    <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
-                      <div className="space-y-0.5">
-                        <p className="text-sm font-medium">Enable notifications</p>
-                        <p className="text-xs text-muted-foreground">Master switch for app notifications.</p>
-                      </div>
-                      <Switch
-                        checked={data.settings.notificationsEnabled}
-                        onCheckedChange={(checked) => updateSettings({ notificationsEnabled: Boolean(checked) })}
-                      />
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label>Notification types</Label>
-                      <div className="grid grid-cols-1 gap-2">
-                        {notificationTypeOptions.map((type) => {
-                          const checked = data.settings.notificationTypes.includes(type.value)
-                          return (
-                            <label key={type.value} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(next) => {
-                                  const enabled = Boolean(next)
-                                  const nextTypes = enabled
-                                    ? Array.from(new Set([...data.settings.notificationTypes, type.value]))
-                                    : data.settings.notificationTypes.filter(t => t !== type.value)
-                                  updateSettings({ notificationTypes: nextTypes })
-                                }}
-                              />
-                              <span>{type.label}</span>
-                            </label>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-medium">Quiet hours</p>
-                          <p className="text-xs text-muted-foreground">Pause notification generation during selected time.</p>
-                        </div>
-                        <Switch
-                          checked={data.settings.quietHoursEnabled}
-                          onCheckedChange={(checked) => updateSettings({ quietHoursEnabled: Boolean(checked) })}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="quiet-start">Start</Label>
-                          <Input
-                            id="quiet-start"
-                            type="time"
-                            className="h-10"
-                            value={data.settings.quietHoursStart}
-                            onChange={e => updateSettings({ quietHoursStart: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="quiet-end">End</Label>
-                          <Input
-                            id="quiet-end"
-                            type="time"
-                            className="h-10"
-                            value={data.settings.quietHoursEnd}
-                            onChange={e => updateSettings({ quietHoursEnd: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card id="settings-region-pay" className="border-border/80 shadow-sm">
-                  <CardHeader className="p-6 pb-4">
-                    <div className="flex items-center gap-2">
-                      <Globe2 className="text-primary size-4" />
-                      <CardTitle className="text-lg">Region and Pay</CardTitle>
-                    </div>
-                    <CardDescription>Used in earnings and summary calculations.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5 p-6 pt-0">
-                    <div className="space-y-2">
-                      <Label>Country</Label>
-                      <Select value={data.settings.country} onValueChange={v => updateSettings({ country: v })}>
-                        <SelectTrigger className="h-10">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countryOptions.map(c => (
-                            <SelectItem key={c.value} value={c.value}>
-                              {c.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Currency</Label>
-                      <Select
-                        value={data.settings.currency}
-                        onValueChange={value => {
-                          const selected = currencyOptions.find(c => c.code === value)
-                          if (!selected) return
-                          updateSettings({ currency: selected.code, currencySymbol: selected.symbol })
-                        }}
-                      >
-                        <SelectTrigger className="h-10">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {currencyOptions.map(c => (
-                            <SelectItem key={c.code} value={c.code}>
-                              {c.code}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Pay period</Label>
-                      <Select
-                        value={data.settings.payPeriod}
-                        onValueChange={value => updateSettings({ payPeriod: value as typeof data.settings.payPeriod })}
-                      >
-                        <SelectTrigger className="h-10">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {payPeriodOptions.map(p => (
-                            <SelectItem key={p.value} value={p.value}>
-                              {p.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-8 lg:col-span-4">
             <div className="rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Personalization</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Customize visual layout and theme.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Customize your dashboard layout.</p>
               </div>
               <div className="space-y-5">
                 <Card id="settings-widgets" className="border-border/80 shadow-sm">
@@ -599,33 +811,6 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                <Card id="settings-appearance" className="border-border/80 shadow-sm">
-                  <CardHeader className="p-6 pb-4">
-                    <div className="flex items-center gap-2">
-                      <Palette className="text-primary size-4" />
-                      <CardTitle className="text-lg">Appearance</CardTitle>
-                    </div>
-                    <CardDescription>Choose how ShiftWise looks for you.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5 p-6 pt-0">
-                    <div className="space-y-2">
-                      <Label>Theme</Label>
-                      <div className="flex items-center gap-2">
-                        <Select value={theme} onValueChange={handleThemeSelect}>
-                          <SelectTrigger className="h-10">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="system">System</SelectItem>
-                            <SelectItem value="light">Light</SelectItem>
-                            <SelectItem value="dark">Dark</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {isSpecialUser ? (
                   <Card id="settings-companion" className="border-rose-300/40 bg-gradient-to-br from-rose-500/10 to-orange-500/10 shadow-sm">
                     <CardHeader className="p-6 pb-4">
@@ -644,6 +829,34 @@ export default function SettingsPage() {
                           onChange={(event) => updateSpecialCompanion({ nickname: event.target.value })}
                           placeholder="Wifey"
                         />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="companion-water-goal">Daily water bottle goal</Label>
+                        <Select
+                          value={String(companionWaterGoal)}
+                          onValueChange={(value) => {
+                            const parsed = Number(value)
+                            const nextGoal = Number.isFinite(parsed) ? Math.max(4, Math.min(12, Math.round(parsed))) : 8
+                            updateSpecialCompanion({ waterBottleGoal: nextGoal })
+                            triggerSpecialCelebration(`Water goal set to ${nextGoal}`)
+                          }}
+                        >
+                          <SelectTrigger id="companion-water-goal">
+                            <SelectValue placeholder="Select target" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="4">4 bottles</SelectItem>
+                            <SelectItem value="5">5 bottles</SelectItem>
+                            <SelectItem value="6">6 bottles</SelectItem>
+                            <SelectItem value="7">7 bottles</SelectItem>
+                            <SelectItem value="8">8 bottles</SelectItem>
+                            <SelectItem value="9">9 bottles</SelectItem>
+                            <SelectItem value="10">10 bottles</SelectItem>
+                            <SelectItem value="11">11 bottles</SelectItem>
+                            <SelectItem value="12">12 bottles</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
