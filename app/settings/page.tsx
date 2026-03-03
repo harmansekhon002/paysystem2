@@ -346,7 +346,7 @@ export default function SettingsPage() {
           <CardHeader className="space-y-3 p-5 md:space-y-4 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">Settings</h1>
-              <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[10px] sm:px-3 sm:text-xs">
+              <Badge variant="secondary" className="hidden rounded-full px-2.5 py-1 text-[10px] sm:inline-flex sm:px-3 sm:text-xs">
                 Account & App Settings
               </Badge>
             </div>
@@ -355,18 +355,6 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
         </Card>
-
-        <div className="mobile-settings-quick-nav md:hidden">
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <Link href="#settings-profile" className="mobile-settings-chip">Profile</Link>
-            <Link href="#settings-region-pay" className="mobile-settings-chip">Region</Link>
-            <Link href="#settings-notifications" className="mobile-settings-chip">Alerts</Link>
-            <Link href="#settings-subscription" className="mobile-settings-chip">Billing</Link>
-            <Link href="#settings-widgets" className="mobile-settings-chip">Widgets</Link>
-            {isSpecialUser ? <Link href="#settings-companion" className="mobile-settings-chip">Companion</Link> : null}
-            <Link href="#settings-data-reset" className="mobile-settings-chip">System</Link>
-          </div>
-        </div>
 
         <div className="mobile-settings-grid grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           <div className="flex flex-col gap-8 lg:col-span-8">

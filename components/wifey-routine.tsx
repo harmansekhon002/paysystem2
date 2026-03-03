@@ -607,35 +607,58 @@ export function WifeyRoutine() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{isMobile ? "Action" : "Quick support"}</p>
+            {!isMobile ? <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quick support</p> : null}
             <Button onClick={() => void sendSupportPing()} className="w-full sm:w-fit">
               {isMobile ? "Request support" : parentalMode ? "Need parent support now" : "I need support now"}
             </Button>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{isMobile ? "Templates" : "Emergency templates"}</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {SUPPORT_TEMPLATES
-                .filter((template) => template.id !== "general")
-                .sort((a, b) => a.label.localeCompare(b.label))
-                .map((template) => (
-                  <Button
-                    key={template.id}
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                    onClick={() => void sendSupportPing(template)}
-                  >
-                    {template.label}
-                  </Button>
-                ))}
+          {!isMobile ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Emergency templates</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {SUPPORT_TEMPLATES
+                  .filter((template) => template.id !== "general")
+                  .sort((a, b) => a.label.localeCompare(b.label))
+                  .map((template) => (
+                    <Button
+                      key={template.id}
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                      onClick={() => void sendSupportPing(template)}
+                    >
+                      {template.label}
+                    </Button>
+                  ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <details className="rounded-md border border-border/60 px-3 py-2">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Emergency templates
+              </summary>
+              <div className="mt-2 grid gap-2">
+                {SUPPORT_TEMPLATES
+                  .filter((template) => template.id !== "general")
+                  .sort((a, b) => a.label.localeCompare(b.label))
+                  .map((template) => (
+                    <Button
+                      key={template.id}
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                      onClick={() => void sendSupportPing(template)}
+                    >
+                      {template.label}
+                    </Button>
+                  ))}
+              </div>
+            </details>
+          )}
 
-          {supportState ? <p className="text-xs text-muted-foreground">{supportState}</p> : null}
-          {!whatsappNumber ? (
+          {supportState && !isMobile ? <p className="text-xs text-muted-foreground">{supportState}</p> : null}
+          {!whatsappNumber && !isMobile ? (
             <p className="text-[11px] text-muted-foreground">
-              {isMobile ? "Add WhatsApp in Settings for one-tap send." : "Tip: add guardian WhatsApp number in Settings for direct one-tap send."}
+              Tip: add guardian WhatsApp number in Settings for direct one-tap send.
             </p>
           ) : null}
         </CardContent>
@@ -671,7 +694,7 @@ export function WifeyRoutine() {
               <div className="rounded-md border border-border/70 bg-secondary/35 p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Daily target</p>
                 <p className="mt-1 text-sm text-foreground">{hydrationGoal} bottles</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">Edit this in Settings to keep one source of truth.</p>
+                {!isMobile ? <p className="mt-1 text-[11px] text-muted-foreground">Edit this in Settings to keep one source of truth.</p> : null}
               </div>
             )}
             <Progress value={Math.min(100, (routine.waterBottles / hydrationGoal) * 100)} />
@@ -791,16 +814,14 @@ export function WifeyRoutine() {
             <Brain className="size-4 text-primary" />
             AI Care Plan Of The Day
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{isMobile ? "Open for today’s care steps." : carePlan.summary}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Open for today&apos;s key step.</p>
         </summary>
         <div className="space-y-3 border-t border-border/60 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{carePlan.title}</Badge>
-            <Badge variant="outline">Today: {todayWorkloadHours.toFixed(1)}h</Badge>
-            <Badge variant="outline">48h: {next48WorkloadHours.toFixed(1)}h</Badge>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Workload today: {todayWorkloadHours.toFixed(1)}h
+          </p>
           <div className="space-y-2 text-sm text-muted-foreground">
-            {carePlan.steps.slice(0, isMobile ? 2 : 3).map((step) => (
+            {carePlan.steps.slice(0, 1).map((step) => (
               <p key={step} className="rounded-md border border-border/60 px-3 py-2">
                 {step}
               </p>
@@ -863,17 +884,7 @@ export function WifeyRoutine() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Quick note</p>
-                <Textarea
-                  value={moodNote}
-                  onChange={(event) => setMoodNote(event.target.value)}
-                  placeholder="How are you feeling right now?"
-                  rows={3}
-                />
-              </div>
               <Button onClick={saveMood} disabled={!mood} className="w-full">Save mood</Button>
-              {mood ? <p className="text-xs text-muted-foreground">{getMoodTone(mood)}</p> : null}
             </div>
           </details>
 
@@ -986,26 +997,22 @@ export function WifeyRoutine() {
         <summary className="cursor-pointer list-none px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <MoonStar className="size-4 text-primary" />
-            Sleep + Hydration Weekly Insights
+            Weekly Snapshot
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Open weekly trend summary and recommendation.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Open for quick recovery summary.</p>
         </summary>
-        <div className="grid gap-3 border-t border-border/60 px-4 py-3">
-          <div className="rounded-lg border border-border/70 p-3">
+        <div className="grid gap-2 border-t border-border/60 px-4 py-3">
+          <div className="rounded-lg border border-border/70 p-2.5">
             <p className="text-xs text-muted-foreground">Avg sleep</p>
-            <p className="text-xl font-semibold text-foreground">{weeklyInsights.averageSleep.toFixed(1)}h</p>
+            <p className="text-base font-semibold text-foreground">{weeklyInsights.averageSleep.toFixed(1)}h</p>
           </div>
-          <div className="rounded-lg border border-border/70 p-3">
+          <div className="rounded-lg border border-border/70 p-2.5">
             <p className="text-xs text-muted-foreground">Avg hydration</p>
-            <p className="text-xl font-semibold text-foreground">{weeklyInsights.averageHydration.toFixed(1)} bottles</p>
+            <p className="text-base font-semibold text-foreground">{weeklyInsights.averageHydration.toFixed(1)} bottles</p>
           </div>
-          <div className="rounded-lg border border-border/70 p-3">
-            <p className="text-xs text-muted-foreground">Synergy days</p>
-            <p className="text-xl font-semibold text-foreground">{weeklyInsights.synergyDays}/7</p>
-          </div>
-          <div className="rounded-lg border border-border/70 p-3">
+          <div className="rounded-lg border border-border/70 p-2.5">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Focus: {weeklyInsights.focus}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{weeklyInsights.recommendation}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{weeklyInsights.recommendation}</p>
           </div>
         </div>
       </details>
@@ -1043,7 +1050,7 @@ export function WifeyRoutine() {
         </CardContent>
       </Card>
 
-      {isSpecialUser && data.settings.specialCompanion.lovesPuppies ? (
+      {isSpecialUser && data.settings.specialCompanion.lovesPuppies && !isMobile ? (
         <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-rose-300/50 bg-rose-500/5 p-4 text-sm text-muted-foreground">
           <PawPrint className="size-4 text-rose-500" />
           Love note: Proud of your discipline. Keep going, wifey.
