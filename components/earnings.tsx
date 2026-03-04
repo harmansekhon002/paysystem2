@@ -68,7 +68,7 @@ import { PieChart } from "@/components/ui/pie-chart"
 
 function RateEditor({ rates, onChange }: { rates: PenaltyRates; onChange: (r: PenaltyRates) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {(Object.keys(RATE_TYPE_LABELS) as RateType[]).map(rt => (
         <div key={rt} className="flex flex-col gap-1">
           <Label className="text-[11px] text-muted-foreground">{RATE_TYPE_LABELS[rt]}</Label>
@@ -406,7 +406,7 @@ export function Earnings() {
                     {isExpanded && (
                       <div className="mt-3 ml-12 rounded-xl border border-border bg-secondary/30 p-3">
                         <p className="text-xs font-medium text-muted-foreground mb-2">Penalty Rate Table</p>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
                           {(Object.keys(RATE_TYPE_LABELS) as RateType[]).map(rt => (
                             <div key={rt} className="flex justify-between py-0.5">
                               <span className="text-muted-foreground">{RATE_TYPE_LABELS[rt]}</span>
