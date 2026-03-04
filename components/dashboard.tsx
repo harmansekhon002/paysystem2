@@ -123,6 +123,7 @@ export function Dashboard() {
   const [quickExpenseAmount, setQuickExpenseAmount] = useState<string>("")
   const [quickExpenseCategory, setQuickExpenseCategory] = useState<string>("Transport")
   const [quickExpenseDescription, setQuickExpenseDescription] = useState<string>("Quick expense")
+  const [mobileInsightsOpen, setMobileInsightsOpen] = useState(false)
   const MISSED_SHIFT_TAG = "[MISSED]"
 
   useEffect(() => {
@@ -328,6 +329,14 @@ export function Dashboard() {
   const gridColor = "var(--color-border)"
   const legendColor = "var(--color-muted-foreground)"
   const showQuickActions = widgetConfig.quickActions && !isMobile
+  const statCards = [
+    { title: "This Week", value: `${stats.weekHours}h`, subtitle: formatCurrency(stats.weekEarnings, currencySymbol), icon: Clock },
+    { title: "Monthly Earnings", value: formatCurrency(stats.monthEarnings, currencySymbol), subtitle: `${stats.monthHours}h worked`, icon: DollarSign },
+    { title: "Monthly Spend", value: formatCurrency(stats.monthExpenses, currencySymbol), subtitle: `of ${formatCurrency(stats.totalBudgeted, currencySymbol)} budget`, icon: TrendingUp },
+    { title: "Upcoming", value: `${stats.upcomingShifts.length}`, subtitle: "shifts scheduled", icon: CalendarClock },
+  ]
+  const visibleStatCards = isMobile ? statCards.slice(0, 3) : statCards
+  const shouldRenderSecondaryInsights = !isMobile || mobileInsightsOpen
 
   return (
     <div className="mobile-page flex flex-col gap-6">
@@ -336,7 +345,7 @@ export function Dashboard() {
           {isSpecialUser ? `Welcome ${displayName}` : "Dashboard"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isSpecialUser ? "Welcome wifey. Your shift overview with puppy motivation." : "Your shift overview at a glance."}
+          {isSpecialUser ? "Top shift priorities for today." : "Your shift overview at a glance."}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Badge variant="secondary">Plan: {planName}</Badge>
@@ -356,14 +365,40 @@ export function Dashboard() {
 
       {widgetConfig.stats ? (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard title="This Week" value={`${stats.weekHours}h`} subtitle={formatCurrency(stats.weekEarnings, currencySymbol)} icon={Clock} accent />
-        <StatCard title="Monthly Earnings" value={formatCurrency(stats.monthEarnings, currencySymbol)} subtitle={`${stats.monthHours}h worked`} icon={DollarSign} accent />
-        <StatCard title="Monthly Spend" value={formatCurrency(stats.monthExpenses, currencySymbol)} subtitle={`of ${formatCurrency(stats.totalBudgeted, currencySymbol)} budget`} icon={TrendingUp} accent />
-        <StatCard title="Upcoming" value={`${stats.upcomingShifts.length}`} subtitle="shifts scheduled" icon={CalendarClock} accent />
+        {visibleStatCards.map((card) => (
+          <StatCard
+            key={card.title}
+            title={card.title}
+            value={card.value}
+            subtitle={card.subtitle}
+            icon={card.icon}
+            accent
+          />
+        ))}
       </div>
       ) : null}
 
-      {(widgetConfig.weeklyChart || widgetConfig.jobBreakdown) ? (
+      {isMobile && (widgetConfig.weeklyChart || widgetConfig.jobBreakdown || widgetConfig.profitability) ? (
+        <Card className="border-border/70">
+          <CardContent className="flex items-center justify-between px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{mobileInsightsOpen ? "Hide Insights" : "See More Insights"}</p>
+              <p className="text-xs text-muted-foreground">Charts and deeper trend cards.</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setMobileInsightsOpen((prev) => !prev)}
+              className="h-8 px-3 text-xs"
+            >
+              {mobileInsightsOpen ? "Hide" : "Show"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {shouldRenderSecondaryInsights && (widgetConfig.weeklyChart || widgetConfig.jobBreakdown) ? (
       <div className="grid gap-4 lg:grid-cols-5">
         {widgetConfig.weeklyChart ? (
         <Card className={widgetConfig.jobBreakdown ? "lg:col-span-3" : "lg:col-span-5"}>
@@ -491,7 +526,7 @@ export function Dashboard() {
       </Card>
       ) : null}
 
-      {(showQuickActions || widgetConfig.profitability) ? (
+      {shouldRenderSecondaryInsights && (showQuickActions || widgetConfig.profitability) ? (
         <div className="grid gap-4 lg:grid-cols-5">
           {showQuickActions ? (
             <Card className={widgetConfig.profitability ? "lg:col-span-3" : "lg:col-span-5"}>

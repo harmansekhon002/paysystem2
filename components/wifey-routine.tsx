@@ -589,7 +589,11 @@ export function WifeyRoutine() {
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">Top priorities</p>
           <p className="text-sm text-muted-foreground">Track today&apos;s routine first. Insights and extras are moved below.</p>
         </div>
-      ) : null}
+      ) : (
+        <div className="rounded-lg border border-border/70 bg-card/70 px-3 py-2 text-xs text-muted-foreground">
+          Today first: support, essentials, then care insights.
+        </div>
+      )}
 
       <Card className="border-primary/25">
         <CardHeader>
@@ -665,7 +669,71 @@ export function WifeyRoutine() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="md:hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BookOpenCheck className="size-4 text-primary" />
+              Today Essentials
+            </CardTitle>
+            <CardDescription>Water, sleep, and checklist in one card.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 rounded-lg border border-border/70 p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Water</p>
+                <p className="text-xs text-muted-foreground">{routine.waterBottles}/{hydrationGoal}</p>
+              </div>
+              <Progress value={Math.min(100, (routine.waterBottles / hydrationGoal) * 100)} />
+              <Button onClick={addWaterBottle} className="w-full">Add water bottle</Button>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-border/70 p-3">
+              <p className="text-sm font-medium">Sleep</p>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={14}
+                  step={0.5}
+                  value={sleepDraft}
+                  onChange={(event) => setSleepDraft(event.target.value)}
+                  placeholder="7.5"
+                />
+                <Button onClick={saveSleepHours} size="sm" className="shrink-0">Save</Button>
+              </div>
+              {sleepFeedback ? <p className="text-[11px] text-muted-foreground">{sleepFeedback}</p> : null}
+            </div>
+
+            <div className="grid gap-2">
+              <Button
+                variant={routine.exerciseDone ? "default" : "outline"}
+                className="w-full justify-between"
+                onClick={() => toggleRoutineFlag("exerciseDone", "Exercise")}
+              >
+                <span>Exercise</span>
+                <span className="text-xs">{routine.exerciseDone ? "Done" : "Pending"}</span>
+              </Button>
+              <Button
+                variant={routine.paathDone ? "default" : "outline"}
+                className="w-full justify-between"
+                onClick={() => toggleRoutineFlag("paathDone", "Paath")}
+              >
+                <span>Paath</span>
+                <span className="text-xs">{routine.paathDone ? "Done" : "Pending"}</span>
+              </Button>
+              <Button
+                variant={routine.studyDone ? "default" : "outline"}
+                className="w-full justify-between"
+                onClick={() => toggleRoutineFlag("studyDone", "Study")}
+              >
+                <span>Study</span>
+                <span className="text-xs">{routine.studyDone ? "Done" : "Pending"}</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Droplets className="size-4 text-cyan-500" />
@@ -703,7 +771,7 @@ export function WifeyRoutine() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <MoonStar className="size-4 text-indigo-500" />
@@ -726,7 +794,7 @@ export function WifeyRoutine() {
           </CardContent>
         </Card>
 
-        <Card className="md:hidden">
+        <Card className="hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <BookOpenCheck className="size-4 text-primary" />
@@ -992,30 +1060,6 @@ export function WifeyRoutine() {
         </Card>
         </>
       ) : null}
-
-      <details className="rounded-xl border border-primary/25 bg-card md:hidden">
-        <summary className="cursor-pointer list-none px-4 py-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <MoonStar className="size-4 text-primary" />
-            Weekly Snapshot
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">Open for quick recovery summary.</p>
-        </summary>
-        <div className="grid gap-2 border-t border-border/60 px-4 py-3">
-          <div className="rounded-lg border border-border/70 p-2.5">
-            <p className="text-xs text-muted-foreground">Avg sleep</p>
-            <p className="text-base font-semibold text-foreground">{weeklyInsights.averageSleep.toFixed(1)}h</p>
-          </div>
-          <div className="rounded-lg border border-border/70 p-2.5">
-            <p className="text-xs text-muted-foreground">Avg hydration</p>
-            <p className="text-base font-semibold text-foreground">{weeklyInsights.averageHydration.toFixed(1)} bottles</p>
-          </div>
-          <div className="rounded-lg border border-border/70 p-2.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Focus: {weeklyInsights.focus}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{weeklyInsights.recommendation}</p>
-          </div>
-        </div>
-      </details>
 
       <div className="hidden space-y-1 pt-1 md:block">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Progress and extras</p>

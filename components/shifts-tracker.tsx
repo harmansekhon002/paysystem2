@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat, Pencil, CheckSquare } from "lucide-react"
+import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat, Pencil, CheckSquare, MoreHorizontal } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useAppData } from "@/components/data-provider"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
 import {
   calculateShiftHours, calculateShiftEarnings, detectRateType,
@@ -22,6 +23,7 @@ import { trackEvent } from "@/lib/analytics"
 
 export function ShiftsTracker() {
   const { data, addShift, removeShift, updateShift, addJob, getJob, planName, isPremium, usage, limits } = useAppData()
+  const isMobile = useIsMobile()
   const { toast } = useToast()
   const [view, setView] = useState<"list" | "calendar">("list")
   const [calMonth, setCalMonth] = useState(() => new Date())
@@ -501,11 +503,62 @@ export function ShiftsTracker() {
             </PopoverContent>
           </Popover>
 
+          {isMobile ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5"
+                  aria-label="More shift tools"
+                >
+                  <MoreHorizontal className="size-4" />
+                  <span>Tools</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-2" align="start">
+                <div className="grid gap-1">
+                  <Button variant="ghost" className="h-8 justify-start gap-2 text-xs" onClick={exportToICalendar}>
+                    <Download className="size-3.5" />
+                    Export calendar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="h-8 justify-start gap-2 text-xs"
+                    onClick={() => {
+                      setMultiSelectMode((prev) => !prev)
+                      setSelectedShiftIds([])
+                    }}
+                  >
+                    <CheckSquare className="size-3.5" />
+                    {multiSelectMode ? "Disable multi-select" : "Enable multi-select"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="h-8 justify-start gap-2 text-xs"
+                    onClick={() => setRecurringDialogOpen(true)}
+                  >
+                    <Repeat className="size-3.5" />
+                    Recurring shifts
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="h-8 justify-start gap-2 text-xs"
+                    onClick={() => setJobDialogOpen(true)}
+                  >
+                    <Briefcase className="size-3.5" />
+                    Add workplace
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : null}
+
           {/* Export Button */}
           <Button
             size="sm"
             variant="outline"
-            className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+            className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:inline-flex sm:h-9 sm:px-3"
             onClick={exportToICalendar}
             aria-label="Export"
           >
@@ -516,7 +569,7 @@ export function ShiftsTracker() {
           <Button
             size="sm"
             variant={multiSelectMode ? "default" : "outline"}
-            className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+            className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:inline-flex sm:h-9 sm:px-3"
             onClick={() => {
               setMultiSelectMode((prev) => !prev)
               setSelectedShiftIds([])
@@ -533,7 +586,7 @@ export function ShiftsTracker() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+                className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:inline-flex sm:h-9 sm:px-3"
                 aria-label="Recurring shifts"
               >
                 <Repeat className="size-4" />
@@ -619,7 +672,7 @@ export function ShiftsTracker() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+                className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:inline-flex sm:h-9 sm:px-3"
                 aria-label="Add workplace"
               >
                 <Briefcase className="size-4" />

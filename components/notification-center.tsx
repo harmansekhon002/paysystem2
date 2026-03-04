@@ -209,13 +209,13 @@ export function NotificationCenter() {
   const positionPanel = useCallback(() => {
     const isCompact = window.innerWidth < 640
     setCompactPanel(isCompact)
-    const margin = isCompact ? 8 : 16
-    const top = window.innerWidth < 768 ? 64 : margin
+    const margin = isCompact ? 10 : 16
+    const top = window.innerWidth < 768 ? 58 : margin
     const panelWidth = isCompact
-      ? Math.min(320, window.innerWidth - margin * 2)
-      : Math.min(380, window.innerWidth - margin * 2)
+      ? Math.min(308, window.innerWidth - margin * 2)
+      : Math.min(372, window.innerWidth - margin * 2)
     const panelMaxHeight = isCompact
-      ? Math.max(240, window.innerHeight - top - margin)
+      ? Math.max(220, window.innerHeight - top - margin)
       : Math.max(280, window.innerHeight - top - margin)
 
     setPanelStyle({

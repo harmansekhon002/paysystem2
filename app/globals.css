@@ -273,54 +273,80 @@
 }
 
 @media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .theme-surface {
+    overflow-x: hidden;
+  }
+
   .mobile-page {
-    gap: 0.8rem !important;
+    --mobile-space: 0.95rem;
+    --mobile-card-pad: 0.95rem;
+    width: 100%;
+    max-width: 100%;
+    gap: var(--mobile-space) !important;
+  }
+
+  .mobile-page > * {
+    min-width: 0;
   }
 
   .mobile-page > div:first-child h1 {
-    font-size: 1.42rem;
-    line-height: 1.2;
+    font-size: 1.5rem;
+    line-height: 1.18;
+    letter-spacing: -0.01em;
   }
 
   .mobile-page > div:first-child p {
-    max-width: 36ch;
-    font-size: 0.86rem;
+    max-width: 34ch;
+    font-size: 0.9rem;
+    line-height: 1.4;
   }
 
   .mobile-page [data-slot="card"] {
-    gap: 0.72rem;
-    border-radius: 0.9rem;
-    padding-top: 0.72rem;
-    padding-bottom: 0.72rem;
-    box-shadow: 0 8px 18px -16px rgba(15, 23, 42, 0.35);
+    gap: 0.8rem;
+    border-radius: 0.95rem;
+    padding-top: var(--mobile-card-pad);
+    padding-bottom: var(--mobile-card-pad);
+    box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.38);
   }
 
   .mobile-page [data-slot="card-header"] {
-    gap: 0.35rem;
-    padding-left: 0.72rem;
-    padding-right: 0.72rem;
+    gap: 0.45rem;
+    padding-left: var(--mobile-card-pad);
+    padding-right: var(--mobile-card-pad);
   }
 
   .mobile-page [data-slot="card-content"],
   .mobile-page [data-slot="card-footer"] {
-    padding-left: 0.72rem;
-    padding-right: 0.72rem;
+    padding-left: var(--mobile-card-pad);
+    padding-right: var(--mobile-card-pad);
   }
 
   .mobile-page [data-slot="card-title"] {
-    line-height: 1.28;
-    font-size: 0.98rem;
+    line-height: 1.26;
+    font-size: 1rem;
+  }
+
+  .mobile-page [data-slot="card-description"] {
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
 
   .mobile-page [data-slot="button"] {
-    min-height: 2.25rem;
-    padding-inline: 0.72rem;
+    min-height: 2.4rem;
+    border-radius: 0.66rem;
+    padding-inline: 0.85rem;
   }
 
   .mobile-page [data-slot="input"],
   .mobile-page [data-slot="select-trigger"],
   .mobile-page textarea {
-    min-height: 2.25rem;
+    min-height: 2.4rem;
+    border-radius: 0.66rem;
     font-size: 16px;
   }
 
@@ -329,70 +355,72 @@
   }
 
   .mobile-page .gap-6 {
-    gap: 0.9rem !important;
+    gap: 1rem !important;
   }
 
   .mobile-page .gap-5 {
-    gap: 0.8rem !important;
+    gap: 0.9rem !important;
   }
 
   .mobile-page .gap-4 {
-    gap: 0.72rem !important;
+    gap: 0.8rem !important;
   }
 
   .mobile-page .p-6 {
-    padding: 0.95rem !important;
+    padding: 1rem !important;
   }
 
   .mobile-page .p-5 {
-    padding: 0.82rem !important;
+    padding: 0.95rem !important;
   }
 
   .mobile-page .p-4 {
-    padding: 0.72rem !important;
+    padding: 0.85rem !important;
   }
 
   .mobile-page .px-6,
   .mobile-page .px-5 {
-    padding-left: 0.82rem !important;
-    padding-right: 0.82rem !important;
+    padding-left: 0.9rem !important;
+    padding-right: 0.9rem !important;
   }
 
   .mobile-page .px-4 {
-    padding-left: 0.72rem !important;
-    padding-right: 0.72rem !important;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
   }
 
   .mobile-settings {
     width: 100%;
     max-width: 100%;
-    gap: 1rem !important;
+    gap: 1.1rem !important;
     overflow-x: hidden;
   }
 
   .mobile-settings .mobile-settings-grid {
     width: 100%;
     min-width: 0;
-    gap: 1.15rem;
+    gap: 1rem;
   }
 
   .mobile-settings .mobile-settings-group {
     width: 100%;
     min-width: 0;
     border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
-    background: color-mix(in oklch, var(--muted) 25%, transparent);
-    padding: 0.72rem;
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--muted) 18%, transparent);
+    padding: 0.95rem;
   }
 
   .mobile-settings .mobile-settings-group > div:first-child {
-    margin-bottom: 0.7rem;
+    margin-bottom: 0.85rem;
     border-bottom-width: 1px;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.55rem;
   }
 
   .mobile-settings .mobile-settings-card {
     width: 100%;
     min-width: 0;
+    overflow: hidden;
     box-shadow: 0 10px 22px -16px rgba(15, 23, 42, 0.32);
   }
 
@@ -401,15 +429,24 @@
   }
 
   .mobile-settings .mobile-settings-card [data-slot="card-header"] {
-    padding: 1.05rem 1.05rem 0.65rem;
+    padding: 1rem 1rem 0.65rem;
   }
 
   .mobile-settings .mobile-settings-card [data-slot="card-content"] {
-    padding: 0 1.05rem 1.05rem;
+    padding: 0 1rem 1rem;
   }
 
   .mobile-settings [data-slot="card-title"] {
-    font-size: 1.02rem;
+    font-size: 1rem;
+  }
+
+  .mobile-settings [data-slot="card-description"] {
+    max-width: 44ch;
+    line-height: 1.35;
+  }
+
+  .mobile-settings .mobile-settings-group .space-y-5 > [data-slot="card"] + [data-slot="card"] {
+    margin-top: 0.85rem;
   }
 
   .mobile-settings code {

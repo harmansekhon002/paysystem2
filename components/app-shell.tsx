@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ComponentType } from "react"
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
@@ -119,19 +119,91 @@ function WorldClock({
   primaryTimeZone,
   secondaryLabel,
   secondaryTimeZone,
+  draggable = false,
 }: {
   mode: ThemeMode
   primaryLabel: string
   primaryTimeZone: string
   secondaryLabel: string
   secondaryTimeZone: string
+  draggable?: boolean
 }) {
   const [now, setNow] = useState(() => new Date())
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const dragOffsetRef = useRef<{ x: number; y: number } | null>(null)
+  const storageKey = "shiftwise:world-clock-position"
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30 * 1000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (!draggable) return
+    try {
+      const raw = window.localStorage.getItem(storageKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as { x?: number; y?: number }
+      if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+        setPosition({ x: parsed.x, y: parsed.y })
+      }
+    } catch {
+      // Ignore invalid persisted positions.
+    }
+  }, [draggable])
+
+  useEffect(() => {
+    if (!draggable || !position) return
+    window.localStorage.setItem(storageKey, JSON.stringify(position))
+  }, [draggable, position])
+
+  useEffect(() => {
+    if (!draggable) return
+
+    const clampPosition = (nextX: number, nextY: number) => {
+      const card = cardRef.current
+      const width = card?.offsetWidth ?? 260
+      const height = card?.offsetHeight ?? 100
+      const margin = 12
+      const maxX = Math.max(margin, window.innerWidth - width - margin)
+      const maxY = Math.max(margin, window.innerHeight - height - margin)
+      return {
+        x: Math.min(Math.max(nextX, margin), maxX),
+        y: Math.min(Math.max(nextY, margin), maxY),
+      }
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const dragOffset = dragOffsetRef.current
+      if (!dragOffset) return
+      const next = clampPosition(event.clientX - dragOffset.x, event.clientY - dragOffset.y)
+      setPosition(next)
+    }
+
+    const handlePointerUp = () => {
+      dragOffsetRef.current = null
+      setDragging(false)
+    }
+
+    const handleResize = () => {
+      if (!position) return
+      const clamped = clampPosition(position.x, position.y)
+      if (clamped.x !== position.x || clamped.y !== position.y) {
+        setPosition(clamped)
+      }
+    }
+
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("resize", handleResize)
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("resize", handleResize)
+    }
+  }, [draggable, position])
 
   const firstTime = formatZoneTime(resolveTimeZone(primaryTimeZone), now)
   const secondTime = formatZoneTime(resolveTimeZone(secondaryTimeZone), now)
@@ -140,8 +212,29 @@ function WorldClock({
 
   return (
     <div
+      ref={cardRef}
+      onPointerDown={(event) => {
+        if (!draggable || event.button !== 0) return
+        const rect = cardRef.current?.getBoundingClientRect()
+        if (!rect) return
+        dragOffsetRef.current = { x: event.clientX - rect.left, y: event.clientY - rect.top }
+        setDragging(true)
+      }}
+      style={
+        draggable
+          ? {
+              position: "fixed",
+              left: position ? `${position.x}px` : undefined,
+              top: position ? `${position.y}px` : "12px",
+              right: position ? undefined : "16px",
+              zIndex: 40,
+              cursor: dragging ? "grabbing" : "grab",
+            }
+          : undefined
+      }
       className={cn(
         "rounded-xl border px-3 py-2 shadow-sm backdrop-blur-md",
+        draggable && "select-none",
         mode === "light"
           ? "border-orange-300/50 bg-white/90"
           : "border-border bg-card/90"
@@ -199,6 +292,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const settingsNavItem = useMemo<NavItem>(() => ({ label: "Settings", href: "/settings", icon: Settings }), [])
   const navItems = useMemo<NavItem[]>(() => {
     return [...baseNavItems, ...specialNavItems, ...studentParentNavItems, settingsNavItem]
+  }, [settingsNavItem, specialNavItems, studentParentNavItems])
+  const mobileNavSections = useMemo<Array<{ label: string; items: NavItem[] }>>(() => {
+    const sections: Array<{ label: string; items: NavItem[] }> = [{ label: "Core", items: baseNavItems }]
+    if (specialNavItems.length > 0) {
+      sections.push({ label: "Companion", items: specialNavItems })
+    }
+    if (studentParentNavItems.length > 0) {
+      sections.push({ label: "Student", items: studentParentNavItems })
+    }
+    sections.push({ label: "Preferences", items: [settingsNavItem] })
+    return sections
   }, [settingsNavItem, specialNavItems, studentParentNavItems])
 
   const requiresPin = isSpecialUser && specialCompanion.pinEnabled && specialCompanion.pinCode.trim().length > 0
@@ -349,13 +453,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}
         data-special-user={isSpecialUser ? "true" : "false"}
       >
-        <div className="fixed right-4 top-3 z-40 hidden pointer-events-none md:block">
+        <div className="hidden md:block">
           <WorldClock
             mode={activeThemeMode}
             primaryLabel={data.settings.worldClockPrimaryLabel}
             primaryTimeZone={data.settings.worldClockPrimaryTimeZone}
             secondaryLabel={data.settings.worldClockSecondaryLabel}
             secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
+            draggable
           />
         </div>
         {/* Desktop sidebar */}
@@ -461,10 +566,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <span className="max-w-[140px] truncate text-sm font-semibold text-foreground">{loveModeActive ? `${displayName}'s ShiftWise` : "ShiftWise"}</span>
           </div>
-          <div className="relative flex items-center gap-1">
-            <NotificationCenter />
-            <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
-          </div>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Menu</span>
         </header>
 
         {/* Mobile sidebar overlay */}
@@ -473,15 +575,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
             <div
               className={cn(
-                "absolute left-0 top-14 bottom-0 w-[min(86vw,320px)] border-r border-border p-4",
+                "absolute left-0 top-14 bottom-0 w-[min(90vw,340px)] border-r border-border p-4",
                 activeThemeMode === "light"
                   ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
                   : "bg-card"
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex h-full flex-col">
-                <SidebarNav items={navItems} mode={activeThemeMode} onNavigate={() => setMobileOpen(false)} />
+              <div className="flex h-full flex-col overflow-y-auto pr-1">
+                <div className="space-y-4">
+                  {mobileNavSections.map((section) => (
+                    <div key={section.label} className="space-y-1.5">
+                      <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        {section.label}
+                      </p>
+                      <SidebarNav items={section.items} mode={activeThemeMode} onNavigate={() => setMobileOpen(false)} />
+                    </div>
+                  ))}
+                </div>
                 <div className="mt-4">
                   <WorldClock
                     mode={activeThemeMode}
@@ -491,28 +602,56 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
                   />
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
-                  <div className="flex justify-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCurrencyCycle}
-                      className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                      aria-label="Change currency"
-                      title="Change currency"
-                    >
-                      {data.settings.currency}
-                    </Button>
+                <div className="mt-3 rounded-xl border border-border/70 bg-card/60 p-2.5">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quick controls</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="flex justify-center">
+                      <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
+                    </div>
+                    <div className="flex justify-center">
+                      <NotificationCenter />
+                    </div>
+                    <div className="flex justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCurrencyCycle}
+                        className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                        aria-label="Change currency"
+                        title="Change currency"
+                      >
+                        {data.settings.currency}
+                      </Button>
+                    </div>
+                    <div className="flex justify-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="size-8 text-muted-foreground hover:text-foreground"
+                        aria-label="Sign out"
+                      >
+                        <LogOut className="size-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex justify-center">
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
+                  <div className="flex items-center text-[11px] text-muted-foreground">
+                    {saveStatus === "saving" && "Saving..."}
+                    {saveStatus === "saved" && "Saved"}
+                    {saveStatus === "error" && "Save failed"}
+                    {saveStatus === "idle" && "Ready"}
+                  </div>
+                  <div className="flex justify-end">
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => signOut({ callbackUrl: "/login" })}
-                      className="size-8 text-muted-foreground hover:text-foreground"
-                      aria-label="Sign out"
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px]"
+                      onClick={() => setMobileOpen(false)}
                     >
-                      <LogOut className="size-4" />
+                      Close
                     </Button>
                   </div>
                 </div>
@@ -527,7 +666,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Main content */}
         <main className="flex-1 md:ml-[240px]">
           <div className="min-h-svh pt-14 pb-6 md:pt-0 md:pb-0">
-            <div className={cn("mx-auto max-w-5xl px-4 py-6 transition-all md:px-8 md:py-8", privacyModeEnabled && !privacyReveal && "blur-md")}>
+            <div className={cn("mx-auto w-full max-w-5xl px-3 py-4 transition-all sm:px-4 sm:py-6 md:px-8 md:py-8", privacyModeEnabled && !privacyReveal && "blur-md")}>
               {children}
             </div>
           </div>
