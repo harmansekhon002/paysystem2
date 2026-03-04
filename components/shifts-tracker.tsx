@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat, Pencil, CheckSquare, MoreHorizontal } from "lucide-react"
+import { Plus, Trash2, CalendarDays, List, Coffee, Briefcase, Filter, Download, Repeat, Pencil, CheckSquare, MoreHorizontal, DollarSign } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -427,7 +427,7 @@ export function ShiftsTracker() {
           </div>
         </div>
         <div className="w-full lg:w-auto">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-nowrap lg:overflow-visible lg:pb-0">
+          <div className="sticky top-14 z-30 flex items-center gap-2 overflow-x-auto bg-background/95 pb-1 backdrop-blur supports-[backdrop-filter]:bg-background/60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:relative lg:top-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:pb-0">
             {isMobile ? (
               <>
                 <Button
@@ -480,6 +480,7 @@ export function ShiftsTracker() {
                           <Input
                             id="mobile-filter-date-from"
                             type="date"
+                            className="h-10 sm:h-9"
                             value={filters.dateFrom}
                             onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
                           />
@@ -489,6 +490,7 @@ export function ShiftsTracker() {
                           <Input
                             id="mobile-filter-date-to"
                             type="date"
+                            className="h-10 sm:h-9"
                             value={filters.dateTo}
                             onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
                           />
@@ -735,7 +737,7 @@ export function ShiftsTracker() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label className="text-xs">Break (minutes)</Label>
-                    <Input type="number" min={0} step={5} value={recurringForm.breakMinutes} onChange={e => setRecurringForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
+                    <Input type="number" inputMode="numeric" pattern="[0-9]*" className="h-10 sm:h-9" min={0} step={5} value={recurringForm.breakMinutes} onChange={e => setRecurringForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label className="text-xs">Days of Week</Label>
@@ -761,7 +763,7 @@ export function ShiftsTracker() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label className="text-xs">Number of Weeks</Label>
-                    <Input type="number" min={1} max={12} value={recurringForm.occurrences} onChange={e => setRecurringForm(f => ({ ...f, occurrences: e.target.value }))} />
+                    <Input type="number" inputMode="numeric" pattern="[0-9]*" className="h-10 sm:h-9" min={1} max={12} value={recurringForm.occurrences} onChange={e => setRecurringForm(f => ({ ...f, occurrences: e.target.value }))} />
                   </div>
                 </div>
                 <DialogFooter>
@@ -809,7 +811,10 @@ export function ShiftsTracker() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label className="text-xs">Base Rate ({data.settings.currency}/hr)</Label>
-                    <Input type="number" step="0.01" min={0} value={jobForm.baseRate} onChange={e => setJobForm(j => ({ ...j, baseRate: e.target.value }))} />
+                    <div className="relative">
+                      <DollarSign className="absolute left-2.5 top-3 size-4 sm:top-2 text-muted-foreground" />
+                      <Input type="text" inputMode="decimal" className="pl-9 h-10 sm:h-9" value={jobForm.baseRate} onChange={e => setJobForm(j => ({ ...j, baseRate: e.target.value.replace(/[^0-9.]/g, "") }))} />
+                    </div>
                   </div>
                   <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
                     This sets all penalty rates to the same base rate. You can fine-tune rates on the Earnings page.
@@ -903,7 +908,7 @@ export function ShiftsTracker() {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs">Break (min)</Label>
-                      <Input type="number" min={0} step={5} value={form.breakMinutes} onChange={e => setForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
+                      <Input type="number" inputMode="numeric" pattern="[0-9]*" className="h-10 sm:h-9" min={0} step={5} value={form.breakMinutes} onChange={e => setForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
                     </div>
                   </div>
 
@@ -1005,7 +1010,7 @@ export function ShiftsTracker() {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs">Break (min)</Label>
-                      <Input type="number" min={0} step={5} value={editForm.breakMinutes} onChange={e => setEditForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
+                      <Input type="number" inputMode="numeric" pattern="[0-9]*" className="h-10 sm:h-9" min={0} step={5} value={editForm.breakMinutes} onChange={e => setEditForm(f => ({ ...f, breakMinutes: parseInt(e.target.value) || 0 }))} />
                     </div>
                   </div>
 

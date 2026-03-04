@@ -76,6 +76,60 @@ function ThemeToggle({ mode, onToggle, pulsing = false }: { mode: ThemeMode; onT
   )
 }
 
+function MobileBottomNav({ items, mode, onNavigate, isVisible }: { items: NavItem[]; mode: ThemeMode; onNavigate?: () => void; isVisible: boolean }) {
+  const pathname = usePathname()
+
+  return (
+    <div
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-in-out md:hidden",
+        isVisible ? "translate-y-0" : "translate-y-full",
+      )}
+    >
+      {/* Safe area padding block (required for modern iOS but handled generally via pb) */}
+      <nav
+        className={cn(
+          "flex items-center justify-around border-t px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl shadow-[0_-4px_16px_rgba(0,0,0,0.05)]",
+          mode === "light"
+            ? "border-orange-200/50 bg-white/90"
+            : mode === "love"
+              ? "border-pink-900/30 bg-[#250009]/90" // Match dark love theme base
+              : "border-border/60 bg-card/90"
+        )}
+      >
+        {items.map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => {
+                hapticFeedback(12)
+                onNavigate?.()
+              }}
+              className={cn(
+                "flex flex-1 flex-col items-center justify-center gap-1 min-w-[64px] rounded-xl py-1 transition-all",
+                isActive
+                  ? mode === "light"
+                    ? "text-orange-600 scale-105"
+                    : mode === "love"
+                      ? "text-rose-500 scale-105"
+                      : "text-primary scale-105"
+                  : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
+              )}
+            >
+              <div className={cn("relative flex items-center justify-center", isActive && "after:absolute after:-bottom-1 after:h-1 after:w-1 after:rounded-full after:bg-current")}>
+                <item.icon className={cn("size-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+              </div>
+              <span className="text-[10px] font-medium leading-none">{item.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+    </div>
+  )
+}
+
 function SidebarNav({ items, mode, onNavigate }: { items: NavItem[]; mode: ThemeMode; onNavigate?: () => void }) {
   const pathname = usePathname()
   return (
@@ -281,6 +335,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [pullDistance, setPullDistance] = useState(0)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const pullThreshold = 80
+
+  // Scroll detection for bottom nav
+  const [isNavVisible, setIsNavVisible] = useState(true)
+  const lastScrollYRef = useRef(0)
+
   const themeFlashTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
   const themePulseTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
   const routeTransitionTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
@@ -430,6 +489,73 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("online", handleOnline)
     }
   }, [refreshPlan])
+
+  // Scroll detection effect
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+
+      // Always show at the very top
+      if (currentScrollY < 10) {
+        setIsNavVisible(true)
+        lastScrollYRef.current = currentScrollY
+        return
+      }
+
+      // Determine direction
+      const goingDown = currentScrollY > lastScrollYRef.current
+      const diff = Math.abs(currentScrollY - lastScrollYRef.current)
+
+      // Require a minimum scroll distance to avoid jitter
+      if (diff > 8) {
+        setIsNavVisible(!goingDown)
+        lastScrollYRef.current = currentScrollY
+      }
+
+      // Always show at the bottom of the page
+      if (window.innerHeight + currentScrollY >= document.body.offsetHeight - 50) {
+        setIsNavVisible(true)
+      }
+    }
+
+    // Throttle scroll events slightly for performance
+    let ticking = false
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Dynamic Theme Color effect
+  useEffect(() => {
+    if (!mounted || typeof document === "undefined") return
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+    if (metaThemeColor) {
+      let requestedColor = "#ffffff" // default fallback
+      if (activeThemeMode === "light") {
+        requestedColor = "#fffbeb" // amber-50ish to match gradient
+      } else if (activeThemeMode === "dark") {
+        requestedColor = "#111827" // gray-900ish
+      } else if (activeThemeMode === "love") {
+        requestedColor = "#250009" // Custom dark love theme header
+        if (resolvedTheme === "light") {
+          requestedColor = "#fdf2f8" // pink-50ish for light love theme
+        }
+      }
+      metaThemeColor.setAttribute("content", requestedColor)
+    }
+  }, [activeThemeMode, mounted, resolvedTheme])
 
   useEffect(() => {
     const routesToPrefetch = Array.from(new Set([...navItems.map((item) => item.href), ...swipeRoutes]))
@@ -639,6 +765,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     handleThemeCycle()
   }
 
+  // Bottom Navigation core items
+  const bottomNavItems = useMemo(() => {
+    return [
+      { label: "Dash", href: "/", icon: LayoutDashboard },
+      { label: "Shifts", href: "/shifts", icon: CalendarClock },
+      { label: "Earnings", href: "/earnings", icon: DollarSign },
+      { label: "Goals", href: "/goals", icon: Target },
+    ]
+  }, [])
+
   return (
     <>
       {showSplash ? <WifeySplash name={displayName} /> : null}
@@ -665,7 +801,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="mb-4 text-sm text-muted-foreground">Enter your personal pin to open your dashboard without typing full login each time.</p>
             <div className="space-y-3">
               <Input
-                inputMode="numeric"
+                inputMode="decimal"
                 type="password"
                 placeholder="Enter pin"
                 value={pinInput}
@@ -905,7 +1041,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Main content */}
         <main className="flex-1 md:ml-[240px]">
-          <div className="min-h-svh pt-14 pb-6 md:pt-0 md:pb-0">
+          <div className="min-h-svh pt-14 pb-20 md:pt-0 md:pb-0">
             <div
               className={cn(
                 "mx-auto w-full max-w-5xl px-3 py-4 transition-all sm:px-4 sm:py-6 md:px-8 md:py-8",
@@ -961,6 +1097,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
         ) : null}
+
+        <MobileBottomNav items={bottomNavItems} mode={activeThemeMode} isVisible={isNavVisible} />
       </div>
     </>
   )
