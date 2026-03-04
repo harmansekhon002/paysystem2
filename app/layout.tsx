@@ -12,6 +12,15 @@ export const metadata: Metadata = {
   title: 'ShiftWise - Smart Shift Management for Students',
   description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals. Built for students who hustle.',
   generator: 'v0.app',
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ShiftWise",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: 'ShiftWise - Smart Shift Management for Students',
     description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals.',

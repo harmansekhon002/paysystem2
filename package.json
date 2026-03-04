@@ -18,6 +18,13 @@
     "test:e2e:debug": "playwright test --debug",
     "analyze": "ANALYZE=true next build --webpack",
     "vercel-build": "next build --webpack",
+    "mobile:sync": "npx cap sync",
+    "mobile:add:android": "npx cap add android",
+    "mobile:add:ios": "npx cap add ios",
+    "mobile:open:android": "npx cap open android",
+    "mobile:open:ios": "npx cap open ios",
+    "mobile:run:android": "npx cap run android",
+    "mobile:run:ios": "npx cap run ios",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -28,6 +35,9 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/ios": "^8.1.0",
     "@hookform/resolvers": "^3.9.1",
     "@paypal/react-paypal-js": "^8.9.2",
     "@prisma/client": "^6.2.0",
@@ -83,6 +93,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.1.0",
     "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.49.1",
     "@tailwindcss/postcss": "^4.2.0",

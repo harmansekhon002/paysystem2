@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
+import { useEffect, useMemo, useRef, useState, type ComponentType, type MouseEvent, type TouchEvent } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { signOut } from "next-auth/react"
 import {
@@ -27,6 +27,7 @@ import {
   Eye,
   EyeOff,
   Shield,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ import { useAppData } from "@/components/data-provider"
 import { NotificationCenter } from "@/components/notification-center"
 import { WifeySplash } from "@/components/wifey-splash"
 import { LoveCelebration } from "@/components/love-celebration"
+import { InstallAppPrompt } from "@/components/install-app-prompt"
 import { triggerSpecialCelebration } from "@/lib/special-features"
 import { resolveTimeZone } from "@/lib/timezone"
 
@@ -56,13 +58,13 @@ type NavItem = {
 
 type ThemeMode = "light" | "dark" | "love"
 
-function ThemeToggle({ mode, onToggle }: { mode: ThemeMode; onToggle: () => void }) {
+function ThemeToggle({ mode, onToggle, pulsing = false }: { mode: ThemeMode; onToggle: () => void; pulsing?: boolean }) {
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={onToggle}
-      className="size-8"
+      className={cn("size-8", pulsing && "theme-toggle-pulse")}
       aria-label="Toggle theme"
       title={mode === "love" ? "Love theme" : mode === "dark" ? "Dark theme" : "Light theme"}
     >
@@ -260,14 +262,26 @@ function WorldClock({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { resolvedTheme, setTheme } = useTheme()
+  const router = useRouter()
+  const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showSplash, setShowSplash] = useState(false)
+  const [themeFlashMode, setThemeFlashMode] = useState<ThemeMode | null>(null)
+  const [themeTogglePulse, setThemeTogglePulse] = useState(false)
+  const [routeTransitioning, setRouteTransitioning] = useState(false)
+  const [networkOnline, setNetworkOnline] = useState(true)
+  const [networkRecovering, setNetworkRecovering] = useState(false)
   const [pinInput, setPinInput] = useState("")
   const [pinError, setPinError] = useState("")
   const [pinUnlocked, setPinUnlocked] = useState(true)
   const [privacyReveal, setPrivacyReveal] = useState(false)
+  const themeFlashTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
+  const themePulseTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
+  const routeTransitionTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
+  const swipeTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const hasPathnameInitializedRef = useRef(false)
 
-  const { data, updateSettings, updateSpecialCompanion, saveStatus, lastSavedAt, planName, isSpecialUser, displayName } = useAppData()
+  const { data, updateSettings, updateSpecialCompanion, saveStatus, lastSavedAt, planName, isSpecialUser, displayName, refreshPlan } = useAppData()
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
 
   const specialCompanion = data.settings.specialCompanion
@@ -304,6 +318,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     sections.push({ label: "Preferences", items: [settingsNavItem] })
     return sections
   }, [settingsNavItem, specialNavItems, studentParentNavItems])
+  const swipeRoutes = useMemo(() => {
+    return [
+      "/",
+      "/shifts",
+      "/earnings",
+      "/budget",
+      "/goals",
+      "/analytics",
+      ...(specialNavItems.length > 0 || studentParentNavItems.length > 0 ? ["/wifey-routine", "/couple-dashboard"] : []),
+    ]
+  }, [specialNavItems.length, studentParentNavItems.length])
 
   const requiresPin = isSpecialUser && specialCompanion.pinEnabled && specialCompanion.pinCode.trim().length > 0
   const privacyModeEnabled = isSpecialUser && specialCompanion.privacyMode
@@ -354,6 +379,139 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [privacyModeEnabled])
 
+  useEffect(() => {
+    return () => {
+      if (themeFlashTimeoutRef.current) clearTimeout(themeFlashTimeoutRef.current)
+      if (themePulseTimeoutRef.current) clearTimeout(themePulseTimeoutRef.current)
+      if (routeTransitionTimeoutRef.current) clearTimeout(routeTransitionTimeoutRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setNetworkOnline(window.navigator.onLine)
+
+    const handleOffline = () => {
+      setNetworkOnline(false)
+      setNetworkRecovering(false)
+    }
+
+    const handleOnline = () => {
+      setNetworkOnline(true)
+      setNetworkRecovering(true)
+      void refreshPlan()
+      window.setTimeout(() => setNetworkRecovering(false), 2200)
+    }
+
+    window.addEventListener("offline", handleOffline)
+    window.addEventListener("online", handleOnline)
+
+    return () => {
+      window.removeEventListener("offline", handleOffline)
+      window.removeEventListener("online", handleOnline)
+    }
+  }, [refreshPlan])
+
+  useEffect(() => {
+    const routesToPrefetch = Array.from(new Set([...navItems.map((item) => item.href), ...swipeRoutes]))
+    routesToPrefetch.forEach((route) => {
+      void router.prefetch(route)
+    })
+  }, [navItems, router, swipeRoutes])
+
+  useEffect(() => {
+    if (!hasPathnameInitializedRef.current) {
+      hasPathnameInitializedRef.current = true
+      return
+    }
+
+    setRouteTransitioning(true)
+    if (routeTransitionTimeoutRef.current) clearTimeout(routeTransitionTimeoutRef.current)
+    routeTransitionTimeoutRef.current = window.setTimeout(() => {
+      setRouteTransitioning(false)
+    }, 220)
+  }, [pathname])
+
+  const beginRouteTransition = () => {
+    setRouteTransitioning(true)
+    if (routeTransitionTimeoutRef.current) clearTimeout(routeTransitionTimeoutRef.current)
+    routeTransitionTimeoutRef.current = window.setTimeout(() => {
+      setRouteTransitioning(false)
+    }, 1200)
+  }
+
+  const handleMobileNav = () => {
+    beginRouteTransition()
+    setMobileOpen(false)
+  }
+
+  const handleMainClickCapture = (event: MouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement
+    const anchor = target.closest("a[href]") as HTMLAnchorElement | null
+    if (!anchor) return
+    const href = anchor.getAttribute("href")
+    if (!href || !href.startsWith("/") || href.startsWith("//")) return
+    if (href === pathname) return
+    beginRouteTransition()
+  }
+
+  const handleMainTouchStart = (event: TouchEvent<HTMLElement>) => {
+    if (typeof window === "undefined" || window.innerWidth >= 768 || mobileOpen) return
+    const target = event.target as HTMLElement
+    if (target.closest("input, textarea, select, button, [role='button'], [data-no-swipe='true']")) return
+    const touch = event.touches[0]
+    swipeTouchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+  }
+
+  const handleMainTouchEnd = (event: TouchEvent<HTMLElement>) => {
+    if (typeof window === "undefined" || window.innerWidth >= 768 || mobileOpen) return
+    const start = swipeTouchStartRef.current
+    swipeTouchStartRef.current = null
+    if (!start) return
+
+    const touch = event.changedTouches[0]
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    const elapsed = Date.now() - start.time
+
+    if (elapsed > 700) return
+    if (Math.abs(dx) < 90) return
+    if (Math.abs(dx) < Math.abs(dy) * 1.35) return
+
+    const currentIndex = swipeRoutes.indexOf(pathname)
+    if (currentIndex === -1) return
+
+    const nextIndex = dx < 0 ? currentIndex + 1 : currentIndex - 1
+    if (nextIndex < 0 || nextIndex >= swipeRoutes.length) return
+
+    beginRouteTransition()
+    router.push(swipeRoutes[nextIndex])
+  }
+
+  const runThemeTransitionFeedback = (mode: ThemeMode) => {
+    setThemeFlashMode(mode)
+    setThemeTogglePulse(true)
+
+    if (themeFlashTimeoutRef.current) clearTimeout(themeFlashTimeoutRef.current)
+    if (themePulseTimeoutRef.current) clearTimeout(themePulseTimeoutRef.current)
+
+    themePulseTimeoutRef.current = setTimeout(() => {
+      setThemeTogglePulse(false)
+    }, 260)
+
+    themeFlashTimeoutRef.current = setTimeout(() => {
+      setThemeFlashMode(null)
+    }, 520)
+
+    try {
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(16)
+      }
+    } catch {
+      // Ignore vibration API failures.
+    }
+  }
+
   const handleCurrencyCycle = () => {
     const currentIndex = currencyOptions.indexOf(data.settings.currency as (typeof currencyOptions)[number])
     const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % currencyOptions.length : 0
@@ -387,19 +545,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const handleThemeCycle = () => {
     if (!isSpecialUser) {
-      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+      const nextMode: ThemeMode = resolvedTheme === "dark" ? "light" : "dark"
+      setTheme(nextMode)
+      runThemeTransitionFeedback(nextMode)
       return
     }
 
     if (loveModeActive) {
       updateSpecialCompanion({ loveThemeEnabled: false })
       setTheme("light")
+      runThemeTransitionFeedback("light")
       triggerSpecialCelebration("Light theme enabled", "light")
       return
     }
 
     if (resolvedTheme === "light") {
       setTheme("dark")
+      runThemeTransitionFeedback("dark")
       triggerSpecialCelebration("Dark theme enabled", "dark")
       return
     }
@@ -407,11 +569,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (resolvedTheme === "dark") {
       updateSpecialCompanion({ loveThemeEnabled: true })
       setTheme("light")
+      runThemeTransitionFeedback("love")
       triggerSpecialCelebration("Love theme enabled", "love")
       return
     }
 
     setTheme("light")
+    runThemeTransitionFeedback("light")
     triggerSpecialCelebration("Light theme enabled", "light")
   }
 
@@ -419,6 +583,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       {showSplash ? <WifeySplash name={displayName} /> : null}
       <LoveCelebration enabled={loveModeActive && specialCompanion.celebrationEnabled} />
+      {themeFlashMode ? (
+        <div
+          className={cn(
+            "theme-flash-overlay pointer-events-none fixed inset-0 z-[111]",
+            themeFlashMode === "light" && "theme-flash-light",
+            themeFlashMode === "dark" && "theme-flash-dark",
+            themeFlashMode === "love" && "theme-flash-love"
+          )}
+          aria-hidden
+        />
+      ) : null}
 
       {requiresPin && !pinUnlocked ? (
         <div className="fixed inset-0 z-[125] flex items-center justify-center bg-background/95 px-4 backdrop-blur-md">
@@ -453,6 +628,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}
         data-special-user={isSpecialUser ? "true" : "false"}
       >
+        {!networkOnline || networkRecovering ? (
+          <div className="fixed left-0 right-0 top-14 z-[113] px-3 md:left-[240px] md:top-3 md:px-6">
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-sm backdrop-blur-md",
+                networkOnline
+                  ? "border-emerald-300/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
+                  : "border-amber-300/60 bg-amber-500/10 text-amber-700 dark:text-amber-200"
+              )}
+            >
+              {networkRecovering ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              <span>
+                {networkOnline
+                  ? "Back online. Retrying sync."
+                  : "Offline mode. Changes save locally and retry when online."}
+              </span>
+            </div>
+          </div>
+        ) : null}
+        {routeTransitioning ? (
+          <div className="route-transition-overlay pointer-events-none fixed inset-0 z-[112] md:left-[240px]" aria-hidden />
+        ) : null}
         <div className="hidden md:block">
           <WorldClock
             mode={activeThemeMode}
@@ -491,12 +688,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Welcome wifey.
               </div>
             ) : null}
-            <SidebarNav items={navItems} mode={activeThemeMode} />
+            <SidebarNav items={navItems} mode={activeThemeMode} onNavigate={beginRouteTransition} />
           </div>
           <div className="relative border-t border-border px-4 py-3">
             <div className="grid grid-cols-4 items-center gap-2">
               <div className="flex justify-center">
-                <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
+                <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} pulsing={themeTogglePulse} />
               </div>
               <div className="flex justify-center">
                 <NotificationCenter />
@@ -582,31 +779,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex h-full flex-col overflow-y-auto pr-1">
-                <div className="space-y-4">
-                  {mobileNavSections.map((section) => (
-                    <div key={section.label} className="space-y-1.5">
-                      <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                        {section.label}
-                      </p>
-                      <SidebarNav items={section.items} mode={activeThemeMode} onNavigate={() => setMobileOpen(false)} />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <WorldClock
-                    mode={activeThemeMode}
-                    primaryLabel={data.settings.worldClockPrimaryLabel}
-                    primaryTimeZone={data.settings.worldClockPrimaryTimeZone}
-                    secondaryLabel={data.settings.worldClockSecondaryLabel}
-                    secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
-                  />
-                </div>
-                <div className="mt-3 rounded-xl border border-border/70 bg-card/60 p-2.5">
+              <div className="flex h-full flex-col">
+                <div className="rounded-xl border border-border/70 bg-card/70 p-2.5">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quick controls</p>
                   <div className="grid grid-cols-4 gap-2">
                     <div className="flex justify-center">
-                      <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} />
+                      <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} pulsing={themeTogglePulse} />
                     </div>
                     <div className="flex justify-center">
                       <NotificationCenter />
@@ -636,27 +814,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
-                  <div className="flex items-center text-[11px] text-muted-foreground">
-                    {saveStatus === "saving" && "Saving..."}
-                    {saveStatus === "saved" && "Saved"}
-                    {saveStatus === "error" && "Save failed"}
-                    {saveStatus === "idle" && "Ready"}
+                <div className="mt-3 flex-1 overflow-y-auto pr-1">
+                  <div className="space-y-4">
+                    {mobileNavSections.map((section) => (
+                      <div key={section.label} className="space-y-1.5">
+                        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          {section.label}
+                        </p>
+                        <SidebarNav items={section.items} mode={activeThemeMode} onNavigate={handleMobileNav} />
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-[11px]"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      Close
-                    </Button>
+                  <div className="mt-4">
+                    <WorldClock
+                      mode={activeThemeMode}
+                      primaryLabel={data.settings.worldClockPrimaryLabel}
+                      primaryTimeZone={data.settings.worldClockPrimaryTimeZone}
+                      secondaryLabel={data.settings.worldClockSecondaryLabel}
+                      secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
+                    />
                   </div>
-                </div>
-                <div className="mt-2 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
-                  Plan: {planName}
+                  <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
+                    <div className="flex items-center text-[11px] text-muted-foreground">
+                      {saveStatus === "saving" && "Saving..."}
+                      {saveStatus === "saved" && "Saved"}
+                      {saveStatus === "error" && "Save failed"}
+                      {saveStatus === "idle" && "Ready"}
+                    </div>
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[11px]"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-2 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
+                    Plan: {planName}
+                  </div>
                 </div>
               </div>
             </div>
@@ -666,11 +865,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Main content */}
         <main className="flex-1 md:ml-[240px]">
           <div className="min-h-svh pt-14 pb-6 md:pt-0 md:pb-0">
-            <div className={cn("mx-auto w-full max-w-5xl px-3 py-4 transition-all sm:px-4 sm:py-6 md:px-8 md:py-8", privacyModeEnabled && !privacyReveal && "blur-md")}>
+            <div
+              className={cn(
+                "mx-auto w-full max-w-5xl px-3 py-4 transition-all sm:px-4 sm:py-6 md:px-8 md:py-8",
+                privacyModeEnabled && !privacyReveal && "blur-md",
+                routeTransitioning && "opacity-85"
+              )}
+              onClickCapture={handleMainClickCapture}
+              onTouchStart={handleMainTouchStart}
+              onTouchEnd={handleMainTouchEnd}
+            >
               {children}
             </div>
           </div>
         </main>
+        <InstallAppPrompt />
 
         {privacyModeEnabled ? (
           <div className="fixed bottom-6 right-4 z-[110] md:right-6">

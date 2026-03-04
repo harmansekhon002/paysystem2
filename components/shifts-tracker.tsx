@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { useAppData } from "@/components/data-provider"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
@@ -27,6 +28,8 @@ export function ShiftsTracker() {
   const { toast } = useToast()
   const [view, setView] = useState<"list" | "calendar">("list")
   const [calMonth, setCalMonth] = useState(() => new Date())
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [jobDialogOpen, setJobDialogOpen] = useState(false)
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false)
@@ -423,13 +426,96 @@ export function ShiftsTracker() {
         </div>
         <div className="w-full lg:w-auto">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-nowrap lg:overflow-visible lg:pb-0">
+          {isMobile ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5"
+                aria-label="Filter shifts"
+                onClick={() => setMobileFilterOpen(true)}
+              >
+                <Filter className="size-4" />
+                <span>Filter</span>
+                {(filters.jobId !== "all" || filters.rateType !== "all" || filters.dateFrom || filters.dateTo) && (
+                  <Badge variant="secondary" className="ml-1 size-4 rounded-full p-0 text-[9px]">!</Badge>
+                )}
+              </Button>
+
+              <Drawer open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+                <DrawerContent className="max-h-[85vh]">
+                  <DrawerHeader>
+                    <DrawerTitle>Filter Shifts</DrawerTitle>
+                  </DrawerHeader>
+                  <div className="grid gap-3 overflow-y-auto px-4 pb-4">
+                    <div className="grid gap-1.5">
+                      <Label className="text-xs">Workplace</Label>
+                      <Select value={filters.jobId} onValueChange={(v) => setFilters((f) => ({ ...f, jobId: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Workplaces</SelectItem>
+                          {data.jobs.map((j) => (
+                            <SelectItem key={`mobile-filter-${j.id}`} value={j.id}>{j.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label className="text-xs">Rate Type</Label>
+                      <Select value={filters.rateType} onValueChange={(v) => setFilters((f) => ({ ...f, rateType: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          {(Object.keys(RATE_TYPE_LABELS) as RateType[]).map((rt) => (
+                            <SelectItem key={`mobile-filter-rate-${rt}`} value={rt}>{RATE_TYPE_LABELS[rt]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="mobile-filter-date-from" className="text-xs">From</Label>
+                        <Input
+                          id="mobile-filter-date-from"
+                          type="date"
+                          value={filters.dateFrom}
+                          onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="mobile-filter-date-to" className="text-xs">To</Label>
+                        <Input
+                          id="mobile-filter-date-to"
+                          type="date"
+                          value={filters.dateTo}
+                          onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-1 grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setFilters({ jobId: "all", rateType: "all", dateFrom: "", dateTo: "" })
+                        }}
+                      >
+                        Clear
+                      </Button>
+                      <Button onClick={() => setMobileFilterOpen(false)}>Apply</Button>
+                    </div>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </>
+          ) : null}
+
           {/* Filter Popover */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3"
+                className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:inline-flex sm:h-9 sm:px-3"
                 aria-label="Filter shifts"
               >
                 <Filter className="size-4" />
@@ -504,54 +590,72 @@ export function ShiftsTracker() {
           </Popover>
 
           {isMobile ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5"
-                  aria-label="More shift tools"
-                >
-                  <MoreHorizontal className="size-4" />
-                  <span>Tools</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="start">
-                <div className="grid gap-1">
-                  <Button variant="ghost" className="h-8 justify-start gap-2 text-xs" onClick={exportToICalendar}>
-                    <Download className="size-3.5" />
-                    Export calendar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="h-8 justify-start gap-2 text-xs"
-                    onClick={() => {
-                      setMultiSelectMode((prev) => !prev)
-                      setSelectedShiftIds([])
-                    }}
-                  >
-                    <CheckSquare className="size-3.5" />
-                    {multiSelectMode ? "Disable multi-select" : "Enable multi-select"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="h-8 justify-start gap-2 text-xs"
-                    onClick={() => setRecurringDialogOpen(true)}
-                  >
-                    <Repeat className="size-3.5" />
-                    Recurring shifts
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="h-8 justify-start gap-2 text-xs"
-                    onClick={() => setJobDialogOpen(true)}
-                  >
-                    <Briefcase className="size-3.5" />
-                    Add workplace
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5"
+                aria-label="More shift tools"
+                onClick={() => setMobileToolsOpen(true)}
+              >
+                <MoreHorizontal className="size-4" />
+                <span>Tools</span>
+              </Button>
+              <Drawer open={mobileToolsOpen} onOpenChange={setMobileToolsOpen}>
+                <DrawerContent className="max-h-[80vh]">
+                  <DrawerHeader>
+                    <DrawerTitle>Shift Tools</DrawerTitle>
+                  </DrawerHeader>
+                  <div className="grid gap-2 overflow-y-auto px-4 pb-4">
+                    <Button
+                      variant="outline"
+                      className="justify-start gap-2"
+                      onClick={() => {
+                        exportToICalendar()
+                        setMobileToolsOpen(false)
+                      }}
+                    >
+                      <Download className="size-3.5" />
+                      Export calendar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="justify-start gap-2"
+                      onClick={() => {
+                        setMultiSelectMode((prev) => !prev)
+                        setSelectedShiftIds([])
+                        setMobileToolsOpen(false)
+                      }}
+                    >
+                      <CheckSquare className="size-3.5" />
+                      {multiSelectMode ? "Disable multi-select" : "Enable multi-select"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="justify-start gap-2"
+                      onClick={() => {
+                        setRecurringDialogOpen(true)
+                        setMobileToolsOpen(false)
+                      }}
+                    >
+                      <Repeat className="size-3.5" />
+                      Recurring shifts
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="justify-start gap-2"
+                      onClick={() => {
+                        setJobDialogOpen(true)
+                        setMobileToolsOpen(false)
+                      }}
+                    >
+                      <Briefcase className="size-3.5" />
+                      Add workplace
+                    </Button>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </>
           ) : null}
 
           {/* Export Button */}

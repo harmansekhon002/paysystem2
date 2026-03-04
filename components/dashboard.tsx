@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { useTheme } from "next-themes"
 import {
   ArrowRight,
@@ -14,20 +15,7 @@ import {
   Receipt,
   TrendingUp,
 } from "lucide-react"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Rectangle,
-  type TooltipProps,
-} from "recharts"
-
 import { useAppData } from "@/components/data-provider"
-import { PieChart } from "@/components/ui/pie-chart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,39 +26,19 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
 import { calculateShiftEarnings, detectRateType, formatCurrency, RATE_TYPE_LABELS } from "@/lib/store"
 
-function CustomBarTooltip({
-  active,
-  payload,
-  label,
-  theme,
-}: TooltipProps<number, string> & { theme: "light" | "dark" }) {
-  if (!active || !payload || !payload.length) return null
-  const isDark = theme === "dark"
-  const bg = isDark ? "#111827" : "#fff"
-  const color = isDark ? "#f9fafb" : "#111827"
-  const titleColor = isDark ? "#22d3aa" : "#ea580c"
-  const value = Number(payload[0]?.value ?? 0)
-  return (
-    <div
-      style={{
-        background: bg,
-        color,
-        border: "none",
-        borderRadius: 8,
-        fontSize: 14,
-        fontWeight: 700,
-        boxShadow: isDark ? "0 4px 16px 0 rgba(0,0,0,0.85)" : "0 2px 8px 0 rgba(0,0,0,0.08)",
-        padding: "12px 18px",
-        minWidth: 90,
-        textAlign: "center",
-        letterSpacing: "0.01em",
-      }}
-    >
-      <div style={{ color: titleColor, fontWeight: 700 }}>{String(label ?? "")}</div>
-      <div style={{ color, fontWeight: 700 }}>{`$${value}`}</div>
-    </div>
-  )
-}
+const DashboardChartInsights = dynamic(
+  () => import("@/components/dashboard-chart-insights").then((mod) => mod.DashboardChartInsights),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          Loading insights...
+        </CardContent>
+      </Card>
+    ),
+  }
+)
 
 function StatCard({
   title,
@@ -399,65 +367,18 @@ export function Dashboard() {
       ) : null}
 
       {shouldRenderSecondaryInsights && (widgetConfig.weeklyChart || widgetConfig.jobBreakdown) ? (
-      <div className="grid gap-4 lg:grid-cols-5">
-        {widgetConfig.weeklyChart ? (
-        <Card className={widgetConfig.jobBreakdown ? "lg:col-span-3" : "lg:col-span-5"}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Weekly Earnings</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[220px] pt-0">
-            {hasShifts ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyChartData} barSize={32} barCategoryGap={30} barGap={8}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-                  <XAxis dataKey="day" tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} />
-                  <YAxis tick={{ fontSize: 12, fill: axisColor }} tickLine={false} axisLine={false} stroke={axisColor} tickFormatter={(v) => `${currencySymbol}${v}`} />
-                  <Tooltip cursor={{ fill: "hsl(var(--muted) / 0.12)", stroke: "transparent" }} content={<CustomBarTooltip theme={isDark ? "dark" : "light"} />} />
-                  <Bar
-                    dataKey="earnings"
-                    fill="var(--color-primary)"
-                    radius={[6, 6, 0, 0]}
-                    stroke="transparent"
-                    activeBar={<Rectangle stroke="var(--color-border)" strokeWidth={1} />}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                Log a shift to see your weekly earnings.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        ) : null}
-
-        {widgetConfig.jobBreakdown ? (
-        <Card className={widgetConfig.weeklyChart ? "lg:col-span-2" : "lg:col-span-5"}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">By Job</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-3 pt-0">
-            {jobPieData.length > 0 ? (
-              <>
-                <div className="h-[150px] w-[150px]">
-                  <PieChart data={jobPieData} tooltipFormatter={(value) => [formatCurrency(Number(value), currencySymbol), "Earned"]} />
-                </div>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
-                  {jobPieData.map((entry) => (
-                    <div key={entry.name} className="flex items-center gap-1.5 text-xs" style={{ color: legendColor }}>
-                      <div className="size-2 rounded-full" style={{ background: entry.color }} />
-                      {entry.name}
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="py-6 text-sm text-muted-foreground">No earnings yet.</p>
-            )}
-          </CardContent>
-        </Card>
-        ) : null}
-      </div>
+        <DashboardChartInsights
+          showWeeklyChart={widgetConfig.weeklyChart}
+          showJobBreakdown={widgetConfig.jobBreakdown}
+          hasShifts={hasShifts}
+          weeklyChartData={weeklyChartData}
+          currencySymbol={currencySymbol}
+          jobPieData={jobPieData}
+          isDark={isDark}
+          axisColor={axisColor}
+          gridColor={gridColor}
+          legendColor={legendColor}
+        />
       ) : null}
 
       {widgetConfig.upcomingShifts ? (
