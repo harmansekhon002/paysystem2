@@ -160,7 +160,7 @@ export function Goals() {
                   <Label className="text-xs">Goal Name</Label>
                   <Input placeholder="e.g. Bali Trip" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="goal-target" className="text-xs">Target Amount ({data.settings.currency})</Label>
                     <Input id="goal-target" type="number" min={0} step="0.01" placeholder="1000" value={form.targetAmount} onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))} />
@@ -185,7 +185,7 @@ export function Goals() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
             <span className="text-xs text-muted-foreground">Total Saved</span>
@@ -228,7 +228,7 @@ export function Goals() {
               <Card key={goal.id}>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-3">
+                    <div className="flex flex-1 items-start gap-3 min-w-0">
                       <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 shrink-0">
                         <Target className="size-5 text-primary" />
                       </div>

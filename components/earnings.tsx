@@ -88,30 +88,30 @@ function RateEditor({ rates, onChange }: { rates: PenaltyRates; onChange: (r: Pe
 
 export function Earnings() {
   const { data, addJob, updateJob, removeJob } = useAppData()
-    // Edit job dialog state
-    const [editJobId, setEditJobId] = useState<string | null>(null);
-    const [editForm, setEditForm] = useState<null | JobTemplate>(null);
+  // Edit job dialog state
+  const [editJobId, setEditJobId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<null | JobTemplate>(null);
 
-    const openEditJob = (job: JobTemplate) => {
-      setEditJobId(job.id);
-      setEditForm({ ...job });
-    };
-    const closeEditJob = () => {
-      setEditJobId(null);
-      setEditForm(null);
-    };
-    const handleEditJobSave = () => {
-      if (editJobId && editForm) {
-        updateJob(editJobId, {
-          name: editForm.name,
-          category: editForm.category,
-          baseRate: editForm.baseRate,
-          rates: editForm.rates,
-        });
-        toast({ title: "Job updated", description: editForm.name });
-        closeEditJob();
-      }
-    };
+  const openEditJob = (job: JobTemplate) => {
+    setEditJobId(job.id);
+    setEditForm({ ...job });
+  };
+  const closeEditJob = () => {
+    setEditJobId(null);
+    setEditForm(null);
+  };
+  const handleEditJobSave = () => {
+    if (editJobId && editForm) {
+      updateJob(editJobId, {
+        name: editForm.name,
+        category: editForm.category,
+        baseRate: editForm.baseRate,
+        rates: editForm.rates,
+      });
+      toast({ title: "Job updated", description: editForm.name });
+      closeEditJob();
+    }
+  };
   const { toast } = useToast()
   const currencySymbol = data.settings.currencySymbol
   const { resolvedTheme } = useTheme();
@@ -266,7 +266,7 @@ export function Earnings() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
             <span className="text-xs text-muted-foreground">This Week</span>
@@ -419,45 +419,45 @@ export function Earnings() {
                   </div>
                 );
               })}
-            {/* Edit Job Dialog */}
-            <Dialog open={!!editJobId} onOpenChange={v => !v && closeEditJob()}>
-              <DialogContent className="max-w-md">
-                <DialogHeader><DialogTitle>Edit Job</DialogTitle></DialogHeader>
-                {editForm && (
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <Label className="text-xs">Job Name</Label>
-                      <Input value={editForm.name} onChange={e => setEditForm(f => f ? { ...f, name: e.target.value } : f)} />
+              {/* Edit Job Dialog */}
+              <Dialog open={!!editJobId} onOpenChange={v => !v && closeEditJob()}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader><DialogTitle>Edit Job</DialogTitle></DialogHeader>
+                  {editForm && (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Job Name</Label>
+                        <Input value={editForm.name} onChange={e => setEditForm(f => f ? { ...f, name: e.target.value } : f)} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Category</Label>
+                        <Select value={editForm.category} onValueChange={v => setEditForm(f => f ? { ...f, category: v as JobTemplate["category"] } : f)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hospitality">Food & Hospitality</SelectItem>
+                            <SelectItem value="retail">Retail</SelectItem>
+                            <SelectItem value="tutoring">Tutoring / Freelance</SelectItem>
+                            <SelectItem value="delivery">Delivery / Gig</SelectItem>
+                            <SelectItem value="custom">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Base Rate</Label>
+                        <Input type="number" min={0} step={0.01} value={editForm.baseRate} onChange={e => setEditForm(f => f ? { ...f, baseRate: parseFloat(e.target.value) || 0 } : f)} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label className="text-xs flex items-center gap-1"><Settings2 className="size-3" />Hourly Rates</Label>
+                        <RateEditor rates={editForm.rates} onChange={r => setEditForm(f => f ? { ...f, rates: r } : f)} />
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label className="text-xs">Category</Label>
-                      <Select value={editForm.category} onValueChange={v => setEditForm(f => f ? { ...f, category: v as JobTemplate["category"] } : f)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="hospitality">Food & Hospitality</SelectItem>
-                          <SelectItem value="retail">Retail</SelectItem>
-                          <SelectItem value="tutoring">Tutoring / Freelance</SelectItem>
-                          <SelectItem value="delivery">Delivery / Gig</SelectItem>
-                          <SelectItem value="custom">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label className="text-xs">Base Rate</Label>
-                      <Input type="number" min={0} step={0.01} value={editForm.baseRate} onChange={e => setEditForm(f => f ? { ...f, baseRate: parseFloat(e.target.value) || 0 } : f)} />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label className="text-xs flex items-center gap-1"><Settings2 className="size-3" />Hourly Rates</Label>
-                      <RateEditor rates={editForm.rates} onChange={r => setEditForm(f => f ? { ...f, rates: r } : f)} />
-                    </div>
-                  </div>
-                )}
-                <DialogFooter>
-                  <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
-                  <Button onClick={handleEditJobSave} disabled={!editForm?.name.trim()}>Save</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                  )}
+                  <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                    <Button onClick={handleEditJobSave} disabled={!editForm?.name.trim()}>Save</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           ) : (
             <div className="py-6 text-center text-sm text-muted-foreground">

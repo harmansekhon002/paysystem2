@@ -327,13 +327,13 @@ export default function SettingsPage() {
     key: keyof typeof data.settings.dashboardWidgets
     label: string
   }> = [
-    { key: "quickActions", label: "Quick actions" },
-    { key: "profitability", label: "Job profitability" },
-    { key: "stats", label: "Stats cards" },
-    { key: "weeklyChart", label: "Weekly earnings chart" },
-    { key: "jobBreakdown", label: "Job breakdown chart" },
-    { key: "upcomingShifts", label: "Upcoming shifts" },
-  ]
+      { key: "quickActions", label: "Quick actions" },
+      { key: "profitability", label: "Job profitability" },
+      { key: "stats", label: "Stats cards" },
+      { key: "weeklyChart", label: "Weekly earnings chart" },
+      { key: "jobBreakdown", label: "Job breakdown chart" },
+      { key: "upcomingShifts", label: "Upcoming shifts" },
+    ]
   const isLifetimePlan = Boolean(
     subscription &&
     (subscription.status.toLowerCase() === "lifetime" || subscription.planName.toLowerCase().includes("lifetime"))
@@ -520,7 +520,7 @@ export default function SettingsPage() {
                     <div className="space-y-3 rounded-lg border border-border/60 bg-card/50 p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">World clock</p>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-2">
                           <Label>Clock 1 label</Label>
                           <Input
@@ -549,7 +549,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-2">
                           <Label>Clock 2 label</Label>
                           <Input

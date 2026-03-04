@@ -8,9 +8,11 @@ import {
   ArrowRight,
   BriefcaseBusiness,
   CalendarClock,
+  ChevronDown,
   Clock,
   DollarSign,
   Heart,
+  LayoutDashboard,
   Plus,
   Receipt,
   TrendingUp,
@@ -296,15 +298,15 @@ export function Dashboard() {
   const axisColor = "var(--color-muted-foreground)"
   const gridColor = "var(--color-border)"
   const legendColor = "var(--color-muted-foreground)"
-  const showQuickActions = widgetConfig.quickActions && !isMobile
+  const showQuickActions = widgetConfig.quickActions
+  const shouldRenderSecondaryInsights = !isMobile || mobileInsightsOpen || showQuickActions
   const statCards = [
     { title: "This Week", value: `${stats.weekHours}h`, subtitle: formatCurrency(stats.weekEarnings, currencySymbol), icon: Clock },
     { title: "Monthly Earnings", value: formatCurrency(stats.monthEarnings, currencySymbol), subtitle: `${stats.monthHours}h worked`, icon: DollarSign },
     { title: "Monthly Spend", value: formatCurrency(stats.monthExpenses, currencySymbol), subtitle: `of ${formatCurrency(stats.totalBudgeted, currencySymbol)} budget`, icon: TrendingUp },
     { title: "Upcoming", value: `${stats.upcomingShifts.length}`, subtitle: "shifts scheduled", icon: CalendarClock },
   ]
-  const visibleStatCards = isMobile ? statCards.slice(0, 3) : statCards
-  const shouldRenderSecondaryInsights = !isMobile || mobileInsightsOpen
+  const visibleStatCards = statCards // Show all 4 on mobile for symmetry (2x2 grid)
 
   return (
     <div className="mobile-page flex flex-col gap-6">
@@ -332,35 +334,39 @@ export function Dashboard() {
       </div>
 
       {widgetConfig.stats ? (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {visibleStatCards.map((card) => (
-          <StatCard
-            key={card.title}
-            title={card.title}
-            value={card.value}
-            subtitle={card.subtitle}
-            icon={card.icon}
-            accent
-          />
-        ))}
-      </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {visibleStatCards.map((card) => (
+            <StatCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              subtitle={card.subtitle}
+              icon={card.icon}
+              accent
+            />
+          ))}
+        </div>
       ) : null}
 
-      {isMobile && (widgetConfig.weeklyChart || widgetConfig.jobBreakdown || widgetConfig.profitability) ? (
-        <Card className="border-border/70">
-          <CardContent className="flex items-center justify-between px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground">{mobileInsightsOpen ? "Hide Insights" : "See More Insights"}</p>
-              <p className="text-xs text-muted-foreground">Charts and deeper trend cards.</p>
+      {isMobile && (widgetConfig.weeklyChart || widgetConfig.jobBreakdown || widgetConfig.profitability || showQuickActions) ? (
+        <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-card to-muted/30 shadow-sm transition-all active:scale-[0.98]">
+          <CardContent className="flex items-center justify-between p-4" onClick={() => setMobileInsightsOpen((prev) => !prev)}>
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                {mobileInsightsOpen ? <LayoutDashboard className="size-5" /> : <ChevronDown className="size-5" />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold tracking-tight text-foreground">{mobileInsightsOpen ? "Collapse Dashboard" : "Expand Dashboard"}</p>
+                <p className="truncate text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{mobileInsightsOpen ? "Hide extra tools" : "Quick tools & deep insights"}</p>
+              </div>
             </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setMobileInsightsOpen((prev) => !prev)}
-              className="h-8 px-3 text-xs"
+              className="h-8 rounded-full border-primary/20 bg-background px-3 text-[10px] font-bold uppercase tracking-wider text-primary shadow-sm hover:bg-primary/5"
             >
-              {mobileInsightsOpen ? "Hide" : "Show"}
+              {mobileInsightsOpen ? "Hide" : "Expand"}
             </Button>
           </CardContent>
         </Card>
@@ -382,69 +388,69 @@ export function Dashboard() {
       ) : null}
 
       {widgetConfig.upcomingShifts ? (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">Upcoming Shifts</CardTitle>
-          <Link href="/shifts" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-            View all <ArrowRight className="size-3" />
-          </Link>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {stats.upcomingShifts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No upcoming shifts.</p>
-          ) : (
-            <div className="flex flex-col divide-y divide-border">
-              {stats.upcomingShifts.map((shift) => {
-                const job = getJob(shift.jobId)
-                const missed = isMissedShift(shift.note)
-                return (
-                  <div key={shift.id} className="flex items-center gap-3 py-3">
-                    <div className="size-2 shrink-0 rounded-full" style={{ background: job?.color || "#94a3b8" }} />
-                    <div className="min-w-0 flex-1 flex-col gap-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-foreground">{job?.name || "Unknown"}</span>
-                        <Badge variant="secondary" className="h-4 px-1.5 py-0 text-[10px]">
-                          {RATE_TYPE_LABELS[shift.rateType]}
-                        </Badge>
-                        {missed ? (
-                          <Badge variant="destructive" className="h-4 px-1.5 py-0 text-[10px]">
-                            Missed
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Upcoming Shifts</CardTitle>
+            <Link href="/shifts" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+              View all <ArrowRight className="size-3" />
+            </Link>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {stats.upcomingShifts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming shifts.</p>
+            ) : (
+              <div className="flex flex-col divide-y divide-border">
+                {stats.upcomingShifts.map((shift) => {
+                  const job = getJob(shift.jobId)
+                  const missed = isMissedShift(shift.note)
+                  return (
+                    <div key={shift.id} className="flex items-center gap-3 py-3">
+                      <div className="size-2 shrink-0 rounded-full" style={{ background: job?.color || "#94a3b8" }} />
+                      <div className="min-w-0 flex-1 flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium text-foreground">{job?.name || "Unknown"}</span>
+                          <Badge variant="secondary" className="h-4 px-1.5 py-0 text-[10px]">
+                            {RATE_TYPE_LABELS[shift.rateType]}
                           </Badge>
-                        ) : null}
+                          {missed ? (
+                            <Badge variant="destructive" className="h-4 px-1.5 py-0 text-[10px]">
+                              Missed
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(`${shift.date}T00:00:00`).toLocaleDateString("en-AU", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}{" "}
+                          &middot; {shift.startTime}&ndash;{shift.endTime} &middot; {shift.hours}h
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(`${shift.date}T00:00:00`).toLocaleDateString("en-AU", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                        })}{" "}
-                        &middot; {shift.startTime}&ndash;{shift.endTime} &middot; {shift.hours}h
+                      <span className="shrink-0 text-sm font-medium text-foreground">
+                        {formatCurrency(shift.earnings, currencySymbol)}
                       </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px]"
+                        onClick={() => {
+                          if (missed) {
+                            undoMissedShift(shift)
+                            return
+                          }
+                          markShiftMissed(shift)
+                        }}
+                      >
+                        {missed ? "Undo" : "Missed"}
+                      </Button>
                     </div>
-                    <span className="shrink-0 text-sm font-medium text-foreground">
-                      {formatCurrency(shift.earnings, currencySymbol)}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => {
-                        if (missed) {
-                          undoMissedShift(shift)
-                          return
-                        }
-                        markShiftMissed(shift)
-                      }}
-                    >
-                      {missed ? "Undo" : "Missed"}
-                    </Button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       ) : null}
 
       {shouldRenderSecondaryInsights && (showQuickActions || widgetConfig.profitability) ? (
@@ -457,10 +463,10 @@ export function Dashboard() {
                   Quick Actions
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 pt-0">
-                <div className="rounded-md border border-border/70 p-3">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Quick Shift</p>
-                  <div className="grid gap-3 md:grid-cols-4">
+              <CardContent className="space-y-5 pt-0">
+                <div className="rounded-xl border border-primary/10 bg-muted/20 p-4">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Quick Shift</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-1.5 md:col-span-2">
                       <Label>Job</Label>
                       <Select value={quickJobId} onValueChange={setQuickJobId}>
@@ -489,9 +495,9 @@ export function Dashboard() {
                   </div>
                 </div>
 
-                <div className="rounded-md border border-border/70 p-3">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Quick Expense</p>
-                  <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-xl border border-primary/10 bg-muted/20 p-4">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Quick Expense</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-1.5">
                       <Label>Amount</Label>
                       <Input

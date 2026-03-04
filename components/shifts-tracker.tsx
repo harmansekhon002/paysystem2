@@ -123,16 +123,21 @@ export function ShiftsTracker() {
 
   const hasOverlap = (date: string, startTime: string, endTime: string, ignoreShiftId?: string) => {
     const start = toMinutes(startTime)
-    const end = toMinutes(endTime)
+    let end = toMinutes(endTime)
 
-    if (end <= start) return false
+    if (end <= start) {
+      // Overnight shift
+      end += 24 * 60
+    }
 
     return data.shifts.some((shift) => {
       if (shift.id === ignoreShiftId) return false
       if (shift.date !== date) return false
       const shiftStart = toMinutes(shift.startTime)
-      const shiftEnd = toMinutes(shift.endTime)
-      if (shiftEnd <= shiftStart) return false
+      let shiftEnd = toMinutes(shift.endTime)
+      if (shiftEnd <= shiftStart) {
+        shiftEnd += 24 * 60
+      }
       return start < shiftEnd && shiftStart < end
     })
   }
@@ -427,9 +432,20 @@ export function ShiftsTracker() {
           </div>
         </div>
         <div className="w-full lg:w-auto">
-          <div className="sticky top-14 z-30 flex items-center gap-2 overflow-x-auto bg-background/95 pb-1 backdrop-blur supports-[backdrop-filter]:bg-background/60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:relative lg:top-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:pb-0">
+          <div className="sticky top-14 z-30 flex items-center gap-3.5 overflow-x-auto bg-background/95 pb-1 backdrop-blur supports-[backdrop-filter]:bg-background/60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:relative lg:top-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:pb-0">
             {isMobile ? (
               <>
+                <Button
+                  size="sm"
+                  className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-3 font-bold"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <Plus className="size-4" />
+                  <span>Log Shift</span>
+                </Button>
+
+                <div className="h-4 w-px bg-border/60 mx-1 shrink-0" />
+
                 <Button
                   size="sm"
                   variant="ghost"
@@ -898,7 +914,7 @@ export function ShiftsTracker() {
                   </div>
 
                   {/* Rate type & break */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs">Rate Type</Label>
                       <Select value={form.rateType} onValueChange={v => setForm(f => ({ ...f, rateType: v as RateType }))}>
@@ -1093,7 +1109,7 @@ export function ShiftsTracker() {
             </CardHeader>
             <CardContent className="pt-0">
               {filteredShifts.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
+                <p className="py-6 text-center text-sm text-muted-foreground">
                   {data.shifts.length === 0 ? "No shifts yet. Log your first one above." : "No shifts match your filters."}
                 </p>
               ) : (

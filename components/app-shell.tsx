@@ -6,15 +6,21 @@ import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { signOut, useSession } from "next-auth/react"
 import {
-  LayoutDashboard,
+  ArrowRight,
   CalendarClock,
-  DollarSign,
-  Wallet,
-  Target,
+  ChevronDown,
+  Clock,
   CreditCard,
-  Settings,
+  DollarSign,
+  LayoutDashboard,
   Moon,
+  Plus,
+  Receipt,
+  Settings,
   Sun,
+  Target,
+  TrendingUp,
+  Wallet,
   Zap,
   X,
   Menu,
@@ -952,112 +958,117 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile header */}
         <header className={cn(
-          "fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border px-4 backdrop-blur-md md:hidden",
+          "fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border pl-4 pr-1.5 backdrop-blur-md md:hidden",
           activeThemeMode === "light"
             ? "bg-gradient-to-r from-yellow-50/90 via-orange-50/90 to-red-50/90"
             : "bg-card/80"
         )}>
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 -ml-1.5"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-            </Button>
             <div className={cn(
-              "flex size-7 items-center justify-center rounded-lg",
+              "flex size-7 items-center justify-center rounded-lg shadow-sm border border-primary/10",
               loveModeActive
                 ? "bg-gradient-to-br from-primary to-accent"
                 : activeThemeMode === "light"
-                  ? "bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500"
+                  ? "bg-white"
                   : "bg-primary"
             )}>
-              {loveModeActive ? <Heart className="size-4 text-white" /> : <Zap className={cn("size-4", activeThemeMode === "light" ? "text-white" : "text-primary-foreground")} />}
+              {loveModeActive ? (
+                <Heart className="size-4 text-white" />
+              ) : (
+                <Zap className={cn("size-4", activeThemeMode === "light" ? "text-primary" : "text-primary-foreground")} fill="currentColor" />
+              )}
             </div>
-            <span className="max-w-[140px] truncate text-sm font-semibold text-foreground">{loveModeActive ? `${displayName}'s ShiftWise` : "ShiftWise"}</span>
+            <span className="max-w-[140px] truncate text-sm font-semibold text-foreground">{loveModeActive ? displayName : "ShiftWise"}</span>
           </div>
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Menu</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex h-9 items-1.5 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground active:scale-95"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            {mobileOpen ? "Close" : "Menu"}
+            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+          </Button>
         </header>
 
         {/* Mobile sidebar overlay */}
-        {mobileOpen && (
-          <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
-            <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
-            <div
-              className={cn(
-                "absolute inset-y-0 left-0 w-[min(90vw,340px)] overflow-hidden border-r border-border px-4 pt-[calc(3.5rem+2.5rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
-                activeThemeMode === "light"
-                  ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
-                  : "bg-card"
-              )}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="rounded-xl border border-border/70 bg-card/70 p-2.5 shrink-0">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quick controls</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    <div className="flex justify-center">
-                      <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycleWithHaptic} pulsing={themeTogglePulse} />
-                    </div>
-                    <div className="flex justify-center">
-                      <NotificationCenter />
-                    </div>
-                    <div className="flex justify-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCurrencyCycle}
-                        className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                        aria-label="Change currency"
-                        title="Change currency"
-                      >
-                        {data.settings.currency}
-                      </Button>
-                    </div>
-                    <div className="flex justify-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="size-8 text-muted-foreground hover:text-foreground"
-                        aria-label="Sign out"
-                      >
-                        <LogOut className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3 flex-1 overflow-y-auto pb-3 pr-1">
-                  <div className="space-y-4">
-                    {mobileNavSections.map((section) => (
-                      <div key={section.label} className="space-y-1.5">
-                        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                          {section.label}
-                        </p>
-                        <SidebarNav items={section.items} mode={activeThemeMode} onNavigate={handleMobileNav} />
+        {
+          mobileOpen && (
+            <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
+              <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
+              <div
+                className={cn(
+                  "absolute inset-y-0 left-0 w-[min(90vw,340px)] overflow-hidden border-r border-border px-4 pt-[calc(3.5rem+2.5rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
+                  activeThemeMode === "light"
+                    ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
+                    : "bg-card"
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="rounded-xl border border-border/70 bg-card/70 p-2.5 shrink-0">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quick controls</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="flex justify-center">
+                        <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycleWithHaptic} pulsing={themeTogglePulse} />
                       </div>
-                    ))}
+                      <div className="flex justify-center">
+                        <NotificationCenter />
+                      </div>
+                      <div className="flex justify-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCurrencyCycle}
+                          className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                          aria-label="Change currency"
+                          title="Change currency"
+                        >
+                          {data.settings.currency}
+                        </Button>
+                      </div>
+                      <div className="flex justify-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => signOut({ callbackUrl: "/login" })}
+                          className="size-8 text-muted-foreground hover:text-foreground"
+                          aria-label="Sign out"
+                        >
+                          <LogOut className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    <WorldClock
-                      mode={activeThemeMode}
-                      primaryLabel={data.settings.worldClockPrimaryLabel}
-                      primaryTimeZone={data.settings.worldClockPrimaryTimeZone}
-                      secondaryLabel={data.settings.worldClockSecondaryLabel}
-                      secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
-                    />
-                  </div>
-                  <div className="mt-2 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
-                    Plan: {planName}
+                  <div className="mt-3 flex-1 overflow-y-auto pb-3 pr-1">
+                    <div className="space-y-4">
+                      {mobileNavSections.map((section) => (
+                        <div key={section.label} className="space-y-1.5">
+                          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                            {section.label}
+                          </p>
+                          <SidebarNav items={section.items} mode={activeThemeMode} onNavigate={handleMobileNav} />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4">
+                      <WorldClock
+                        mode={activeThemeMode}
+                        primaryLabel={data.settings.worldClockPrimaryLabel}
+                        primaryTimeZone={data.settings.worldClockPrimaryTimeZone}
+                        secondaryLabel={data.settings.worldClockSecondaryLabel}
+                        secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
+                      />
+                    </div>
+                    <div className="mt-2 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
+                      Plan: {planName}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* Main content */}
         <main className="flex-1 md:ml-[240px]">
@@ -1101,25 +1112,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         <InstallAppPrompt />
 
-        {privacyModeEnabled ? (
-          <div className="fixed bottom-6 right-4 z-[110] md:right-6">
-            <Button
-              type="button"
-              onClick={() => {
-                setPrivacyReveal((prev) => !prev)
-                triggerSpecialCelebration("Privacy reveal toggled")
-              }}
-              className="gap-2 rounded-full"
-              variant={privacyReveal ? "outline" : "default"}
-            >
-              {privacyReveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              {privacyReveal ? "Hide again" : "Reveal for now"}
-            </Button>
-          </div>
-        ) : null}
+        {
+          privacyModeEnabled ? (
+            <div className="fixed bottom-6 right-4 z-[110] md:right-6">
+              <Button
+                type="button"
+                onClick={() => {
+                  setPrivacyReveal((prev) => !prev)
+                  triggerSpecialCelebration("Privacy reveal toggled")
+                }}
+                className="gap-2 rounded-full"
+                variant={privacyReveal ? "outline" : "default"}
+              >
+                {privacyReveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                {privacyReveal ? "Hide again" : "Reveal for now"}
+              </Button>
+            </div>
+          ) : null
+        }
 
         <MobileBottomNav items={bottomNavItems} mode={activeThemeMode} isVisible={isNavVisible} />
-      </div>
+      </div >
     </>
   )
 }
