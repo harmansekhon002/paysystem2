@@ -50,7 +50,7 @@ export async function POST(req: Request) {
           where: { paypalSubscriptionId: subscriptionId },
           data: { status: 'canceled', cancelAtPeriodEnd: true }
         })
-        console.log(`Subscription ${subscriptionId} cancelled via webhook`)
+        console.info(`[webhook] Subscription cancelled: ${subscriptionId}`)
         break
       }
 
@@ -61,35 +61,31 @@ export async function POST(req: Request) {
           where: { paypalSubscriptionId: subscriptionId },
           data: { status: 'past_due' }
         })
-        console.log(`Payment failed for subscription ${subscriptionId}`)
+        console.warn(`[webhook] Payment failed for subscription: ${subscriptionId}`)
         break
       }
 
       case 'PAYMENT.SALE.COMPLETED': {
-        // Find the subscription ID linked to the sale.
-        // The billing agreement ID is typically included in the custom field or billing_agreement_id
         const subscriptionId = event.resource?.billing_agreement_id
 
         if (subscriptionId) {
-          // Update the current period end 
-          // (Requires fetching actual subscription details from PayPal API for exact dates)
           await prisma.subscription.updateMany({
             where: { paypalSubscriptionId: subscriptionId },
             data: {
               status: 'active',
-              // Example: extending by 30 days. Needs accurate date from PayPal API.
               paypalCurrentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
             }
           })
-          console.log(`Payment successful for subscription ${subscriptionId}`)
+          console.info(`[webhook] Payment successful for subscription: ${subscriptionId}`)
         }
         break
       }
 
-      // Add other events as needed (e.g., BILLING.SUBSCRIPTION.ACTIVATED)
-
       default:
-        console.log(`Unhandled webhook event: ${event.event_type}`)
+        // Non-critical: only log in non-production or at debug level
+        if (process.env.NODE_ENV !== "production") {
+          console.info(`[webhook] Unhandled event type: ${event.event_type}`)
+        }
     }
 
     return NextResponse.json({ received: true })

@@ -7,6 +7,7 @@ import { ensureUserTableInitialized } from "@/lib/db-init"
 import { createTokenPair } from "@/lib/security-tokens"
 import { handleDbWriteFailure } from "@/lib/db-resilience"
 import { prepareIdempotency } from "@/lib/idempotency"
+import { checkRateLimit } from "@/lib/rate-limit"
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -63,6 +64,19 @@ async function registerUser(name: string, normalizedEmail: string, password: str
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 registration attempts per minute per IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
+  const rl = checkRateLimit(ip, "register", 5, 60_000)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait and try again.", code: "RATE_LIMITED" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+      }
+    )
+  }
+
   try {
     const body = await req.json()
     const parsed = registerSchema.safeParse(body)
