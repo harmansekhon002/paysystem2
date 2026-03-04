@@ -61,7 +61,9 @@ export function CoupleDashboard() {
   const todayCheckInStorageKey = `shiftwise:couple-checkin:${today}`
   const hydrationGoal = clampHydrationGoal(data.settings.specialCompanion.waterBottleGoal)
   const hydrationStreakTarget = getHydrationStreakTarget(hydrationGoal)
-  const whatsappNumber = (data.settings.whatsappNumber || ENV_WHATSAPP_NUMBER || "").replace(/\D/g, "")
+  const whatsappNumber = isSpecialUser
+    ? (data.settings.whatsappNumber || ENV_WHATSAPP_NUMBER || "").replace(/\D/g, "")
+    : ""
 
   const [fund, setFund] = useState<CoupleFund>(DEFAULT_FUND)
   const [addAmount, setAddAmount] = useState("50")
@@ -183,7 +185,7 @@ export function CoupleDashboard() {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(message)
-        onSuccess("WhatsApp number not configured. Message copied to clipboard.")
+        onSuccess(isSpecialUser ? "WhatsApp number not configured. Message copied to clipboard." : "Insights copied to clipboard.")
         return true
       } catch {
         onSuccess("Could not send or copy message.")
@@ -402,7 +404,7 @@ export function CoupleDashboard() {
             </CardTitle>
           <CardDescription>
             {parentalMode
-              ? "Sends student routine and check-in summary to parent WhatsApp."
+              ? "Creates a student routine + check-in summary you can share quickly."
               : "Sends routine + merged mood/check-in details from Wifey Routine to WhatsApp."}
           </CardDescription>
         </CardHeader>
@@ -411,11 +413,9 @@ export function CoupleDashboard() {
             {parentalMode ? "Send student insights" : "Send today insights"}
           </Button>
           {insightStatus ? <p className="text-xs text-muted-foreground">{insightStatus}</p> : null}
-          {!whatsappNumber ? (
+          {isSpecialUser && !whatsappNumber ? (
             <p className="text-[11px] text-muted-foreground">
-              {parentalMode
-                ? "Tip: add parent WhatsApp number in Settings to open WhatsApp directly."
-                : "Tip: add WhatsApp number in Settings to open WhatsApp directly."}
+              Tip: add WhatsApp number in Settings to open WhatsApp directly.
             </p>
           ) : null}
         </CardContent>

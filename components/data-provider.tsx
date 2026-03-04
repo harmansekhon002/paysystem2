@@ -287,6 +287,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }))
   }, [data.settings.notificationTypes, isSpecialUser])
 
+  useEffect(() => {
+    if (isSpecialUser) return
+    if (!data.settings.whatsappNumber) return
+
+    setData(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        whatsappNumber: "",
+      },
+    }))
+  }, [data.settings.whatsappNumber, isSpecialUser])
+
   // Shifts
   const addShift = useCallback((shift: Omit<Shift, "id">) => {
     const shiftLimit = checkLimit("maxShiftsPerMonth", usage.shiftsThisMonth, isPremium)

@@ -28,8 +28,9 @@ import {
   EyeOff,
   Shield,
   Loader2,
+  RefreshCw,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, hapticFeedback } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAppData } from "@/components/data-provider"
@@ -225,13 +226,13 @@ function WorldClock({
       style={
         draggable
           ? {
-              position: "fixed",
-              left: position ? `${position.x}px` : undefined,
-              top: position ? `${position.y}px` : "12px",
-              right: position ? undefined : "16px",
-              zIndex: 40,
-              cursor: dragging ? "grabbing" : "grab",
-            }
+            position: "fixed",
+            left: position ? `${position.x}px` : undefined,
+            top: position ? `${position.y}px` : "12px",
+            right: position ? undefined : "16px",
+            zIndex: 40,
+            cursor: dragging ? "grabbing" : "grab",
+          }
           : undefined
       }
       className={cn(
@@ -271,15 +272,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [routeTransitioning, setRouteTransitioning] = useState(false)
   const [networkOnline, setNetworkOnline] = useState(true)
   const [networkRecovering, setNetworkRecovering] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [pinInput, setPinInput] = useState("")
   const [pinError, setPinError] = useState("")
   const [pinUnlocked, setPinUnlocked] = useState(true)
   const [privacyReveal, setPrivacyReveal] = useState(false)
+  // Pull to refresh state
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const pullThreshold = 80
   const themeFlashTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
   const themePulseTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
   const routeTransitionTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null)
   const swipeTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const pullStartRef = useRef<number | null>(null)
   const hasPathnameInitializedRef = useRef(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { data, updateSettings, updateSpecialCompanion, saveStatus, lastSavedAt, planName, isSpecialUser, displayName, refreshPlan } = useAppData()
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
@@ -332,7 +343,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const requiresPin = isSpecialUser && specialCompanion.pinEnabled && specialCompanion.pinCode.trim().length > 0
   const privacyModeEnabled = isSpecialUser && specialCompanion.privacyMode
-  const activeThemeMode: ThemeMode = loveModeActive ? "love" : resolvedTheme === "dark" ? "dark" : "light"
+
+  // Use "light" as default during SSR/hydration to avoid mismatch if navbar uses theme colors
+  const activeThemeMode: ThemeMode = !mounted
+    ? "light"
+    : loveModeActive
+      ? "love"
+      : resolvedTheme === "dark"
+        ? "dark"
+        : "light"
 
   useEffect(() => {
     if (!requiresPin) {
@@ -440,6 +459,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }, 1200)
   }
 
+  const handlePullStart = (e: TouchEvent) => {
+    if (typeof window === "undefined" || window.scrollY > 10 || isRefreshing) return
+    pullStartRef.current = e.touches[0].clientY
+  }
+
+  const handlePullMove = (e: TouchEvent) => {
+    if (pullStartRef.current === null || isRefreshing) return
+    const currentY = e.touches[0].clientY
+    const delta = currentY - pullStartRef.current
+    if (delta > 0) {
+      setPullDistance(Math.min(delta * 0.4, pullThreshold + 20))
+      if (delta * 0.4 > pullThreshold) {
+        // Optional: haptic feedback when threshold reached
+      }
+    }
+  }
+
+  const handlePullEnd = () => {
+    if (pullDistance > pullThreshold) {
+      handleRefresh()
+    }
+    setPullDistance(0)
+    pullStartRef.current = null
+  }
+
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    hapticFeedback([10, 30, 10]) // Double pulse for refresh start
+    // In a real app we'd refresh data, here we'll just simulate and reload
+    setTimeout(() => {
+      window.location.reload()
+    }, 800)
+  }
+
   const handleMobileNav = () => {
     beginRouteTransition()
     setMobileOpen(false)
@@ -523,6 +576,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       EUR: "€",
       GBP: "£",
     }
+    hapticFeedback(12)
     updateSettings({ currency: nextCurrency, currencySymbol: symbolByCode[nextCurrency] })
   }
 
@@ -576,7 +630,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     setTheme("light")
     runThemeTransitionFeedback("light")
+    hapticFeedback(15)
     triggerSpecialCelebration("Light theme enabled", "light")
+  }
+
+  const handleThemeCycleWithHaptic = () => {
+    hapticFeedback(15)
+    handleThemeCycle()
   }
 
   return (
@@ -693,7 +753,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="relative border-t border-border px-4 py-3">
             <div className="grid grid-cols-4 items-center gap-2">
               <div className="flex justify-center">
-                <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} pulsing={themeTogglePulse} />
+                <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycleWithHaptic} pulsing={themeTogglePulse} />
               </div>
               <div className="flex justify-center">
                 <NotificationCenter />
@@ -772,19 +832,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
             <div
               className={cn(
-                "absolute left-0 top-14 bottom-0 w-[min(90vw,340px)] border-r border-border p-4",
+                "absolute inset-y-0 left-0 w-[min(90vw,340px)] overflow-hidden border-r border-border px-4 pt-[calc(3.5rem+0.5rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
                 activeThemeMode === "light"
                   ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
                   : "bg-card"
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex h-full flex-col">
+              <div className="flex h-full min-h-0 flex-col">
                 <div className="rounded-xl border border-border/70 bg-card/70 p-2.5">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quick controls</p>
                   <div className="grid grid-cols-4 gap-2">
                     <div className="flex justify-center">
-                      <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycle} pulsing={themeTogglePulse} />
+                      <ThemeToggle mode={activeThemeMode} onToggle={handleThemeCycleWithHaptic} pulsing={themeTogglePulse} />
                     </div>
                     <div className="flex justify-center">
                       <NotificationCenter />
@@ -814,7 +874,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 flex-1 overflow-y-auto pr-1">
+                <div className="mt-3 flex-1 overflow-y-auto pb-3 pr-1">
                   <div className="space-y-4">
                     {mobileNavSections.map((section) => (
                       <div key={section.label} className="space-y-1.5">
@@ -833,25 +893,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       secondaryLabel={data.settings.worldClockSecondaryLabel}
                       secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
                     />
-                  </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
-                    <div className="flex items-center text-[11px] text-muted-foreground">
-                      {saveStatus === "saving" && "Saving..."}
-                      {saveStatus === "saved" && "Saved"}
-                      {saveStatus === "error" && "Save failed"}
-                      {saveStatus === "idle" && "Ready"}
-                    </div>
-                    <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[11px]"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        Close
-                      </Button>
-                    </div>
                   </div>
                   <div className="mt-2 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
                     Plan: {planName}
@@ -872,9 +913,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 routeTransitioning && "opacity-85"
               )}
               onClickCapture={handleMainClickCapture}
-              onTouchStart={handleMainTouchStart}
-              onTouchEnd={handleMainTouchEnd}
+              onTouchStart={(e) => {
+                handleMainTouchStart(e);
+                handlePullStart(e);
+              }}
+              onTouchMove={handlePullMove}
+              onTouchEnd={(e) => {
+                handleMainTouchEnd(e);
+                handlePullEnd();
+              }}
             >
+              {/* Pull to refresh indicator */}
+              <div
+                className="pointer-events-none absolute left-0 right-0 top-0 flex items-center justify-center overflow-hidden transition-all duration-200"
+                style={{
+                  height: `${pullDistance}px`,
+                  opacity: pullDistance / pullThreshold,
+                  transform: `translateY(${pullDistance > 0 ? 0 : -20}px)`
+                }}
+              >
+                <div className={cn(
+                  "flex size-9 items-center justify-center rounded-full bg-card shadow-md border border-border",
+                  isRefreshing && "animate-spin"
+                )}>
+                  <RefreshCw className={cn("size-4 text-primary", pullDistance > pullThreshold && !isRefreshing && "rotate-180 transition-transform")} />
+                </div>
+              </div>
               {children}
             </div>
           </div>

@@ -292,7 +292,9 @@ export function WifeyRoutine() {
   const coupleCheckInStorageKey = `shiftwise:couple-checkin:${today}`
   const hydrationGoal = clampHydrationGoal(data.settings.specialCompanion.waterBottleGoal)
   const hydrationStreakTarget = getHydrationStreakTarget(hydrationGoal)
-  const whatsappNumber = (data.settings.whatsappNumber || ENV_WHATSAPP_NUMBER || "").replace(/\D/g, "")
+  const whatsappNumber = isSpecialUser
+    ? (data.settings.whatsappNumber || ENV_WHATSAPP_NUMBER || "").replace(/\D/g, "")
+    : ""
 
   const [routine, setRoutine] = useState<RoutineState>(DEFAULT_ROUTINE_STATE)
   const [mood, setMood] = useState("")
@@ -660,7 +662,7 @@ export function WifeyRoutine() {
           )}
 
           {supportState && !isMobile ? <p className="text-xs text-muted-foreground">{supportState}</p> : null}
-          {!whatsappNumber && !isMobile ? (
+          {isSpecialUser && !whatsappNumber && !isMobile ? (
             <p className="text-[11px] text-muted-foreground">
               Tip: add guardian WhatsApp number in Settings for direct one-tap send.
             </p>

@@ -479,19 +479,21 @@ export default function SettingsPage() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>WhatsApp number</Label>
-                      <Input
-                        type="tel"
-                        inputMode="tel"
-                        placeholder="+91 7009424374"
-                        value={data.settings.whatsappNumber}
-                        onChange={(event) => updateSettings({ whatsappNumber: event.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Used for one-tap support and insights messages.
-                      </p>
-                    </div>
+                    {isSpecialUser ? (
+                      <div className="space-y-2">
+                        <Label>WhatsApp number</Label>
+                        <Input
+                          type="tel"
+                          inputMode="tel"
+                          placeholder="+91 7009424374"
+                          value={data.settings.whatsappNumber}
+                          onChange={(event) => updateSettings({ whatsappNumber: event.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Used for one-tap support and insights messages for this special account.
+                        </p>
+                      </div>
+                    ) : null}
 
                     <div className="space-y-2">
                       <Label>Daily reset time zone</Label>
