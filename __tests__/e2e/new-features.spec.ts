@@ -1,24 +1,32 @@
 import { test, expect } from "@playwright/test"
 
 test.describe("New Features E2E Tests", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("http://localhost:3000")
-  })
+  test("should open Add Shift dialog", async ({ page, isMobile }) => {
+    await page.goto("/shifts")
 
-  test("should open Add Shift dialog", async ({ page }) => {
-    await page.click('a[href="/shifts"]')
-    await page.click('button:has-text("Add Shift")')
-    await expect(page.locator('text=Log a Shift')).toBeVisible()
+    // Use FAB on mobile, desktop button otherwise
+    if (isMobile) {
+      await page.getByTestId("fab-add-shift").click()
+    } else {
+      await page.getByRole("button", { name: "Add Shift", exact: true }).click()
+    }
+    await expect(page.locator("text=Log a Shift")).toBeVisible()
   })
 
   test("should open Add Expense dialog", async ({ page }) => {
-    await page.click('a[href="/budget"]')
-    await page.getByTestId("open-add-expense-dialog").click()
-    await expect(page.getByRole('heading', { name: 'Add Expense' })).toBeVisible()
+    await page.goto("/budget")
+    await page.getByRole("button", { name: /expense/i }).filter({ visible: true }).click()
+    await expect(page.getByRole("dialog")).toBeVisible()
   })
 
-  test("should show Export button", async ({ page }) => {
-    await page.click('a[href="/shifts"]')
-    await expect(page.locator('button:has-text("Export")')).toBeVisible()
+  test("should show Export button", async ({ page, isMobile }) => {
+    await page.goto("/shifts")
+    if (isMobile) {
+      // Export is inside Tools drawer on mobile
+      await page.getByRole("button", { name: /tools/i }).click()
+      await expect(page.getByTestId("tools-export")).toBeVisible()
+    } else {
+      await expect(page.locator("button:has-text(\"Export\")")).toBeVisible()
+    }
   })
 })

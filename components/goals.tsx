@@ -143,6 +143,7 @@ export function Goals() {
               className="gap-1.5"
               onClick={handleEnableNotifications}
               disabled={notificationsEnabled}
+              aria-label={notificationsEnabled ? "Alerts On" : "Enable Alerts"}
             >
               {notificationsEnabled ? <Bell className="size-4" /> : <BellOff className="size-4" />}
               <span className="hidden sm:inline">{notificationsEnabled ? "Alerts On" : "Enable Alerts"}</span>
@@ -150,7 +151,7 @@ export function Goals() {
           )}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5"><Plus className="size-4" /><span className="hidden sm:inline">New Goal</span></Button>
+              <Button size="sm" className="gap-1.5" aria-label="New Goal"><Plus className="size-4" /><span className="hidden sm:inline">New Goal</span></Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Create Savings Goal</DialogTitle></DialogHeader>

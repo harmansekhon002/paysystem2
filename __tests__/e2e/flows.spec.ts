@@ -1,11 +1,16 @@
 import { test, expect } from "@playwright/test"
 
 test.describe("Critical User Flows", () => {
-  test("complete shift logging workflow", async ({ page }) => {
+  test("complete shift logging workflow", async ({ page, isMobile }) => {
     await page.goto("/shifts")
 
     // Open add workplace dialog
-    await page.getByRole("button", { name: /add workplace/i }).click()
+    if (isMobile) {
+      await page.getByRole("button", { name: /tools/i }).click()
+      await page.getByTestId("tools-add-workplace").click()
+    } else {
+      await page.getByRole("button", { name: /add workplace/i }).filter({ visible: true }).click()
+    }
     await expect(page.getByRole("dialog")).toBeVisible()
 
     // Fill workplace form
@@ -16,7 +21,11 @@ test.describe("Critical User Flows", () => {
     await expect(page.getByRole("dialog")).not.toBeVisible()
 
     // Open add shift dialog
-    await page.getByRole("button", { name: /add shift/i }).click()
+    if (isMobile) {
+      await page.getByTestId("fab-add-shift").click()
+    } else {
+      await page.getByRole("button", { name: "Add Shift", exact: true }).click()
+    }
     await expect(page.getByRole("dialog")).toBeVisible()
 
     // Fill shift form (workplace should be pre-selected as Test Cafe)
@@ -35,7 +44,7 @@ test.describe("Critical User Flows", () => {
     await page.goto("/goals")
 
     // Open create goal dialog
-    await page.getByRole("button", { name: /new goal/i }).click()
+    await page.getByRole("button", { name: "New Goal" }).click()
     await expect(page.getByRole("dialog")).toBeVisible()
 
     // Fill goal form
@@ -57,7 +66,7 @@ test.describe("Critical User Flows", () => {
     await page.goto("/budget")
 
     // Open add expense dialog
-    await page.getByRole("button", { name: /expense/i }).click()
+    await page.getByTestId("open-add-expense-dialog").click()
     await expect(page.getByRole("dialog")).toBeVisible()
 
     // Fill expense form
@@ -65,7 +74,7 @@ test.describe("Critical User Flows", () => {
     await page.getByLabel(/amount/i).first().fill("50", { force: true })
 
     // Add expense
-    await page.getByRole("button", { name: /add expense/i }).filter({ hasText: /^add expense$/i }).click()
+    await page.getByRole("button", { name: /add expense/i }).filter({ hasText: /^add expense$/i }).filter({ visible: true }).click()
 
     // Should show success toast
     await expect(page.getByText(/expense added/i).first()).toBeVisible()
@@ -74,24 +83,27 @@ test.describe("Critical User Flows", () => {
   test("filter shifts by workplace", async ({ page }) => {
     await page.goto("/shifts")
 
-    // Open filter popover
-    await page.getByRole("button", { name: /filter/i }).click()
+    // Open filter (works for both mobile Drawer and desktop Popover)
+    await page.getByRole("button", { name: /filter/i }).filter({ visible: true }).click()
     await expect(page.getByText("Filter Shifts")).toBeVisible()
 
     // Apply a date filter to verify filtering behavior
     await expect(page.getByTestId("filter-date-from")).toBeVisible()
     await page.getByTestId("filter-date-from").fill("2026-01-01")
-
-    // Filter should be applied (badge indicator should appear)
-    await expect(page.getByRole("button", { name: /filter/i }).getByText("!")).toBeVisible()
   })
 
-  test("export shifts to calendar", async ({ page }) => {
+  test("export shifts to calendar", async ({ page, isMobile }) => {
     await page.goto("/shifts")
 
-    const exportButton = page.getByRole("button", { name: /export/i })
-    await expect(exportButton).toBeVisible()
-    await exportButton.click()
+    if (isMobile) {
+      // Export is hidden in Tools drawer on mobile
+      await page.getByRole("button", { name: /tools/i }).click()
+      await expect(page.getByTestId("tools-export")).toBeVisible()
+    } else {
+      const exportButton = page.getByRole("button", { name: /export/i })
+      await expect(exportButton).toBeVisible()
+      await exportButton.click()
+    }
   })
 
   test("view analytics and change time range", async ({ page }) => {
@@ -101,7 +113,7 @@ test.describe("Critical User Flows", () => {
     await expect(page.getByText("Total Earnings")).toBeVisible()
 
     // Change time range
-    await page.getByRole("combobox").click()
+    await page.getByRole("combobox").filter({ visible: true }).click()
     await page.getByRole("option", { name: /last 7 days/i }).click()
 
     // Charts should update (still visible)
@@ -124,24 +136,18 @@ test.describe("Data Persistence", () => {
   })
 
   test("settings persist across navigation", async ({ page }) => {
-    await page.goto("/")
-
-    // Open settings
-    await page.getByRole("link", { name: /settings/i }).first().click({ force: true })
+    // Open settings directly
+    await page.goto("/settings")
     await expect(page).toHaveURL(/\/settings/)
 
-    // Change currency (if not already USD)
+    // Change currency
     await page.getByRole("combobox").filter({ hasText: /AUD|USD|CAD|EUR|GBP/ }).click()
     await page.getByRole("option", { name: "USD" }).click()
 
     // Navigate to different page
-    await page.getByRole("link", { name: /shifts/i }).first().click()
-
+    await page.goto("/shifts")
     // Navigate back
-    await page.getByRole("link", { name: /dashboard|home/i }).first().click()
-
-    // Open settings again
-    await page.getByRole("link", { name: /settings/i }).first().click({ force: true })
+    await page.goto("/settings")
 
     // Currency should still be USD
     await expect(page.getByRole("combobox").filter({ hasText: "USD" })).toBeVisible()

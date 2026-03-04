@@ -178,7 +178,7 @@ export default function BudgetPlanner() {
 
           <Dialog open={expenseDialog} onOpenChange={setExpenseDialog}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5" data-testid="open-add-expense-dialog">
+              <Button size="sm" className="gap-1.5" data-testid="open-add-expense-dialog" aria-label="Add Expense">
                 <Plus className="size-4" />
                 <span className="hidden sm:inline">Expense</span>
               </Button>
@@ -349,7 +349,7 @@ export default function BudgetPlanner() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-sm font-medium text-foreground">{formatCurrency(expense.amount, currencySymbol)}</span>
-                  <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-primary" onClick={() => openEditExpense(expense)}>
+                      <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-primary" onClick={() => openEditExpense(expense)}>
                         <Pencil className="size-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-destructive" onClick={() => {

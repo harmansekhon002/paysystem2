@@ -479,6 +479,7 @@ export function ShiftsTracker() {
                           <Label htmlFor="mobile-filter-date-from" className="text-xs">From</Label>
                           <Input
                             id="mobile-filter-date-from"
+                            data-testid="filter-date-from"
                             type="date"
                             className="h-10 sm:h-9"
                             value={filters.dateFrom}
@@ -625,6 +626,7 @@ export function ShiftsTracker() {
                       <Button
                         variant="outline"
                         className="justify-start gap-2"
+                        data-testid="tools-export"
                         onClick={() => {
                           setMultiSelectMode((prev) => !prev)
                           setSelectedShiftIds([])
@@ -637,6 +639,7 @@ export function ShiftsTracker() {
                       <Button
                         variant="outline"
                         className="justify-start gap-2"
+                        data-testid="tools-recurring"
                         onClick={() => {
                           setRecurringDialogOpen(true)
                           setMobileToolsOpen(false)
@@ -648,6 +651,7 @@ export function ShiftsTracker() {
                       <Button
                         variant="outline"
                         className="justify-start gap-2"
+                        data-testid="tools-add-workplace"
                         onClick={() => {
                           setJobDialogOpen(true)
                           setMobileToolsOpen(false)
@@ -829,7 +833,7 @@ export function ShiftsTracker() {
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3">
+                <Button size="sm" className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:h-9 sm:px-3 md:inline-flex">
                   <Plus className="size-4" />
                   <span>Add Shift</span>
                 </Button>
@@ -1218,6 +1222,7 @@ export function ShiftsTracker() {
         className="fixed bottom-24 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden"
         onClick={() => setDialogOpen(true)}
         aria-label="Quick add shift"
+        data-testid="fab-add-shift"
       >
         <Plus className="size-5" />
       </Button>
