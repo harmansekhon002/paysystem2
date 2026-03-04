@@ -158,7 +158,9 @@ export function analyzeBundleSize() {
       duration: entry.duration,
     }))
 
-  console.table(sizes)
+  if (process.env.NODE_ENV !== "production") {
+    console.table(sizes)
+  }
   return sizes
 }
 
@@ -247,14 +249,18 @@ export function measurePerformance(name: string, fn: () => void) {
   const start = performance.now()
   fn()
   const end = performance.now()
-  console.log(`${name} took ${(end - start).toFixed(2)}ms`)
+  if (process.env.NODE_ENV !== "production") {
+    console.debug(`[perf] ${name} took ${(end - start).toFixed(2)}ms`)
+  }
 }
 
 export async function measureAsyncPerformance<T>(name: string, fn: () => Promise<T>): Promise<T> {
   const start = performance.now()
   const result = await fn()
   const end = performance.now()
-  console.log(`${name} took ${(end - start).toFixed(2)}ms`)
+  if (process.env.NODE_ENV !== "production") {
+    console.debug(`[perf] ${name} took ${(end - start).toFixed(2)}ms`)
+  }
   return result
 }
 

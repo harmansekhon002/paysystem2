@@ -78,9 +78,11 @@ export class GoogleCalendarSync {
     // 2. Get authorization code
     // 3. Exchange for access token
     // 4. Store tokens (access + refresh)
-    
+
     // Mock implementation
-    console.log("Google Calendar authentication would happen here")
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[google-calendar] Mock: authentication would happen here")
+    }
     return false
   }
 
@@ -92,7 +94,7 @@ export class GoogleCalendarSync {
     try {
       const event = shiftToCalendarEvent(shift, jobName)
       void event
-      
+
       // Mock API call
       // In real implementation:
       // const response = await fetch(
@@ -195,8 +197,10 @@ export interface CalendarWebhookPayload {
 export function handleCalendarWebhook(payload: CalendarWebhookPayload): void {
   // Handle incoming calendar updates
   // This would be called from an API route
-  console.log("Calendar webhook received", payload)
-  
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[google-calendar] Webhook received", payload)
+  }
+
   // In real implementation:
   // 1. Fetch the updated event
   // 2. Convert back to Shift
