@@ -285,7 +285,7 @@ function WorldClock({
             position: "fixed",
             left: position ? `${position.x}px` : undefined,
             top: position ? `${position.y}px` : "12px",
-            right: position ? undefined : "16px",
+            right: position ? undefined : "24px",
             zIndex: 40,
             cursor: dragging ? "grabbing" : "grab",
           }
@@ -988,7 +988,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
             <div
               className={cn(
-                "absolute inset-y-0 left-0 w-[min(90vw,340px)] overflow-hidden border-r border-border px-4 pt-[calc(3.5rem+1.5rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
+                "absolute inset-y-0 left-0 w-[min(90vw,340px)] overflow-hidden border-r border-border px-4 pt-[calc(3.5rem+2.5rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
                 activeThemeMode === "light"
                   ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
                   : "bg-card"

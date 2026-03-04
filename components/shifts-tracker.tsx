@@ -432,7 +432,7 @@ export function ShiftsTracker() {
               <>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5"
                   aria-label="Filter shifts"
                   onClick={() => setMobileFilterOpen(true)}
@@ -598,7 +598,7 @@ export function ShiftsTracker() {
               <>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5"
                   aria-label="More shift tools"
                   onClick={() => setMobileToolsOpen(true)}
@@ -886,14 +886,14 @@ export function ShiftsTracker() {
                   </div>
 
                   {/* Times */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="shift-start" className="text-xs">Start Time</Label>
-                      <Input id="shift-start" type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
+                      <Input id="shift-start" type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} className="h-10 sm:h-9" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="shift-end" className="text-xs">End Time</Label>
-                      <Input id="shift-end" type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} />
+                      <Input id="shift-end" type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} className="h-10 sm:h-9" />
                     </div>
                   </div>
 
@@ -988,14 +988,14 @@ export function ShiftsTracker() {
                   </div>
 
                   {/* Times */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="edit-shift-start" className="text-xs">Start Time</Label>
-                      <Input id="edit-shift-start" type="time" value={editForm.startTime} onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))} />
+                      <Input id="edit-shift-start" type="time" value={editForm.startTime} onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))} className="h-10 sm:h-9" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="edit-shift-end" className="text-xs">End Time</Label>
-                      <Input id="edit-shift-end" type="time" value={editForm.endTime} onChange={e => setEditForm(f => ({ ...f, endTime: e.target.value }))} />
+                      <Input id="edit-shift-end" type="time" value={editForm.endTime} onChange={e => setEditForm(f => ({ ...f, endTime: e.target.value }))} className="h-10 sm:h-9" />
                     </div>
                   </div>
 
