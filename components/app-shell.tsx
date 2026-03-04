@@ -988,7 +988,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="absolute inset-0 bg-foreground/10 backdrop-blur-sm" />
             <div
               className={cn(
-                "absolute inset-y-0 left-0 w-[min(90vw,340px)] overflow-hidden border-r border-border px-4 pt-[calc(3.5rem+0.5rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
+                "absolute inset-y-0 left-0 w-[min(90vw,340px)] overflow-hidden border-r border-border px-4 pt-[calc(3.5rem+1.5rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
                 activeThemeMode === "light"
                   ? "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
                   : "bg-card"
@@ -996,7 +996,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex h-full min-h-0 flex-col">
-                <div className="rounded-xl border border-border/70 bg-card/70 p-2.5">
+                <div className="rounded-xl border border-border/70 bg-card/70 p-2.5 shrink-0">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quick controls</p>
                   <div className="grid grid-cols-4 gap-2">
                     <div className="flex justify-center">
