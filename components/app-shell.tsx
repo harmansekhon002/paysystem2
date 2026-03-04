@@ -127,9 +127,9 @@ function MobileBottomNav({ items, mode, onNavigate, isVisible }: { items: NavIte
               )}
             >
               <div className={cn("relative flex items-center justify-center", isActive && "after:absolute after:-bottom-1 after:h-1 after:w-1 after:rounded-full after:bg-current")}>
-                <item.icon className={cn("size-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+                <item.icon className={cn("size-6", isActive ? "stroke-[2.5px]" : "stroke-2")} />
               </div>
-              <span className="text-[10px] font-medium leading-none">{item.label}</span>
+              <span className="text-[11px] font-semibold leading-none">{item.label}</span>
             </Link>
           )
         })}
@@ -1075,7 +1075,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="min-h-svh pt-14 pb-20 md:pt-0 md:pb-0">
             <div
               className={cn(
-                "mx-auto w-full max-w-5xl px-3 py-4 transition-all sm:px-4 sm:py-6 md:px-8 md:py-8",
+                "mx-auto w-full max-w-5xl px-4 py-4 transition-all sm:px-6 sm:py-6 md:px-8 md:py-8",
                 privacyModeEnabled && !privacyReveal && "blur-md",
                 routeTransitioning && "opacity-85"
               )}

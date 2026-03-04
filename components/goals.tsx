@@ -151,7 +151,7 @@ export function Goals() {
           )}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5" aria-label="New Goal"><Plus className="size-4" /><span className="hidden sm:inline">New Goal</span></Button>
+              <Button size="sm" className="gap-1.5 h-9 px-4 font-bold shadow-md shadow-primary/20 active:scale-95" aria-label="New Goal"><Plus className="size-4" /><span>New Goal</span></Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Create Savings Goal</DialogTitle></DialogHeader>

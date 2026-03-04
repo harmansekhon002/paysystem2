@@ -432,12 +432,12 @@ export function ShiftsTracker() {
           </div>
         </div>
         <div className="w-full lg:w-auto">
-          <div className="sticky top-14 z-30 flex items-center gap-3.5 overflow-x-auto bg-background/95 pb-1 backdrop-blur supports-[backdrop-filter]:bg-background/60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:relative lg:top-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:pb-0">
+          <div className="sticky top-14 z-30 flex items-center gap-3.5 overflow-x-auto bg-background/80 pb-2 pt-1 border-b border-border/40 px-4 -mx-4 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:relative lg:top-0 lg:mx-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:p-0 lg:border-none">
             {isMobile ? (
               <>
                 <Button
                   size="sm"
-                  className="h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-3 font-bold"
+                  className="h-9 shrink-0 justify-center gap-1.5 whitespace-nowrap px-4 font-bold shadow-md shadow-primary/20 active:scale-95"
                   onClick={() => setDialogOpen(true)}
                 >
                   <Plus className="size-4" />
@@ -1120,7 +1120,7 @@ export function ShiftsTracker() {
                     return (
                       <div
                         key={shift.id}
-                        className={`flex items-center gap-3 py-3 ${isSelected ? "bg-primary/5" : ""}`}
+                        className={`flex items-center gap-3.5 py-4 first:pt-2 last:pb-2 border-b border-border/10 last:border-none ${isSelected ? "bg-primary/5" : ""}`}
                       >
                         {multiSelectMode && (
                           <Checkbox
@@ -1235,12 +1235,12 @@ export function ShiftsTracker() {
 
       <Button
         size="icon"
-        className="fixed bottom-24 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden"
+        className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-primary/25 md:hidden active:scale-90 transition-transform"
         onClick={() => setDialogOpen(true)}
         aria-label="Quick add shift"
         data-testid="fab-add-shift"
       >
-        <Plus className="size-5" />
+        <Plus className="size-6" />
       </Button>
     </div>
   )

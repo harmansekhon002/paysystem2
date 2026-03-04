@@ -200,7 +200,7 @@ export function Earnings() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5"><Plus className="size-4" /><span className="hidden sm:inline">Add Job</span></Button>
+            <Button size="sm" className="gap-1.5 h-9 px-4 font-bold shadow-md shadow-primary/20 active:scale-95"><Plus className="size-4" /><span>Add Job</span></Button>
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Add Job</DialogTitle></DialogHeader>
@@ -247,11 +247,11 @@ export function Earnings() {
               {/* Preview */}
               <div className="rounded-xl border border-border bg-secondary/30 p-3">
                 <p className="text-xs font-medium text-muted-foreground mb-2">Rate Preview</p>
-                <div className="grid grid-cols-2 gap-1 text-xs">
+                <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
                   {(Object.keys(RATE_TYPE_LABELS) as RateType[]).map(rt => (
-                    <div key={rt} className="flex justify-between py-0.5">
+                    <div key={rt} className="flex justify-between py-1 border-b border-border/30 sm:border-none">
                       <span className="text-muted-foreground">{RATE_TYPE_LABELS[rt]}</span>
-                      <span className="font-medium text-foreground">{formatCurrency(form.rates[rt], currencySymbol)}/hr</span>
+                      <span className="font-bold text-foreground">{formatCurrency(form.rates[rt], currencySymbol)}/hr</span>
                     </div>
                   ))}
                 </div>

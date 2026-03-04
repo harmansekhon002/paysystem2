@@ -464,9 +464,9 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 pt-0">
-                <div className="rounded-xl border border-primary/10 bg-muted/20 p-4">
+                <div className="rounded-xl border border-primary/10 bg-muted/20 p-4 shadow-sm active:shadow-md transition-shadow">
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Quick Shift</p>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-1.5 md:col-span-2">
                       <Label>Job</Label>
                       <Select value={quickJobId} onValueChange={setQuickJobId}>
@@ -495,9 +495,9 @@ export function Dashboard() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-primary/10 bg-muted/20 p-4">
+                <div className="rounded-xl border border-primary/10 bg-muted/20 p-4 shadow-sm active:shadow-md transition-shadow">
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Quick Expense</p>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-1.5">
                       <Label>Amount</Label>
                       <Input
