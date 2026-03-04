@@ -38,6 +38,7 @@
     "@capacitor/android": "^8.1.0",
     "@capacitor/core": "^8.1.0",
     "@capacitor/ios": "^8.1.0",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^3.9.1",
     "@paypal/react-paypal-js": "^8.9.2",
     "@prisma/client": "^6.2.0",

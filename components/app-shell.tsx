@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentType, type MouseEve
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import {
   LayoutDashboard,
   CalendarClock,
@@ -40,6 +40,7 @@ import { LoveCelebration } from "@/components/love-celebration"
 import { InstallAppPrompt } from "@/components/install-app-prompt"
 import { triggerSpecialCelebration } from "@/lib/special-features"
 import { resolveTimeZone } from "@/lib/timezone"
+import { BiometricPrompt } from "@/components/biometric-prompt"
 
 const baseNavItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -57,7 +58,7 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>
 }
 
-type ThemeMode = "light" | "dark" | "love"
+type ThemeMode = "light" | "dark" | "oled" | "love"
 
 function ThemeToggle({ mode, onToggle, pulsing = false }: { mode: ThemeMode; onToggle: () => void; pulsing?: boolean }) {
   return (
@@ -67,10 +68,11 @@ function ThemeToggle({ mode, onToggle, pulsing = false }: { mode: ThemeMode; onT
       onClick={onToggle}
       className={cn("size-8", pulsing && "theme-toggle-pulse")}
       aria-label="Toggle theme"
-      title={mode === "love" ? "Love theme" : mode === "dark" ? "Dark theme" : "Light theme"}
+      title={mode === "love" ? "Love theme" : mode === "oled" ? "OLED theme" : mode === "dark" ? "Dark theme" : "Light theme"}
     >
       <Sun className={cn("absolute size-4 transition-all", mode === "light" ? "rotate-0 scale-100" : "-rotate-90 scale-0")} />
       <Moon className={cn("absolute size-4 transition-all", mode === "dark" ? "rotate-0 scale-100" : "rotate-90 scale-0")} />
+      <Zap className={cn("absolute size-4 transition-all", mode === "oled" ? "rotate-0 scale-100 text-yellow-500" : "rotate-90 scale-0")} />
       <Heart className={cn("absolute size-4 transition-all", mode === "love" ? "scale-100 text-rose-500" : "scale-0")} />
     </Button>
   )
@@ -351,6 +353,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
+  const { data: session } = useSession()
   const { data, updateSettings, updateSpecialCompanion, saveStatus, lastSavedAt, planName, isSpecialUser, displayName, refreshPlan } = useAppData()
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
 
@@ -408,9 +411,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? "light"
     : loveModeActive
       ? "love"
-      : resolvedTheme === "dark"
-        ? "dark"
-        : "light"
+      : resolvedTheme === "oled"
+        ? "oled"
+        : resolvedTheme === "dark"
+          ? "dark"
+          : "light"
 
   useEffect(() => {
     if (!requiresPin) {
@@ -747,6 +752,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     if (resolvedTheme === "dark") {
+      setTheme("oled")
+      runThemeTransitionFeedback("dark")
+      triggerSpecialCelebration("OLED theme enabled", "dark")
+      return
+    }
+
+    if (resolvedTheme === "oled") {
       updateSpecialCompanion({ loveThemeEnabled: true })
       setTheme("light")
       runThemeTransitionFeedback("love")
@@ -815,6 +827,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               />
               {pinError ? <p className="text-sm text-destructive">{pinError}</p> : null}
               <Button className="w-full" onClick={handlePinUnlock}>Unlock</Button>
+              <BiometricPrompt
+                onSuccess={() => {
+                  setPinUnlocked(true)
+                  sessionStorage.setItem("shiftwise:wifey-pin-unlocked", "1")
+                }}
+                userId={session?.user?.id || "default"}
+                userName={displayName}
+              />
             </div>
           </div>
         </div>
