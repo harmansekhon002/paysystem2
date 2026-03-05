@@ -119,7 +119,6 @@ export function Earnings() {
   const gridColor = "var(--color-border)"
   const [dialogOpen, setDialogOpen] = useState(false)
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
-  const [template, setTemplate] = useState("custom")
   const hasJobs = data.jobs.length > 0
   const hasShifts = data.shifts.length > 0
   const [form, setForm] = useState({
@@ -129,15 +128,6 @@ export function Earnings() {
     rates: { weekday: 25, saturday: 30, sunday: 35, public_holiday: 50, overtime: 37.5 } as PenaltyRates,
   })
 
-  const applyTemplate = (idx: string) => {
-    setTemplate(idx)
-    if (idx === "custom") return
-    const t = JOB_TEMPLATES[parseInt(idx)]
-    if (t) {
-      setForm({ name: t.name, category: t.category, baseRate: t.baseRate, rates: { ...t.rates } })
-    }
-  }
-
   const handleAddJob = () => {
     if (!form.name) return
     addJob({ name: form.name, category: form.category, baseRate: form.baseRate, rates: form.rates })
@@ -145,7 +135,6 @@ export function Earnings() {
     toast({ title: "Workplace added", description: form.name })
     setDialogOpen(false)
     setForm({ name: "", category: "custom", baseRate: 25, rates: { weekday: 25, saturday: 30, sunday: 35, public_holiday: 50, overtime: 37.5 } })
-    setTemplate("custom")
   }
 
   // Stats
@@ -205,20 +194,6 @@ export function Earnings() {
           <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Add Job</DialogTitle></DialogHeader>
             <div className="flex flex-col gap-4">
-              {/* Template picker */}
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Start from template</Label>
-                <Select value={template} onValueChange={applyTemplate}>
-                  <SelectTrigger><SelectValue placeholder="Choose a template or custom" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="custom">Custom Job</SelectItem>
-                    {JOB_TEMPLATES.map((t, i) => (
-                      <SelectItem key={i} value={String(i)}>{t.name} - {formatCurrency(t.baseRate, currencySymbol)}/hr</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs">Job Name</Label>
                 <Input placeholder="e.g. My Cafe Job" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bell, CalendarClock, Copy, Database, Globe2, Heart, Info, LayoutDashboard, Loader2, PawPrint, RefreshCw, Shield, UserRound, WalletCards } from "lucide-react"
+import { Bell, CalendarClock, ChevronDown, ChevronUp, Copy, Database, Globe2, Heart, Info, LayoutDashboard, Loader2, PawPrint, RefreshCw, Shield, UserRound, WalletCards } from "lucide-react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 
@@ -126,6 +126,9 @@ export default function SettingsPage() {
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
   const [managingSubscription, setManagingSubscription] = useState<"cancel" | "reactivate" | null>(null)
   const [specialPin, setSpecialPin] = useState(data.settings.specialCompanion.pinCode)
+  // Collapsible states
+  const [notifTypesOpen, setNotifTypesOpen] = useState(false)
+  const [widgetsOpen, setWidgetsOpen] = useState(false)
   const { data: session, update: updateSession } = useSession()
   const [profile, setProfile] = useState({
     name: session?.user?.name || "",
@@ -323,11 +326,16 @@ export default function SettingsPage() {
   ]
 
   const countryOptions = [
-    { value: "Australia", label: "Australia" },
-    { value: "USA", label: "USA" },
-    { value: "UK", label: "UK" },
-    { value: "Other", label: "Other" },
+    { value: "Australia", label: "Australia", currency: "AUD", symbol: "A$" },
+    { value: "USA", label: "USA", currency: "USD", symbol: "US$" },
+    { value: "UK", label: "UK", currency: "GBP", symbol: "£" },
+    { value: "Other", label: "Other", currency: "AUD", symbol: "A$" },
   ]
+  const handleCountryChange = (v: string) => {
+    const country = countryOptions.find(c => c.value === v)
+    if (!country) return
+    updateSettings({ country: v, currency: country.currency, currencySymbol: country.symbol })
+  }
   const selectedTimeZone = resolveTimeZone(data.settings.timeZone)
   const timeZoneSelectOptions = useMemo(
     () => (TIME_ZONE_OPTIONS.includes(selectedTimeZone) ? TIME_ZONE_OPTIONS : [selectedTimeZone, ...TIME_ZONE_OPTIONS]),
@@ -462,7 +470,7 @@ export default function SettingsPage() {
                   <CardContent className="space-y-5 p-6 pt-0">
                     <div className="space-y-2">
                       <Label>Country</Label>
-                      <Select value={data.settings.country} onValueChange={v => updateSettings({ country: v })}>
+                      <Select value={data.settings.country} onValueChange={handleCountryChange}>
                         <SelectTrigger className="h-10">
                           <SelectValue />
                         </SelectTrigger>
@@ -497,6 +505,7 @@ export default function SettingsPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">Auto-set when you change country — you can still override it.</p>
                     </div>
 
                     <div className="space-y-2">
@@ -641,27 +650,36 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Notification types</Label>
-                      <div className="grid grid-cols-1 gap-2">
-                        {notificationTypeOptions.map((type) => {
-                          const checked = data.settings.notificationTypes.includes(type.value)
-                          return (
-                            <label key={type.value} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(next) => {
-                                  const enabled = Boolean(next)
-                                  const nextTypes = enabled
-                                    ? Array.from(new Set([...data.settings.notificationTypes, type.value]))
-                                    : data.settings.notificationTypes.filter(t => t !== type.value)
-                                  updateSettings({ notificationTypes: nextTypes })
-                                }}
-                              />
-                              <span>{type.label}</span>
-                            </label>
-                          )
-                        })}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setNotifTypesOpen(v => !v)}
+                        className="flex w-full items-center justify-between rounded-lg border border-border/60 px-3 py-2.5 text-sm font-medium hover:bg-muted/40 transition-colors"
+                      >
+                        <span>Notification types</span>
+                        {notifTypesOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                      </button>
+                      {notifTypesOpen && (
+                        <div className="grid grid-cols-1 gap-2">
+                          {notificationTypeOptions.map((type) => {
+                            const checked = data.settings.notificationTypes.includes(type.value)
+                            return (
+                              <label key={type.value} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(next) => {
+                                    const enabled = Boolean(next)
+                                    const nextTypes = enabled
+                                      ? Array.from(new Set([...data.settings.notificationTypes, type.value]))
+                                      : data.settings.notificationTypes.filter(t => t !== type.value)
+                                    updateSettings({ notificationTypes: nextTypes })
+                                  }}
+                                />
+                                <span>{type.label}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3">
@@ -675,7 +693,7 @@ export default function SettingsPage() {
                           onCheckedChange={(checked) => updateSettings({ quietHoursEnabled: Boolean(checked) })}
                         />
                       </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 transition-opacity duration-200 ${!data.settings.quietHoursEnabled ? "opacity-40 pointer-events-none select-none" : ""}`}>
                         <div className="space-y-1.5">
                           <Label htmlFor="quiet-start">Start</Label>
                           <Input
@@ -697,6 +715,79 @@ export default function SettingsPage() {
                           />
                         </div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card id="settings-work-limits" className="mobile-settings-card border-border/80 shadow-sm border-primary/20">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Shield className="text-primary size-4" />
+                      <CardTitle className="text-lg">Work Limits & Visa Guardian</CardTitle>
+                    </div>
+                    <CardDescription>Monitor work hour limits for visa compliance or personal goals.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">Enable Visa Guardian</p>
+                        <p className="text-xs text-muted-foreground">Show work hour progress in the Shifts tab.</p>
+                      </div>
+                      <Switch
+                        checked={data.settings.workHourLimits.enabled}
+                        onCheckedChange={(checked) => updateSettings({
+                          workHourLimits: { ...data.settings.workHourLimits, enabled: Boolean(checked) }
+                        })}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="max-hours">Max hours per cycle</Label>
+                        <Input
+                          id="max-hours"
+                          type="number"
+                          className="h-10"
+                          value={data.settings.workHourLimits.maxHours}
+                          onChange={e => updateSettings({
+                            workHourLimits: { ...data.settings.workHourLimits, maxHours: Number(e.target.value) }
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cycle-days">Cycle length (days)</Label>
+                        <Select
+                          value={String(data.settings.workHourLimits.cycleDays)}
+                          onValueChange={v => updateSettings({
+                            workHourLimits: { ...data.settings.workHourLimits, cycleDays: Number(v) }
+                          })}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="7">Weekly (7 days)</SelectItem>
+                            <SelectItem value="14">Fortnightly (14 days)</SelectItem>
+                            <SelectItem value="28">4 Weeks (28 days)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cycle-start">Cycle anchor date</Label>
+                      <Input
+                        id="cycle-start"
+                        type="date"
+                        className="h-10"
+                        value={data.settings.workHourLimits.cycleStart}
+                        onChange={e => updateSettings({
+                          workHourLimits: { ...data.settings.workHourLimits, cycleStart: e.target.value }
+                        })}
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        This date marks the start of a new work cycle (e.g., a Monday when your fortnightly limit resets).
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -832,23 +923,35 @@ export default function SettingsPage() {
                     </div>
                     <CardDescription>Choose what appears on your home dashboard.</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-2 p-6 pt-0">
-                    {dashboardWidgetOptions.map((widget) => (
-                      <label key={widget.key} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
-                        <Checkbox
-                          checked={data.settings.dashboardWidgets[widget.key]}
-                          onCheckedChange={(next) =>
-                            updateSettings({
-                              dashboardWidgets: {
-                                ...data.settings.dashboardWidgets,
-                                [widget.key]: Boolean(next),
-                              },
-                            })
-                          }
-                        />
-                        <span>{widget.label}</span>
-                      </label>
-                    ))}
+                  <CardContent className="p-6 pt-0">
+                    <button
+                      type="button"
+                      onClick={() => setWidgetsOpen(v => !v)}
+                      className="flex w-full items-center justify-between rounded-lg border border-border/60 px-3 py-2.5 text-sm font-medium hover:bg-muted/40 transition-colors"
+                    >
+                      <span>Dashboard widgets</span>
+                      {widgetsOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                    </button>
+                    {widgetsOpen && (
+                      <div className="space-y-2">
+                        {dashboardWidgetOptions.map((widget) => (
+                          <label key={widget.key} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                            <Checkbox
+                              checked={data.settings.dashboardWidgets[widget.key]}
+                              onCheckedChange={(next) =>
+                                updateSettings({
+                                  dashboardWidgets: {
+                                    ...data.settings.dashboardWidgets,
+                                    [widget.key]: Boolean(next),
+                                  },
+                                })
+                              }
+                            />
+                            <span>{widget.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

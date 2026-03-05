@@ -78,6 +78,13 @@ export type SpecialCompanionSettings = {
   celebrationEnabled: boolean
 }
 
+export type WorkHourLimits = {
+  enabled: boolean
+  maxHours: number
+  cycleDays: number
+  cycleStart: string // ISO date used to anchor the recurring cycles
+}
+
 export type AppSettings = {
   currency: string
   currencySymbol: string
@@ -102,6 +109,7 @@ export type AppSettings = {
     jobBreakdown: boolean
     upcomingShifts: boolean
   }
+  workHourLimits: WorkHourLimits
   specialCompanion: SpecialCompanionSettings
 }
 
@@ -267,6 +275,12 @@ export const defaultData: AppData = {
       weeklyChart: true,
       jobBreakdown: true,
       upcomingShifts: true,
+    },
+    workHourLimits: {
+      enabled: false,
+      maxHours: 48,
+      cycleDays: 14,
+      cycleStart: "2026-01-05", // A Monday
     },
     specialCompanion: {
       nickname: "Wifey",

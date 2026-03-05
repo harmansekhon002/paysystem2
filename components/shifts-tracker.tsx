@@ -10,6 +10,11 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
 import { trackEvent } from "@/lib/analytics"
 import { formatCurrency, RATE_TYPE_LABELS, type Shift } from "@/lib/store"
+import { useWorkLimits } from "@/hooks/use-work-limits"
+import { ShieldCheck, ShieldAlert, Clock, Info } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { format } from "date-fns"
 
 import { ShiftHeaderActions } from "./shifts/shift-header-actions"
 import { ShiftCalendarView } from "./shifts/shift-calendar-view"
@@ -193,6 +198,9 @@ export function ShiftsTracker() {
             ) : null}
           </div>
         </div>
+
+        <WorkGuardian limits={useWorkLimits()} />
+
         <div className="w-full lg:w-auto">
           <ShiftHeaderActions
             isMobile={isMobile}
@@ -283,5 +291,64 @@ export function ShiftsTracker() {
         <Plus className="size-6" />
       </Button>
     </div>
+  )
+}
+
+function WorkGuardian({ limits }: { limits: any }) {
+  if (!limits.enabled) return null
+
+  const { workedHours, maxHours, remainingHours, percent, isOverLimit, cycleEnd, daysRemaining } = limits
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex flex-col gap-1.5 min-w-[180px] p-3 rounded-xl border border-primary/20 bg-primary/5 cursor-help">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                {isOverLimit ? (
+                  <ShieldAlert className="size-4 text-destructive animate-pulse" />
+                ) : (
+                  <ShieldCheck className="size-4 text-primary" />
+                )}
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Visa Guardian</span>
+              </div>
+              <span className={`text-xs font-bold ${isOverLimit ? "text-destructive" : "text-primary"}`}>
+                {workedHours}/{maxHours}h
+              </span>
+            </div>
+            <Progress
+              value={percent}
+              className={`h-1.5 ${isOverLimit ? "bg-destructive/20" : ""}`}
+              indicatorClassName={isOverLimit ? "bg-destructive" : "bg-primary"}
+            />
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Clock className="size-3" />
+                {daysRemaining}d left
+              </span>
+              <span>Ends {format(cycleEnd, "MMM d")}</span>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent className="p-3 max-w-[200px]">
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-bold">Fortnightly Work Limit</p>
+            <p className="text-[11px] leading-relaxed">
+              You have worked **{workedHours} hours** this fortnight inclusive of your logged shifts.
+              {isOverLimit ? (
+                <span className="text-destructive font-bold"> You are over your limit by {(workedHours - maxHours).toFixed(1)}h.</span>
+              ) : (
+                <span> You have **{remainingHours.toFixed(1)}h** remaining.</span>
+              )}
+            </p>
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-primary">
+              <Info className="size-3" />
+              <span>Customize limits in Settings</span>
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { Briefcase, CheckSquare, Download, Filter, MoreHorizontal, Plus, Repeat } from "lucide-react"
+import { Briefcase, CheckSquare, Download, Filter, FileText, Loader2, MoreHorizontal, Plus, Repeat, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { RATE_TYPE_LABELS, type RateType, type JobTemplate } from "@/lib/store"
+import { useState, useRef } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 interface ShiftFilters {
     jobId: string
@@ -52,6 +54,53 @@ export function ShiftHeaderActions({
     setJobDialogOpen,
     setRecurringDialogOpen,
 }: ShiftHeaderActionsProps) {
+    const { toast } = useToast()
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handlePayslipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploading(true)
+        const formData = new FormData()
+        formData.append("file", file)
+
+        try {
+            const response = await fetch("/api/ai/ocr", {
+                method: "POST",
+                body: formData,
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                toast({
+                    title: "Payslip Processed",
+                    description: `Extracted ${data.totalHours || 0} hours for ${data.employerName || "unknown employer"}.`,
+                })
+                // In a real app, we would open a dialog to confirm the extracted data
+                // For now, let's just log it or show a toast
+                console.log("Extracted Data:", data)
+            } else {
+                toast({
+                    title: "OCR Failed",
+                    description: "Could not parse payslip. Please try again.",
+                    variant: "destructive",
+                })
+            }
+        } catch (error) {
+            console.error(error)
+            toast({
+                title: "Error",
+                description: "Something went wrong during upload.",
+                variant: "destructive",
+            })
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = ""
+        }
+    }
+
     const hasActiveFilters = filters.jobId !== "all" || filters.rateType !== "all" || filters.dateFrom || filters.dateTo
 
     return (
@@ -65,6 +114,25 @@ export function ShiftHeaderActions({
                     >
                         <Plus className="size-4" />
                         <span>Log Shift</span>
+                    </Button>
+
+                    <input
+                        type="file"
+                        accept=".pdf"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handlePayslipUpload}
+                    />
+
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-9 shrink-0 justify-center gap-1.5 whitespace-nowrap px-4 font-bold bg-primary/10 text-primary border-none"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                    >
+                        {uploading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                        <span>AI Upload</span>
                     </Button>
 
                     <div className="h-4 w-px bg-border/60 mx-1 shrink-0" />
@@ -245,6 +313,17 @@ export function ShiftHeaderActions({
             <Button size="sm" variant="outline" className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:inline-flex sm:h-9 sm:px-3" onClick={exportToICalendar}>
                 <Download className="size-4" />
                 <span className="hidden sm:inline">Export</span>
+            </Button>
+
+            <Button
+                size="sm"
+                variant="outline"
+                className="hidden h-8 shrink-0 justify-center gap-1.5 whitespace-nowrap px-2.5 sm:inline-flex sm:h-9 sm:px-3 text-primary border-primary/20 hover:bg-primary/5"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+            >
+                {uploading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                <span className="hidden sm:inline">AI Payslip Upload</span>
             </Button>
 
             <Button

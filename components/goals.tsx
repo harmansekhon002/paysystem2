@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Plus, Trash2, TrendingUp, TrendingDown, CheckCircle2, Target, Bell, BellOff } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
@@ -270,9 +270,11 @@ export function Goals() {
                       <Button size="sm" variant="ghost" onClick={() => { setAddingFunds(null); setFundAmount("") }}>Cancel</Button>
                     </div>
                   ) : (
-                    <Button variant="outline" size="sm" className="w-fit" onClick={() => setAddingFunds(goal.id)}>
-                      <Plus className="mr-1 size-3.5" />Add Funds
-                    </Button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button variant="outline" size="sm" className="w-fit" onClick={() => setAddingFunds(goal.id)}>
+                        <Plus className="mr-1 size-3.5" />Add Funds
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>

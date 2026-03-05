@@ -1,28 +1,23 @@
 "use client"
 
-import { Brain, GraduationCap, Heart, Droplets, Dumbbell, Smile } from "lucide-react"
+import { GraduationCap, Smile } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { type CarePlan, type WeeklyRecoveryInsights, type SharedCheckInState } from "./routine-types"
 
-const MOOD_OPTIONS = [
-    { value: "happy", label: "Happy" },
-    { value: "calm", label: "Calm" },
-    { value: "excited", label: "Excited" },
-    { value: "focused", label: "Focused" },
-    { value: "tired", label: "Tired" },
-    { value: "stressed", label: "Stressed" },
-    { value: "sad", label: "Sad" },
-]
-
-const ENERGY_OPTIONS = [
-    { value: "low", label: "Low energy" },
-    { value: "medium", label: "Medium energy" },
-    { value: "high", label: "High energy" },
+// Merged mood + energy options in a single combined selector
+const MOOD_ENERGY_OPTIONS = [
+    { value: "happy-high", label: "😄 Happy & Energised" },
+    { value: "happy-low", label: "😊 Happy but Tired" },
+    { value: "calm-medium", label: "😌 Calm & Steady" },
+    { value: "excited-high", label: "🤩 Excited & High Energy" },
+    { value: "focused-high", label: "🎯 Focused & Productive" },
+    { value: "tired-low", label: "😴 Tired & Low Energy" },
+    { value: "stressed-medium", label: "😰 Stressed" },
+    { value: "sad-low", label: "😔 Sad & Drained" },
 ]
 
 interface RoutineInsightsProps {
@@ -51,12 +46,11 @@ export function RoutineInsights({
     sharedCheckIn,
     setSharedCheckIn,
     isMobile,
-    displayName,
     parentalMode,
 }: RoutineInsightsProps) {
     return (
         <div className="grid gap-4 md:grid-cols-2">
-            {/* Mood Check-in */}
+            {/* Mood & Energy Check-in (merged) */}
             <Card className="border-primary/20">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -65,22 +59,20 @@ export function RoutineInsights({
                     </CardTitle>
                     {!isMobile ? (
                         <CardDescription>
-                            {parentalMode
-                                ? "How are you feeling right now? Help your parent understand your state."
-                                : "How are you feeling right now? This helps AI adjust your care plan."}
+                            How are you feeling right now?
                         </CardDescription>
                     ) : null}
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex flex-col gap-2">
                         <div className="space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground">My Mood</p>
+                            <p className="text-xs font-medium text-muted-foreground">My Mood & Energy</p>
                             <Select value={mood} onValueChange={setMood}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select current mood" />
+                                    <SelectValue placeholder="How are you feeling + energy level?" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {MOOD_OPTIONS.map((m) => (
+                                    {MOOD_ENERGY_OPTIONS.map((m) => (
                                         <SelectItem key={m.value} value={m.value}>
                                             {m.label}
                                         </SelectItem>
@@ -90,43 +82,23 @@ export function RoutineInsights({
                         </div>
 
                         {!parentalMode && (
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                    <p className="text-xs font-medium text-muted-foreground">Hubby Mood</p>
-                                    <Select
-                                        value={sharedCheckIn.harmanMood}
-                                        onValueChange={(v) => setSharedCheckIn(prev => ({ ...prev, harmanMood: v }))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Mood" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {MOOD_OPTIONS.map((m) => (
-                                                <SelectItem key={`hubby-${m.value}`} value={m.value}>
-                                                    {m.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-xs font-medium text-muted-foreground">Shared Energy</p>
-                                    <Select
-                                        value={sharedCheckIn.energy}
-                                        onValueChange={(v) => setSharedCheckIn(prev => ({ ...prev, energy: v }))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Energy" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {ENERGY_OPTIONS.map((e) => (
-                                                <SelectItem key={e.value} value={e.value}>
-                                                    {e.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                            <div className="space-y-1">
+                                <p className="text-xs font-medium text-muted-foreground">Hubby Mood & Energy</p>
+                                <Select
+                                    value={sharedCheckIn.harmanMood}
+                                    onValueChange={(v) => setSharedCheckIn(prev => ({ ...prev, harmanMood: v }))}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Hubby's mood" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {MOOD_ENERGY_OPTIONS.map((m) => (
+                                            <SelectItem key={`hubby-${m.value}`} value={m.value}>
+                                                {m.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
 
@@ -147,13 +119,10 @@ export function RoutineInsights({
                 </CardContent>
             </Card>
 
-            {/* Care Plan */}
+            {/* Care Plan (rule-based, no AI) */}
             <Card className={`border-primary/25 ${carePlan.mode === "recovery" ? "bg-red-500/5" : carePlan.mode === "growth" ? "bg-primary/5" : ""}`}>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Brain className="size-4 text-primary" />
-                        {carePlan.title}
-                    </CardTitle>
+                    <CardTitle className="text-base">{carePlan.title}</CardTitle>
                     <CardDescription>{carePlan.summary}</CardDescription>
                 </CardHeader>
                 <CardContent>
