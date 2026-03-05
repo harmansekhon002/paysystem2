@@ -274,7 +274,7 @@ export function ShiftDialogs({
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Log a Shift</DialogTitle></DialogHeader>
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1 -mx-1">
                         <div className="flex flex-col gap-1.5">
                             <Label className="text-xs">Job</Label>
                             {jobs.length === 0 ? (
@@ -353,7 +353,7 @@ export function ShiftDialogs({
             <Dialog open={editDialogOpen} onOpenChange={open => { setEditDialogOpen(open); if (!open) setEditShiftId(null) }}>
                 <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Edit Shift</DialogTitle></DialogHeader>
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1 -mx-1">
                         <div className="flex flex-col gap-1.5">
                             <Label className="text-xs">Job</Label>
                             {jobs.length === 0 ? (
@@ -469,7 +469,7 @@ export function ShiftDialogs({
             <Dialog open={recurringDialogOpen} onOpenChange={setRecurringDialogOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Schedule Recurring Shifts</DialogTitle></DialogHeader>
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1 -mx-1">
                         <div className="flex flex-col gap-1.5">
                             <Label className="text-xs">Template Name</Label>
                             <Input placeholder="e.g. Weekly cafe shifts" value={recurringForm.name} onChange={e => setRecurringForm(f => ({ ...f, name: e.target.value }))} />
@@ -503,14 +503,14 @@ export function ShiftDialogs({
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label className="text-xs">Days of Week</Label>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 flex-wrap">
                                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
                                     <Button
                                         key={day}
                                         type="button"
                                         size="sm"
                                         variant={recurringForm.daysOfWeek.includes(idx) ? "default" : "outline"}
-                                        className="flex-1 text-xs px-2"
+                                        className="h-8 min-w-[45px] flex-1 text-[10px] px-1"
                                         onClick={() => {
                                             const newDays = recurringForm.daysOfWeek.includes(idx) ? recurringForm.daysOfWeek.filter(d => d !== idx) : [...recurringForm.daysOfWeek, idx].sort()
                                             setRecurringForm(f => ({ ...f, daysOfWeek: newDays }))

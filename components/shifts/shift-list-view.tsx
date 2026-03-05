@@ -51,46 +51,49 @@ export function ShiftListView({
 
         return (
             <div style={style} {...ariaAttributes} className={`px-4 border-b border-border/10 ${isSelected ? "bg-primary/5" : ""}`}>
-                <div className="flex items-center gap-3.5 h-full py-2">
+                <div className="flex items-center gap-2.5 h-full py-2">
                     {multiSelectMode && (
                         <Checkbox
                             checked={isSelected}
                             onCheckedChange={(checked) => toggleShiftSelection(shift.id, checked === true)}
                             aria-label={`Select shift on ${shift.date}`}
+                            className="size-4"
                         />
                     )}
                     <div className="size-2 rounded-full shrink-0" style={{ background: job?.color || "#94a3b8" }} />
                     <div className="flex flex-1 flex-col gap-0.5 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-foreground truncate max-w-[120px]">{job?.name || "Unknown"}</span>
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{RATE_TYPE_LABELS[shift.rateType]}</Badge>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-sm font-medium text-foreground truncate">{job?.name || "Unknown"}</span>
+                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 shrink-0 whitespace-nowrap">{RATE_TYPE_LABELS[shift.rateType]}</Badge>
                         </div>
-                        <span className="text-[11px] text-muted-foreground truncate">
-                            {new Date(shift.date + "T00:00:00").toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })} &middot; {shift.startTime}-{shift.endTime}
+                        <span className="text-[10px] text-muted-foreground truncate">
+                            {new Date(shift.date + "T00:00:00").toLocaleDateString("en-AU", { weekday: "short", day: "numeric" })} &middot; {shift.startTime}-{shift.endTime}
                         </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-sm font-medium text-foreground mr-1">{formatCurrency(shift.earnings, currencySymbol)}</span>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 text-muted-foreground hover:text-primary"
-                            onClick={() => openEditDialog(shift)}
-                        >
-                            <Pencil className="size-3.5" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => {
-                                removeShift(shift.id)
-                                trackEvent("shift_removed")
-                                toast({ title: "Shift removed" })
-                            }}
-                        >
-                            <Trash2 className="size-3.5" />
-                        </Button>
+                    <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+                        <span className="text-sm font-semibold text-foreground mr-1 whitespace-nowrap">{formatCurrency(shift.earnings, currencySymbol)}</span>
+                        <div className="flex items-center">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-primary"
+                                onClick={() => openEditDialog(shift)}
+                            >
+                                <Pencil className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-destructive hidden sm:inline-flex"
+                                onClick={() => {
+                                    removeShift(shift.id)
+                                    trackEvent("shift_removed")
+                                    toast({ title: "Shift removed" })
+                                }}
+                            >
+                                <Trash2 className="size-3.5" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
