@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Download, X } from "lucide-react"
+import { Download, X, Share } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -102,10 +102,14 @@ export function InstallAppPrompt() {
           <Download className="mt-0.5 size-4 text-primary" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-foreground">Install ShiftWise app</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {deferredPrompt
-                ? "Add this app to your home screen for a faster, app-like experience."
-                : "On iPhone: tap Share, then Add to Home Screen."}
+            <p className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-1">
+              {deferredPrompt ? (
+                "Add this app to your home screen for a faster, app-like experience."
+              ) : isIOS ? (
+                <>Tap <Share className="size-3 flex-shrink-0" /> Share, then &quot;Add to Home Screen&quot;.</>
+              ) : (
+                "Install this app from your browser menu for a better experience."
+              )}
             </p>
           </div>
           <button

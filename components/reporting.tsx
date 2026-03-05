@@ -58,22 +58,18 @@ import { useAppData } from "@/components/data-provider"
 import { formatCurrency, type RateType, RATE_TYPE_LABELS } from "@/lib/store"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Rectangle } from "recharts"
 import { PieChart } from "@/components/ui/pie-chart"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Loader2 } from "lucide-react" // Add Loader2
+import { getStartDate, computeFinancialAnalytics } from "@/lib/finance-logic"
 
 export function ReportingDashboard() {
   const { data, canUseFeature, planName } = useAppData()
   const [timeRange, setTimeRange] = useState<"week" | "month" | "quarter" | "year">("month")
   const currencySymbol = data.settings.currencySymbol
 
-  // Calculate date ranges
+  // Calculate date ranges using centralized logic
   const now = useMemo(() => new Date(), [])
-  const ranges = {
-    week: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-    month: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-    quarter: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-    year: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
-  }
-  const startDate = ranges[timeRange].toISOString().split("T")[0]
+  const startDate = useMemo(() => getStartDate(timeRange, now), [timeRange, now])
 
   // Filter data by time range
   const filteredShifts = useMemo(() => {
@@ -84,19 +80,47 @@ export function ReportingDashboard() {
     return data.expenses.filter(e => e.date >= startDate)
   }, [data.expenses, startDate])
 
-  // Earnings analytics
-  const totalEarnings = filteredShifts.reduce((sum, s) => sum + s.earnings, 0)
-  const totalHours = filteredShifts.reduce((sum, s) => sum + s.hours, 0)
-  const avgHourlyRate = totalHours > 0 ? totalEarnings / totalHours : 0
-  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
-  const netIncome = totalEarnings - totalExpenses
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
 
-  // Trend comparison (vs previous period)
-  const periodDays = Math.ceil((now.getTime() - ranges[timeRange].getTime()) / 86400000)
-  const prevStartDate = new Date(ranges[timeRange].getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
-  const prevShifts = data.shifts.filter(s => s.date >= prevStartDate && s.date < startDate)
-  const prevEarnings = prevShifts.reduce((sum, s) => sum + s.earnings, 0)
-  const earningsTrend = prevEarnings > 0 ? ((totalEarnings - prevEarnings) / prevEarnings) * 100 : 0
+  useEffect(() => {
+    if (!filteredShifts.length) {
+      setAnalytics({
+        totalEarnings: 0,
+        totalHours: 0,
+        avgHourlyRate: 0,
+        totalExpenses: 0,
+        netIncome: 0,
+        earningsTrend: 0,
+        earningsByJob: []
+      })
+      return
+    }
+
+    setIsCalculating(true)
+    const worker = new Worker(new URL("@/lib/workers/finance-worker.ts", import.meta.url))
+
+    worker.onmessage = (e) => {
+      const periodBase = e.data
+      const periodDays = timeRange === "week" ? 7 : timeRange === "month" ? 30 : timeRange === "quarter" ? 90 : 365
+      const prevStart = new Date(new Date(startDate).getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      const prevShifts = data.shifts.filter(s => s.date >= prevStart && s.date < startDate)
+      const prevEarnings = prevShifts.reduce((sum, s) => sum + s.earnings, 0)
+      const trend = prevEarnings > 0 ? ((periodBase.totalEarnings - prevEarnings) / prevEarnings) * 100 : 0
+
+      setAnalytics({ ...periodBase, earningsTrend: trend })
+      setIsCalculating(false)
+      worker.terminate()
+    }
+
+    worker.postMessage({ shifts: filteredShifts, expenses: filteredExpenses })
+
+    return () => worker.terminate()
+  }, [filteredShifts, filteredExpenses, startDate, timeRange, data.shifts])
+
+  const { totalEarnings, totalHours, avgHourlyRate, totalExpenses, netIncome, earningsTrend } = analytics || {
+    totalEarnings: 0, totalHours: 0, avgHourlyRate: 0, totalExpenses: 0, netIncome: 0, earningsTrend: 0
+  }
 
   // Earnings by job
   const earningsByJob = useMemo(() => {
@@ -189,7 +213,10 @@ export function ReportingDashboard() {
     <div className="mobile-page flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Analytics</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+            Analytics
+            {isCalculating && <Loader2 className="size-4 animate-spin text-primary" />}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">Advanced insights and trends.</p>
         </div>
         <Select value={timeRange} onValueChange={v => setTimeRange(v as typeof timeRange)}>

@@ -1,8 +1,10 @@
 
-"use client"
-
+import dynamic from "next/dynamic"
 import { AppShell } from "@/components/app-shell"
-import { Dashboard } from "@/components/dashboard"
+
+const Dashboard = dynamic(() => import("@/components/dashboard").then(mod => mod.Dashboard), {
+  loading: () => <div className="flex h-96 items-center justify-center">Loading Dashboard...</div>
+})
 
 export default function HomePage() {
   return (

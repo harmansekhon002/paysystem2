@@ -5,7 +5,10 @@ import { DataProvider } from '@/components/data-provider'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/components/auth-provider'
+import { Inter } from 'next/font/google'
 import './globals.css'
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://shiftwise.vercel.app"),
@@ -77,7 +80,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className={`${inter.className} font-sans antialiased text-foreground selection:bg-primary/20`}>
         <AuthProvider>
           <ThemeProvider>
             <ErrorBoundary>

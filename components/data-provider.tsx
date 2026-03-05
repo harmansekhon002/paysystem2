@@ -9,6 +9,9 @@ import {
 } from "@/lib/store"
 import { type PremiumFeature, checkLimit, freeTierLimits, getUsageStats, hasFeatureAccess, upsellMessages } from "@/lib/premium"
 import { toast } from "@/hooks/use-toast"
+import { useAppStore } from "@/lib/store/app-store"
+import { get, set as setIDB } from "idb-keyval"
+import { pack, unpack } from "msgpackr"
 
 type PlanTier = "free" | "plus" | "pro" | "admin" | "lifetime" | "custom"
 
@@ -101,6 +104,39 @@ function mergeStoredData(raw: Partial<AppData>): AppData {
   }
 }
 
+function mergeIncrementalData(local: AppData, remote: Partial<AppData>): AppData {
+  const mergeList = (localList: any[], remoteList: any[]) => {
+    if (!remoteList.length) return localList
+    const list = [...localList]
+    remoteList.forEach(ritem => {
+      const idx = list.findIndex(litem => litem.id === ritem.id)
+      if (idx > -1) {
+        // Simple last-write-wins based on updatedAt if available
+        const rTime = ritem.updatedAt ? new Date(ritem.updatedAt).getTime() : 0
+        const lTime = list[idx].updatedAt ? new Date(list[idx].updatedAt).getTime() : 0
+        if (rTime >= lTime) {
+          list[idx] = ritem
+        }
+      } else {
+        list.push(ritem)
+      }
+    })
+    return list
+  }
+
+  return {
+    ...local,
+    jobs: mergeList(local.jobs, remote.jobs || []),
+    shifts: mergeList(local.shifts, remote.shifts || []),
+    expenses: mergeList(local.expenses, remote.expenses || []),
+    goals: mergeList(local.goals, remote.goals || []),
+    budgetCategories: mergeList(local.budgetCategories, remote.budgetCategories || []),
+    attendanceEvents: mergeList(local.attendanceEvents, remote.attendanceEvents || []),
+    settings: remote.settings ? { ...local.settings, ...remote.settings } : local.settings,
+    publicHolidays: remote.publicHolidays ?? local.publicHolidays,
+  }
+}
+
 function isLegacyDemoSeed(raw: Partial<AppData>): boolean {
   const demoJobIds = ["j1", "j2", "j3", "j4"]
   const jobs = raw.jobs ?? []
@@ -156,13 +192,15 @@ export function useAppData() {
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { status } = useSession()
-  const [data, setData] = useState<AppData>(defaultData)
+  const { data, setData, ...storeActions } = useAppStore()
+
   const [hydrated, setHydrated] = useState(false)
   const [storageReady, setStorageReady] = useState(false)
   const [storageKey, setStorageKey] = useState(`${STORAGE_KEY}:guest`)
   const [currentUser, setCurrentUser] = useState<SessionResponse["user"] | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(null)
   const [planTier, setPlanTier] = useState<PlanTier>("free")
   const isPremium = planTier !== "free"
   const planName = getPlanLabel(planTier)
@@ -237,53 +275,67 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined" || !storageReady) return
     setHydrated(false)
-    try {
-      const stored = localStorage.getItem(storageKey)
-      let localParsed: Partial<AppData> | null = null
-      if (stored) {
-        const parsed = JSON.parse(stored) as Partial<AppData>
-        if (isLegacyDemoSeed(parsed)) {
-          localStorage.removeItem(storageKey)
-        } else {
-          localParsed = parsed
-        }
-      }
 
-      const finishHydration = (finalData: AppData) => {
-        setData(finalData)
+    async function hydrate() {
+      try {
+        const stored = await get<Partial<AppData>>(storageKey)
+        let localParsed: Partial<AppData> | null = null
+        if (stored) {
+          if (isLegacyDemoSeed(stored)) {
+            // Cleanup legacy
+          } else {
+            localParsed = stored
+          }
+        }
+
+        const finishHydration = (finalData: AppData) => {
+          setData(finalData)
+          setHydrated(true)
+        }
+
+        // If user is logged in, try fetching from cloud
+        if (!storageKey.includes("guest") && currentUser) {
+          const url = lastSyncTimestamp ? `/api/sync?since=${lastSyncTimestamp}` : "/api/sync"
+          try {
+            const res = await fetch(url, {
+              headers: { "Accept": "application/msgpack, application/json" }
+            })
+            const contentType = res.headers.get("content-type") || ""
+            let json: any
+            if (contentType.includes("application/msgpack")) {
+              const buffer = await res.arrayBuffer()
+              json = unpack(new Uint8Array(buffer))
+            } else {
+              json = await res.json()
+            }
+
+            if (json.data) {
+              const current = localParsed ? mergeStoredData(localParsed) : defaultData
+              const merged = mergeIncrementalData(current, json.data)
+              await setIDB(storageKey, merged)
+              setLastSyncTimestamp(new Date().toISOString())
+              finishHydration(merged)
+              return
+            }
+          } catch (e) {
+            console.error("Cloud fetch failed", e)
+          }
+        }
+
+        if (localParsed) {
+          finishHydration(mergeStoredData(localParsed))
+        } else {
+          finishHydration(defaultData)
+        }
+      } catch (e) {
+        console.error("Hydration error", e)
+        setData(defaultData)
         setHydrated(true)
       }
-
-      // If local storage is empty and user is logged in, try fetching from cloud
-      if (!localParsed && !storageKey.includes("guest") && currentUser) {
-        fetch("/api/sync")
-          .then(res => res.json())
-          .then(json => {
-            if (json.data && (json.data.jobs?.length > 0 || json.data.shifts?.length > 0)) {
-              const merged = mergeStoredData(json.data)
-              localStorage.setItem(storageKey, JSON.stringify(merged))
-              finishHydration(merged)
-            } else {
-              finishHydration(defaultData)
-            }
-          })
-          .catch(() => {
-            finishHydration(defaultData)
-          })
-        return
-      }
-
-      if (localParsed) {
-        finishHydration(mergeStoredData(localParsed))
-      } else {
-        finishHydration(defaultData)
-      }
-    } catch {
-      // Ignore corrupted storage and use defaults.
-      setData(defaultData)
-      setHydrated(true)
     }
-  }, [storageKey, storageReady, currentUser])
+
+    void hydrate()
+  }, [storageKey, storageReady, currentUser, setData])
 
   useEffect(() => {
     void refreshPlan()
@@ -295,16 +347,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const saveData = async () => {
       try {
         setSaveStatus("saving")
-        localStorage.setItem(storageKey, JSON.stringify(data))
+        await setIDB(storageKey, data)
         setLastSavedAt(new Date().toISOString())
 
         if (status === "authenticated" && !storageKey.includes("guest")) {
           // Cloud sync
-          await fetch("/api/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ data })
-          }).catch(console.error)
+          if (navigator.onLine) {
+            try {
+              const msgpackPayload = pack({ data })
+              const res = await fetch("/api/sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/msgpack" },
+                body: msgpackPayload as any
+              })
+              if (!res.ok) throw new Error("Sync failed")
+              localStorage.removeItem(`${storageKey}:pending-sync`)
+            } catch (err) {
+              localStorage.setItem(`${storageKey}:pending-sync`, "true")
+            }
+          } else {
+            localStorage.setItem(`${storageKey}:pending-sync`, "true")
+          }
         }
 
         setSaveStatus("saved")
@@ -316,6 +379,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const timeout = setTimeout(saveData, 1500)
     return () => clearTimeout(timeout)
   }, [data, hydrated, storageKey, storageReady, status])
+
+  // Handle reconnect event to flush pending sync
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleOnline = async () => {
+      const isPending = localStorage.getItem(`${storageKey}:pending-sync`)
+      if (isPending && status === "authenticated" && !storageKey.includes("guest")) {
+        try {
+          const stored = localStorage.getItem(storageKey)
+          if (!stored) return
+          const payload = JSON.parse(stored)
+
+          const res = await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/msgpack" },
+            body: pack({ data: payload }) as any
+          })
+
+          if (res.ok) {
+            localStorage.removeItem(`${storageKey}:pending-sync`)
+            toast({
+              title: "Connection restored",
+              description: "Your offline changes have been saved to the cloud."
+            })
+          }
+        } catch {
+          // Ignore, it will retry on next write or next online event
+        }
+      }
+    }
+
+    window.addEventListener("online", handleOnline)
+    // Attempt sync immediately on mount if we're online and have pending changes
+    if (navigator.onLine) {
+      handleOnline()
+    }
+
+    return () => window.removeEventListener("online", handleOnline)
+  }, [status, storageKey])
 
   useEffect(() => {
     if (!isSpecialUser) return
@@ -354,95 +457,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })
       return false
     }
-    setData(prev => ({ ...prev, shifts: [...prev.shifts, { ...shift, id: generateId() }] }))
+    storeActions.addShift(shift)
     return true
-  }, [isPremium, planName, usage.shiftsThisMonth])
+  }, [isPremium, planName, usage.shiftsThisMonth, storeActions])
 
-  const removeShift = useCallback((id: string) => {
-    setData(prev => ({ ...prev, shifts: prev.shifts.filter(s => s.id !== id) }))
-  }, [])
+  const removeShift = storeActions.removeShift
+  const updateShift = storeActions.updateShift
+  const addJob = storeActions.addJob
+  const updateJob = storeActions.updateJob
+  const removeJob = storeActions.removeJob
+  const addExpense = storeActions.addExpense
+  const updateExpense = storeActions.updateExpense
+  const removeExpense = storeActions.removeExpense
+  const addAttendanceEvent = storeActions.addAttendanceEvent
+  const removeAttendanceEvent = storeActions.removeAttendanceEvent
+  const addBudgetCategory = storeActions.addBudgetCategory
+  const updateBudgetCategory = storeActions.updateBudgetCategory
+  const removeBudgetCategory = storeActions.removeBudgetCategory
 
-  const updateShift = useCallback((id: string, updates: Partial<Shift>) => {
-    setData(prev => ({
-      ...prev,
-      shifts: prev.shifts.map(s => s.id === id ? { ...s, ...updates } : s),
-    }))
-  }, [])
-
-  // Jobs
-  const addJob = useCallback((job: Omit<JobTemplate, "id" | "color">) => {
-    const id = generateId()
-    setData(prev => ({
-      ...prev,
-      jobs: [...prev.jobs, { ...job, id, color: getJobColor(prev.jobs.length) }],
-    }))
-    return id
-  }, [])
-
-  const updateJob = useCallback((id: string, updates: Partial<JobTemplate>) => {
-    setData(prev => ({
-      ...prev,
-      jobs: prev.jobs.map(j => j.id === id ? { ...j, ...updates } : j),
-    }))
-  }, [])
-
-  const removeJob = useCallback((id: string) => {
-    setData(prev => ({
-      ...prev,
-      jobs: prev.jobs.filter(j => j.id !== id),
-      shifts: prev.shifts.filter(s => s.jobId !== id),
-    }))
-  }, [])
-
-  // Expenses
-
-  const addExpense = useCallback((expense: Omit<Expense, "id">) => {
-    setData(prev => ({ ...prev, expenses: [...prev.expenses, { ...expense, id: generateId() }] }))
-  }, [])
-
-  const updateExpense = useCallback((id: string, updates: Partial<Expense>) => {
-    setData(prev => ({
-      ...prev,
-      expenses: prev.expenses.map(e => e.id === id ? { ...e, ...updates } : e),
-    }))
-  }, [])
-
-  const removeExpense = useCallback((id: string) => {
-    setData(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== id) }))
-  }, [])
-
-  // Attendance
-  const addAttendanceEvent = useCallback((event: Omit<AttendanceEvent, "id">) => {
-    setData(prev => ({ ...prev, attendanceEvents: [...prev.attendanceEvents, { ...event, id: generateId() }] }))
-  }, [])
-
-  const removeAttendanceEvent = useCallback((id: string) => {
-    setData(prev => ({ ...prev, attendanceEvents: prev.attendanceEvents.filter(e => e.id !== id) }))
-  }, [])
-
-  // Budget
-  const addBudgetCategory = useCallback((cat: Omit<BudgetCategory, "id">) => {
-    setData(prev => ({
-      ...prev,
-      budgetCategories: [...prev.budgetCategories, { ...cat, id: generateId() }],
-    }))
-  }, [])
-
-  const updateBudgetCategory = useCallback((id: string, updates: Partial<BudgetCategory>) => {
-    setData(prev => ({
-      ...prev,
-      budgetCategories: prev.budgetCategories.map(c => c.id === id ? { ...c, ...updates } : c),
-    }))
-  }, [])
-
-  const removeBudgetCategory = useCallback((id: string) => {
-    setData(prev => ({
-      ...prev,
-      budgetCategories: prev.budgetCategories.filter(c => c.id !== id),
-    }))
-  }, [])
-
-  // Goals
   const addGoal = useCallback((goal: Omit<Goal, "id">) => {
     const goalLimit = checkLimit("maxGoals", usage.activeGoals, isPremium)
     if (!goalLimit.allowed) {
@@ -453,55 +485,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })
       return false
     }
-    setData(prev => ({ ...prev, goals: [...prev.goals, { ...goal, id: generateId() }] }))
+    storeActions.addGoal(goal)
     return true
-  }, [isPremium, planName, usage.activeGoals])
+  }, [isPremium, planName, usage.activeGoals, storeActions])
 
-  const updateGoal = useCallback((id: string, updates: Partial<Goal>) => {
-    setData(prev => ({
-      ...prev,
-      goals: prev.goals.map(g => g.id === id ? { ...g, ...updates } : g),
-    }))
-  }, [])
+  const updateGoal = storeActions.updateGoal
+  const removeGoal = storeActions.removeGoal
+  const updateSettings = storeActions.updateSettings
+  const updateSpecialCompanion = storeActions.updateSpecialCompanion
+  const addPublicHoliday = storeActions.addPublicHoliday
+  const removePublicHoliday = storeActions.removePublicHoliday
 
-  const removeGoal = useCallback((id: string) => {
-    setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))
-  }, [])
-
-  // Settings
-  const updateSettings = useCallback((settings: Partial<AppSettings>) => {
-    setData(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))
-  }, [])
-
-  const updateSpecialCompanion = useCallback((settings: Partial<AppSettings["specialCompanion"]>) => {
-    setData(prev => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        specialCompanion: {
-          ...prev.settings.specialCompanion,
-          ...settings,
-        },
-      },
-    }))
-  }, [])
-
-  // Public holidays
-  const addPublicHoliday = useCallback((date: string) => {
-    setData(prev => ({
-      ...prev,
-      publicHolidays: [...prev.publicHolidays, date],
-    }))
-  }, [])
-
-  const removePublicHoliday = useCallback((date: string) => {
-    setData(prev => ({
-      ...prev,
-      publicHolidays: prev.publicHolidays.filter(d => d !== date),
-    }))
-  }, [])
-
-  // Helpers
   const getJob = useCallback((id: string) => {
     return data.jobs.find(j => j.id === id)
   }, [data.jobs])

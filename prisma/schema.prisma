@@ -21,6 +21,10 @@ model User {
   settings      Json?
   publicHolidays String[]
 
+  // Google Calendar Integration
+  googleRefreshToken String?
+  googleCalendarId   String?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -61,6 +65,7 @@ model Job {
   
   @@index([userId])
   @@index([userId, isActive])
+  @@index([userId, name]) // Added based on instruction
 }
 
 model Shift {

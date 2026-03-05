@@ -52,13 +52,9 @@ const baseNavItems = [
   { label: "Pricing", href: "/pricing", icon: CreditCard },
 ]
 
-type NavItem = {
-  label: string
-  href: string
-  icon: ComponentType<{ className?: string }>
-}
-
-type ThemeMode = "light" | "dark" | "oled" | "love"
+import { SidebarNav } from "@/components/layout/sidebar-nav"
+import { MobileBottomNav } from "@/components/layout/mobile-nav"
+import type { NavItem, ThemeMode } from "@/components/layout/nav-types"
 
 function ThemeToggle({ mode, onToggle, pulsing = false }: { mode: ThemeMode; onToggle: () => void; pulsing?: boolean }) {
   return (
@@ -78,90 +74,7 @@ function ThemeToggle({ mode, onToggle, pulsing = false }: { mode: ThemeMode; onT
   )
 }
 
-function MobileBottomNav({ items, mode, onNavigate, isVisible }: { items: NavItem[]; mode: ThemeMode; onNavigate?: () => void; isVisible: boolean }) {
-  const pathname = usePathname()
-
-  return (
-    <div
-      className={cn(
-        "fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-in-out md:hidden",
-        isVisible ? "translate-y-0" : "translate-y-full",
-      )}
-    >
-      {/* Safe area padding block (required for modern iOS but handled generally via pb) */}
-      <nav
-        className={cn(
-          "flex items-center justify-around border-t px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl shadow-[0_-4px_16px_rgba(0,0,0,0.05)]",
-          mode === "light"
-            ? "border-orange-200/50 bg-white/90"
-            : mode === "love"
-              ? "border-pink-900/30 bg-[#250009]/90" // Match dark love theme base
-              : "border-border/60 bg-card/90"
-        )}
-      >
-        {items.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => {
-                hapticFeedback(12)
-                onNavigate?.()
-              }}
-              className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 min-w-[64px] rounded-xl py-1 transition-all",
-                isActive
-                  ? mode === "light"
-                    ? "text-orange-600 scale-105"
-                    : mode === "love"
-                      ? "text-rose-500 scale-105"
-                      : "text-primary scale-105"
-                  : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
-              )}
-            >
-              <div className={cn("relative flex items-center justify-center", isActive && "after:absolute after:-bottom-1 after:h-1 after:w-1 after:rounded-full after:bg-current")}>
-                <item.icon className={cn("size-6", isActive ? "stroke-[2.5px]" : "stroke-2")} />
-              </div>
-              <span className="text-[11px] font-semibold leading-none">{item.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
-    </div>
-  )
-}
-
-function SidebarNav({ items, mode, onNavigate }: { items: NavItem[]; mode: ThemeMode; onNavigate?: () => void }) {
-  const pathname = usePathname()
-  return (
-    <nav className="flex flex-col gap-1">
-      {items.map((item) => {
-        const isActive = pathname === item.href
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-              isActive
-                ? mode === "light"
-                  ? "bg-gradient-to-r from-yellow-200/80 via-orange-200/80 to-red-200/75 text-orange-900 shadow-sm"
-                  : "bg-primary/10 text-primary"
-                : mode === "light"
-                  ? "text-muted-foreground hover:bg-gradient-to-r hover:from-yellow-100/70 hover:via-orange-100/70 hover:to-red-100/65 hover:text-orange-900"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-            )}
-          >
-            <item.icon className="size-[18px] shrink-0" />
-            {item.label}
-          </Link>
-        )
-      })}
-    </nav>
-  )
-}
+// Nav components extracted to @/components/layout
 
 function formatZoneTime(timeZone: string, date: Date): string {
   return new Intl.DateTimeFormat("en-IN", {

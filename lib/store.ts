@@ -20,6 +20,7 @@ export type JobTemplate = {
   baseRate: number
   rates: PenaltyRates
   color: string
+  updatedAt?: string
 }
 
 export type Shift = {
@@ -33,6 +34,7 @@ export type Shift = {
   hours: number
   earnings: number
   note?: string
+  updatedAt?: string
 }
 
 export type Expense = {
@@ -41,6 +43,7 @@ export type Expense = {
   amount: number
   description: string
   date: string
+  updatedAt?: string
 }
 
 export type BudgetCategory = {
@@ -48,6 +51,7 @@ export type BudgetCategory = {
   name: string
   budgeted: number
   color: string
+  updatedAt?: string
 }
 
 export type Goal = {
@@ -57,6 +61,7 @@ export type Goal = {
   targetAmount: number
   currentAmount: number
   deadline: string
+  updatedAt?: string
 }
 
 export type PayPeriod = "weekly" | "biweekly" | "monthly" | "per_shift"
@@ -107,6 +112,7 @@ export type AttendanceEvent = {
   type: "late" | "absent"
   minutesLate?: number
   note?: string
+  updatedAt?: string
 }
 
 export type AppData = {
@@ -220,7 +226,7 @@ export function formatAUD(amount: number): string {
   return `$${amount.toFixed(2)}`
 }
 
-export function formatCurrency(amount: number, currencySymbol: string = "$" ): string {
+export function formatCurrency(amount: number, currencySymbol: string = "$"): string {
   return `${currencySymbol}${amount.toFixed(2)}`
 }
 

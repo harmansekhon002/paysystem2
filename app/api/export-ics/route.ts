@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+export const runtime = "edge"
+
 function decodePayload(data: string) {
   try {
     return decodeURIComponent(escape(atob(data)))
