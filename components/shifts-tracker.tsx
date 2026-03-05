@@ -303,7 +303,7 @@ function WorkGuardian({ limits }: { limits: any }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex flex-col gap-1.5 min-w-[180px] p-3 rounded-xl border border-primary/20 bg-primary/10 dark:bg-primary/5 dark:border-primary/10 cursor-help transition-colors hover:bg-primary/15 dark:hover:bg-primary/10">
+          <div className="flex flex-col gap-1.5 min-w-[180px] p-3 rounded-xl border border-primary/20 bg-primary/10 dark:bg-zinc-950/50 dark:border-primary/30 backdrop-blur-md cursor-help transition-colors hover:bg-primary/15 dark:hover:bg-primary/10">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 {isOverLimit ? (
