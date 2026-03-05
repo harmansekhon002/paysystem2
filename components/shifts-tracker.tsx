@@ -303,7 +303,7 @@ function WorkGuardian({ limits }: { limits: any }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex flex-col gap-1.5 min-w-[180px] p-3 rounded-xl border border-primary/20 bg-primary/5 cursor-help">
+          <div className="flex flex-col gap-1.5 min-w-[180px] p-3 rounded-xl border border-primary/20 bg-primary/10 dark:bg-primary/5 dark:border-primary/10 cursor-help transition-colors hover:bg-primary/15 dark:hover:bg-primary/10">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 {isOverLimit ? (
@@ -335,11 +335,11 @@ function WorkGuardian({ limits }: { limits: any }) {
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-bold">Fortnightly Work Limit</p>
             <p className="text-[11px] leading-relaxed">
-              You have worked **{workedHours} hours** this fortnight inclusive of your logged shifts.
+              You have worked <span className="font-bold">{workedHours} hours</span> this fortnight inclusive of your logged shifts.
               {isOverLimit ? (
                 <span className="text-destructive font-bold"> You are over your limit by {(workedHours - maxHours).toFixed(1)}h.</span>
               ) : (
-                <span> You have **{remainingHours.toFixed(1)}h** remaining.</span>
+                <span> You have <span className="font-bold">{remainingHours.toFixed(1)}h</span> remaining.</span>
               )}
             </p>
             <div className="mt-1 flex items-center gap-1 text-[10px] text-primary">
