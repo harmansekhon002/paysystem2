@@ -75,6 +75,21 @@ Copy `.env.example` to `.env.local` and fill in:
 | `PAYPAL_CLIENT_ID` | PayPal app client ID |
 | `PAYPAL_CLIENT_SECRET` | PayPal app secret |
 | `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | PayPal client ID (public) |
+| `PAYPAL_WEBHOOK_ID` | (Optional) PayPal Webhook ID for verifying signature |
+
+---
+
+## Setting up PayPal Webhooks
+
+To ensure subscriptions are synced correctly if a user cancels or their payment fails off-site:
+1. Go to the PayPal Developer Dashboard.
+2. In your App settings, add a new Webhook pointing to `https://<your-domain>/api/webhook/paypal`.
+3. Subscribe to the following events at minimum:
+   - `BILLING.SUBSCRIPTION.ACTIVATED`
+   - `BILLING.SUBSCRIPTION.CANCELLED`
+   - `BILLING.SUBSCRIPTION.SUSPENDED`
+   - `BILLING.SUBSCRIPTION.EXPIRED`
+4. Copy the Webhook ID provided into your `.env.local` as `PAYPAL_WEBHOOK_ID`.
 
 ---
 
