@@ -18,6 +18,9 @@ model User {
   isPremium     Boolean   @default(false)
   premiumUntil  DateTime?
   
+  settings      Json?
+  publicHolidays String[]
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -25,7 +28,8 @@ model User {
   shifts        Shift[]
   expenses      Expense[]
   goals         Goal[]
-  budgets       Budget[]
+  budgetCategories BudgetCategory[]
+  attendanceEvents AttendanceEvent[]
   
   @@index([email])
 }
@@ -131,20 +135,37 @@ model Goal {
   @@index([userId, isCompleted])
 }
 
-model Budget {
+model BudgetCategory {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  category    String
-  limit       Float
-  period      String   @default("monthly") // "weekly", "monthly", "yearly"
+  name        String
+  budgeted    Float
+  color       String   @default("#0d9488")
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  @@unique([userId, category, period])
   @@index([userId])
+}
+
+model AttendanceEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date        DateTime @db.Date
+  jobId       String
+  type        String   // "late" | "absent"
+  minutesLate Int?
+  note        String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([jobId])
 }
 
 // Premium features

@@ -239,24 +239,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setHydrated(false)
     try {
       const stored = localStorage.getItem(storageKey)
+      let localParsed: Partial<AppData> | null = null
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<AppData>
         if (isLegacyDemoSeed(parsed)) {
           localStorage.removeItem(storageKey)
-          setData(defaultData)
         } else {
-          setData(mergeStoredData(parsed))
+          localParsed = parsed
         }
+      }
+
+      const finishHydration = (finalData: AppData) => {
+        setData(finalData)
+        setHydrated(true)
+      }
+
+      // If local storage is empty and user is logged in, try fetching from cloud
+      if (!localParsed && !storageKey.includes("guest") && currentUser) {
+        fetch("/api/sync")
+          .then(res => res.json())
+          .then(json => {
+            if (json.data && (json.data.jobs?.length > 0 || json.data.shifts?.length > 0)) {
+              const merged = mergeStoredData(json.data)
+              localStorage.setItem(storageKey, JSON.stringify(merged))
+              finishHydration(merged)
+            } else {
+              finishHydration(defaultData)
+            }
+          })
+          .catch(() => {
+            finishHydration(defaultData)
+          })
+        return
+      }
+
+      if (localParsed) {
+        finishHydration(mergeStoredData(localParsed))
       } else {
-        setData(defaultData)
+        finishHydration(defaultData)
       }
     } catch {
       // Ignore corrupted storage and use defaults.
       setData(defaultData)
-    } finally {
       setHydrated(true)
     }
-  }, [storageKey, storageReady])
+  }, [storageKey, storageReady, currentUser])
 
   useEffect(() => {
     void refreshPlan()
@@ -264,15 +291,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated || !storageReady || typeof window === "undefined") return
-    try {
-      setSaveStatus("saving")
-      localStorage.setItem(storageKey, JSON.stringify(data))
-      setSaveStatus("saved")
-      setLastSavedAt(new Date().toISOString())
-    } catch {
-      setSaveStatus("error")
+
+    const saveData = async () => {
+      try {
+        setSaveStatus("saving")
+        localStorage.setItem(storageKey, JSON.stringify(data))
+        setLastSavedAt(new Date().toISOString())
+
+        if (status === "authenticated" && !storageKey.includes("guest")) {
+          // Cloud sync
+          await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data })
+          }).catch(console.error)
+        }
+
+        setSaveStatus("saved")
+      } catch {
+        setSaveStatus("error")
+      }
     }
-  }, [data, hydrated, storageKey, storageReady])
+
+    const timeout = setTimeout(saveData, 1500)
+    return () => clearTimeout(timeout)
+  }, [data, hydrated, storageKey, storageReady, status])
 
   useEffect(() => {
     if (!isSpecialUser) return

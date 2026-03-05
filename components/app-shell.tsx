@@ -960,10 +960,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <LogOut className="size-4" />
                 </Button>
               </div>
-              <div className="col-span-4 flex justify-center border-t border-border pt-2 text-[10px] text-muted-foreground">
-                {saveStatus === "saving" && "Saving..."}
-                {saveStatus === "saved" && `Saved ${lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}`}
-                {saveStatus === "error" && "Save failed"}
+              <div className="col-span-4 flex items-center justify-center gap-1.5 border-t border-border pt-2 text-[10px] text-muted-foreground">
+                {saveStatus === "saving" && <><RefreshCw className="size-3 animate-spin" /> Syncing</>}
+                {saveStatus === "saved" && <><Clock3 className="size-3" /> Synced {lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</>}
+                {saveStatus === "error" && <><span className="font-bold text-destructive">!</span> Sync Failed</>}
                 {saveStatus === "idle" && "Ready"}
               </div>
               <div className="col-span-4 flex justify-center text-[10px] text-muted-foreground">
@@ -1077,8 +1077,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         secondaryTimeZone={data.settings.worldClockSecondaryTimeZone}
                       />
                     </div>
-                    <div className="mt-2 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
-                      Plan: {planName}
+                    <div className="mt-2 space-y-1.5 border-t border-border/70 pt-2 text-center text-[10px] text-muted-foreground">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {saveStatus === "saving" && <><RefreshCw className="size-3 animate-spin" /> Syncing...</>}
+                        {saveStatus === "saved" && <><Clock3 className="size-3" /> Synced {lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</>}
+                        {saveStatus === "error" && <><span className="font-bold text-destructive">!</span> Sync Failed</>}
+                        {saveStatus === "idle" && "Ready"}
+                      </div>
+                      <div>Plan: {planName}</div>
                     </div>
                   </div>
                 </div>
