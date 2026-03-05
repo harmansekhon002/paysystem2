@@ -6,20 +6,14 @@ import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { signOut, useSession } from "next-auth/react"
 import {
-  ArrowRight,
   CalendarClock,
-  ChevronDown,
-  Clock,
   CreditCard,
   DollarSign,
   LayoutDashboard,
   Moon,
-  Plus,
-  Receipt,
   Settings,
   Sun,
   Target,
-  TrendingUp,
   Wallet,
   Zap,
   X,
@@ -368,16 +362,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [status, router])
 
-  if (status === "loading" || (status === "unauthenticated" && mounted)) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-foreground">Authenticating...</p>
-        </div>
-      </div>
-    )
-  }
+
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
 
   const specialCompanion = data.settings.specialCompanion
@@ -809,6 +794,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Goals", href: "/goals", icon: Target },
     ]
   }, [])
+
+  if (status === "loading" || (status === "unauthenticated" && mounted)) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Authenticating...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>

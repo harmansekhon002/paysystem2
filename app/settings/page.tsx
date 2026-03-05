@@ -269,6 +269,7 @@ export default function SettingsPage() {
         void updateSession({ name: result.user.name, email: result.user.email })
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast({
         title: "Network error",

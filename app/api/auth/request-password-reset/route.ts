@@ -5,8 +5,6 @@ import { createTokenPair } from "@/lib/security-tokens"
 import { handleDbWriteFailure } from "@/lib/db-resilience"
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -37,6 +35,7 @@ export async function POST(req: NextRequest) {
 
       if (process.env.RESEND_API_KEY) {
         try {
+          const resend = new Resend(process.env.RESEND_API_KEY)
           await resend.emails.send({
             from: "ShiftWise <noreply@shiftwise.app>", // Update this verified domain in production
             to: email,

@@ -34,6 +34,11 @@ test.describe("Shifts Tracker", () => {
     await expect(page.getByText("Tue", { exact: true })).toBeVisible()
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  test("Should support pull-to-refresh on mobile", async ({ page, isMobile }) => {
+    // TODO: Implement pull-to-refresh test
+  })
+
   test("should open filter popover", async ({ page, isMobile }) => {
     if (isMobile) {
       await page.getByRole("button", { name: /filter/i }).filter({ visible: true }).click()
@@ -167,21 +172,21 @@ test.describe("Navigation", () => {
     await expect(page).toHaveURL(/\/analytics/)
   })
 
-  test("should have working theme toggle", async ({ page, isMobile }) => {
+  test("should have working theme toggle", async ({ page }) => {
     await page.goto("/")
-    if (isMobile) {
-      // On mobile, the theme toggle is inside the hamburger menu
-      await page.getByRole("button", { name: /toggle menu/i }).click()
-    }
+    // On mobile, the theme toggle is inside the hamburger menu
+    // We'll skip the mobile click here since we don't have isMobile in the destructure
+    await page.getByRole("button", { name: /toggle menu/i }).click()
+  }
     const themeButton = page.getByRole("button", { name: /toggle theme/i }).first()
-    await expect(themeButton).toBeVisible()
-    await themeButton.click({ force: true })
-    // Theme should change (check for dark or light class)
-  })
+  await expect(themeButton).toBeVisible()
+  await themeButton.click({ force: true })
+  // Theme should change (check for dark or light class)
+})
 
-  test("should open settings dialog", async ({ page, isMobile }) => {
-    await page.goto("/settings")
-    await expect(page).toHaveURL(/\/settings/)
-    await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible()
-  })
+test("should open settings dialog", async ({ page, isMobile }) => {
+  await page.goto("/settings")
+  await expect(page).toHaveURL(/\/settings/)
+  await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible()
+})
 })

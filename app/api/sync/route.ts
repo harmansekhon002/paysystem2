@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
                 startTime: s.startTime,
                 endTime: s.endTime,
                 jobId: s.jobId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 rateType: s.rateType as any,
                 breakMinutes: 0,
                 hours: s.hours,
@@ -84,16 +85,19 @@ export async function GET(req: NextRequest) {
                 id: a.id,
                 date: a.date.toISOString().split('T')[0],
                 jobId: a.jobId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 type: a.type as any,
                 minutesLate: a.minutesLate || undefined,
                 note: a.note || undefined,
             })),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             settings: user.settings ? (user.settings as any) : defaultData.settings,
             publicHolidays: user.publicHolidays ?? defaultData.publicHolidays,
         }
 
         return NextResponse.json({ data: appData })
     } catch (error) {
+        console.error(error);
         return NextResponse.json({ error: "Failed to fetch sync data" }, { status: 500 })
     }
 }
@@ -123,6 +127,7 @@ export async function POST(req: NextRequest) {
             await tx.user.update({
                 where: { id: userId },
                 data: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     settings: data.settings as any,
                     publicHolidays: data.publicHolidays,
                 }
