@@ -331,7 +331,7 @@ function WorkGuardian({ limits }: { limits: any }) {
             </div>
           </div>
         </TooltipTrigger>
-        <TooltipContent className="p-3 max-w-[200px]">
+        <TooltipContent className="p-3 max-w-[200px] dark:bg-zinc-950 dark:border-primary/30 dark:text-zinc-100">
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-bold">Fortnightly Work Limit</p>
             <p className="text-[11px] leading-relaxed">
