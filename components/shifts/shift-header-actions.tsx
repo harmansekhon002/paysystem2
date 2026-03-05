@@ -105,6 +105,13 @@ export function ShiftHeaderActions({
 
     return (
         <div className="sticky top-14 z-30 flex items-center gap-3.5 overflow-x-auto bg-background/80 pb-2 pt-1 border-b border-border/40 px-4 -mx-4 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:relative lg:top-0 lg:mx-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:p-0 lg:border-none">
+            <input
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handlePayslipUpload}
+            />
             {isMobile ? (
                 <>
                     <Button
@@ -116,13 +123,6 @@ export function ShiftHeaderActions({
                         <span>Log Shift</span>
                     </Button>
 
-                    <input
-                        type="file"
-                        accept=".pdf"
-                        className="hidden"
-                        ref={fileInputRef}
-                        onChange={handlePayslipUpload}
-                    />
 
                     <Button
                         size="sm"
