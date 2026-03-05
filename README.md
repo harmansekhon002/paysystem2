@@ -76,6 +76,7 @@ Copy `.env.example` to `.env.local` and fill in:
 | `PAYPAL_CLIENT_SECRET` | PayPal app secret |
 | `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | PayPal client ID (public) |
 | `PAYPAL_WEBHOOK_ID` | (Optional) PayPal Webhook ID for verifying signature |
+| `RESEND_API_KEY` | (Optional) Resend API key for sending password reset emails |
 
 ---
 

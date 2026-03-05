@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Bell, CalendarClock, Copy, Database, Globe2, Heart, Info, LayoutDashboard, Loader2, PawPrint, RefreshCw, Shield, UserRound, WalletCards } from "lucide-react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 
 import { AppShell } from "@/components/app-shell"
 import { useAppData } from "@/components/data-provider"
@@ -125,13 +126,12 @@ export default function SettingsPage() {
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
   const [managingSubscription, setManagingSubscription] = useState<"cancel" | "reactivate" | null>(null)
   const [specialPin, setSpecialPin] = useState(data.settings.specialCompanion.pinCode)
-  const [profile, setProfile] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("shiftwise:profile")
-      if (stored) return JSON.parse(stored)
-    }
-    return { name: "", email: "" }
+  const { data: session, update: updateSession } = useSession()
+  const [profile, setProfile] = useState({
+    name: session?.user?.name || "",
+    email: session?.user?.email || ""
   })
+  const [savingProfile, setSavingProfile] = useState(false)
   const companionWaterGoal = (() => {
     const parsed = Number(data.settings.specialCompanion.waterBottleGoal)
     if (!Number.isFinite(parsed)) return 8
@@ -239,8 +239,45 @@ export default function SettingsPage() {
     setProfile((p: { name: string; email: string }) => ({ ...p, [name]: value }))
   }
 
-  function handleProfileSave() {
-    localStorage.setItem("shiftwise:profile", JSON.stringify(profile))
+  async function handleProfileSave() {
+    setSavingProfile(true)
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        toast({
+          title: "Profile update failed",
+          description: result.error || "Please try again later.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      toast({
+        title: "Profile updated",
+        description: "Your details have been saved."
+      })
+
+      // Update local context
+      if (result.user && result.user.name) {
+        void updateSession({ name: result.user.name, email: result.user.email })
+      }
+
+    } catch (error) {
+      toast({
+        title: "Network error",
+        description: "Could not save profile at this time.",
+        variant: "destructive"
+      })
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   function handleReset() {
@@ -399,8 +436,9 @@ export default function SettingsPage() {
                         className="h-10"
                       />
                     </div>
-                    <Button onClick={handleProfileSave} className="w-full sm:w-fit">
-                      Save Profile
+                    <Button onClick={handleProfileSave} disabled={savingProfile} className="w-full sm:w-fit gap-2">
+                      {savingProfile && <Loader2 className="size-4 animate-spin" />}
+                      {savingProfile ? "Saving..." : "Save Profile"}
                     </Button>
                   </CardContent>
                 </Card>
