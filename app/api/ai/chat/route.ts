@@ -3,7 +3,7 @@ import { openai } from '@ai-sdk/openai';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);

@@ -28,7 +28,6 @@ export async function POST(req: Request) {
             const parser = new PDFParse({ data: buffer });
             const result = await parser.getText();
             textContent = result.text;
-            await parser.destroy();
         } else {
             return new Response('Image processing coming soon. Please upload a PDF.', { status: 400 });
         }
