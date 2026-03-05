@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { ensureUserTableInitialized } from "@/lib/db-init"
 import { createTokenPair } from "@/lib/security-tokens"
 import { handleDbWriteFailure } from "@/lib/db-resilience"
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Resend } from "resend"
 
 export async function POST(req: NextRequest) {

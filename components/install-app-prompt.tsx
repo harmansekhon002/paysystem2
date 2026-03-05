@@ -25,11 +25,11 @@ export function InstallAppPrompt() {
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as { standalone?: boolean }).standalone === true
     const dismissed = window.localStorage.getItem(DISMISS_KEY)
 
-    // If it's a timestamp (snooze), check if 24 hours have passed
+    // If it's a timestamp (snooze), check if 7 days have passed
     let isActuallyDismissed = dismissed === "1"
     if (dismissed && dismissed.length > 1) {
       const dismissDate = parseInt(dismissed)
-      if (Date.now() - dismissDate < 24 * 60 * 60 * 1000) {
+      if (Date.now() - dismissDate < 7 * 24 * 60 * 60 * 1000) {
         isActuallyDismissed = true
       }
     }
@@ -45,11 +45,11 @@ export function InstallAppPrompt() {
       const dismissed = window.localStorage.getItem(DISMISS_KEY)
       const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as { standalone?: boolean }).standalone === true
 
-      // If it's a timestamp (snooze), check if 24 hours have passed
+      // If it's a timestamp (snooze), check if 7 days have passed
       let isActuallyDismissed = dismissed === "1"
       if (dismissed && dismissed.length > 1) {
         const dismissDate = parseInt(dismissed)
-        if (Date.now() - dismissDate < 24 * 60 * 60 * 1000) {
+        if (Date.now() - dismissDate < 7 * 24 * 60 * 60 * 1000) {
           isActuallyDismissed = true
         }
       }
@@ -77,7 +77,7 @@ export function InstallAppPrompt() {
   const dismiss = (permanent = false) => {
     setHidden(true)
     try {
-      // If permanent, set to "1", otherwise set current timestamp for a 24h snooze
+      // If permanent, set to "1", otherwise set current timestamp for a 7-day snooze
       window.localStorage.setItem(DISMISS_KEY, permanent ? "1" : Date.now().toString())
     } catch {
       // Ignore storage errors.

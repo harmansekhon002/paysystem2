@@ -177,16 +177,15 @@ test.describe("Navigation", () => {
     // On mobile, the theme toggle is inside the hamburger menu
     // We'll skip the mobile click here since we don't have isMobile in the destructure
     await page.getByRole("button", { name: /toggle menu/i }).click()
-  }
     const themeButton = page.getByRole("button", { name: /toggle theme/i }).first()
-  await expect(themeButton).toBeVisible()
-  await themeButton.click({ force: true })
-  // Theme should change (check for dark or light class)
-})
+    await expect(themeButton).toBeVisible()
+    await themeButton.click({ force: true })
+    // Theme should change (check for dark or light class)
+  })
 
-test("should open settings dialog", async ({ page, isMobile }) => {
-  await page.goto("/settings")
-  await expect(page).toHaveURL(/\/settings/)
-  await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible()
-})
+  test("should open settings dialog", async ({ page, isMobile }) => {
+    await page.goto("/settings")
+    await expect(page).toHaveURL(/\/settings/)
+    await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible()
+  })
 })
