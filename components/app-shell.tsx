@@ -359,8 +359,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const { data, updateSettings, updateSpecialCompanion, saveStatus, lastSavedAt, planName, isSpecialUser, displayName, refreshPlan } = useAppData()
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login")
+    }
+  }, [status, router])
+
+  if (status === "loading" || (status === "unauthenticated" && mounted)) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Authenticating...</p>
+        </div>
+      </div>
+    )
+  }
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
 
   const specialCompanion = data.settings.specialCompanion

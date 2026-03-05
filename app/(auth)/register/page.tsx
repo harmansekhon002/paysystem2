@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Copy, Eye, EyeOff, UserPlus, Loader2, CheckCircle2, MailCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +33,8 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function RegisterPage() {
+    const { status } = useSession()
+    const router = useRouter()
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -40,6 +44,12 @@ export default function RegisterPage() {
     const [success, setSuccess] = useState("")
     const [verificationUrl, setVerificationUrl] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+
+    useEffect(() => {
+        if (status === "authenticated") {
+            router.push("/")
+        }
+    }, [status, router])
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
@@ -196,8 +206,8 @@ export default function RegisterPage() {
                         required
                         disabled={isLoading}
                         className={`h-10 rounded-xl ${confirmPassword && confirmPassword !== password
-                                ? "border-destructive focus-visible:ring-destructive"
-                                : ""
+                            ? "border-destructive focus-visible:ring-destructive"
+                            : ""
                             }`}
                     />
                     {confirmPassword && confirmPassword !== password && (

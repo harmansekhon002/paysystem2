@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { AlertTriangle, Copy, Eye, EyeOff, LogIn, Loader2, MailCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 export default function LoginPage() {
+    const { status } = useSession()
     const router = useRouter()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -20,6 +21,12 @@ export default function LoginPage() {
     const [copied, setCopied] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [verificationLink, setVerificationLink] = useState("")
+
+    useEffect(() => {
+        if (status === "authenticated") {
+            router.push("/")
+        }
+    }, [status, router])
 
     function sanitizeMessage(message: string) {
         const unsafePatterns = ["prisma.", "$queryraw", "stack", "invocation:", "failed to deserialize", "to_regclass"]

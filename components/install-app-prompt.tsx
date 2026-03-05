@@ -23,18 +23,43 @@ export function InstallAppPrompt() {
 
     const ios = /iphone|ipad|ipod/i.test(window.navigator.userAgent)
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as { standalone?: boolean }).standalone === true
-    const dismissed = window.localStorage.getItem(DISMISS_KEY) === "1"
+    const dismissed = window.localStorage.getItem(DISMISS_KEY)
+
+    // If it's a timestamp (snooze), check if 24 hours have passed
+    let isActuallyDismissed = dismissed === "1"
+    if (dismissed && dismissed.length > 1) {
+      const dismissDate = parseInt(dismissed)
+      if (Date.now() - dismissDate < 24 * 60 * 60 * 1000) {
+        isActuallyDismissed = true
+      }
+    }
 
     setIsIOS(ios)
     setIsInstalled(Boolean(standalone))
-    setHidden(dismissed || standalone)
+    setHidden(isActuallyDismissed || standalone)
   }, [])
 
   useEffect(() => {
     const handler = (event: Event) => {
+      // Check if already dismissed or installed before showing
+      const dismissed = window.localStorage.getItem(DISMISS_KEY)
+      const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as { standalone?: boolean }).standalone === true
+
+      // If it's a timestamp (snooze), check if 24 hours have passed
+      let isActuallyDismissed = dismissed === "1"
+      if (dismissed && dismissed.length > 1) {
+        const dismissDate = parseInt(dismissed)
+        if (Date.now() - dismissDate < 24 * 60 * 60 * 1000) {
+          isActuallyDismissed = true
+        }
+      }
+
       event.preventDefault()
       setDeferredPrompt(event as BeforeInstallPromptEvent)
-      setHidden(false)
+
+      if (!isActuallyDismissed && !standalone) {
+        setHidden(false)
+      }
     }
 
     window.addEventListener("beforeinstallprompt", handler as EventListener)
@@ -49,10 +74,11 @@ export function InstallAppPrompt() {
 
   if (!showPrompt) return null
 
-  const dismiss = () => {
+  const dismiss = (permanent = false) => {
     setHidden(true)
     try {
-      window.localStorage.setItem(DISMISS_KEY, "1")
+      // If permanent, set to "1", otherwise set current timestamp for a 24h snooze
+      window.localStorage.setItem(DISMISS_KEY, permanent ? "1" : Date.now().toString())
     } catch {
       // Ignore storage errors.
     }
@@ -64,6 +90,7 @@ export function InstallAppPrompt() {
     const result = await deferredPrompt.userChoice
     if (result.outcome === "accepted") {
       setHidden(true)
+      window.localStorage.setItem(DISMISS_KEY, "1")
     }
     setDeferredPrompt(null)
   }
@@ -84,7 +111,7 @@ export function InstallAppPrompt() {
           <button
             type="button"
             className={cn("rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground")}
-            onClick={dismiss}
+            onClick={() => dismiss(true)}
             aria-label="Dismiss install prompt"
           >
             <X className="size-3.5" />
@@ -96,7 +123,7 @@ export function InstallAppPrompt() {
               Install
             </Button>
           ) : null}
-          <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={dismiss}>
+          <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={() => dismiss(false)}>
             Not now
           </Button>
         </div>
