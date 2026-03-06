@@ -39,7 +39,7 @@ export function MobileBottomNav({ items, mode, onNavigate, isVisible }: { items:
                                 onNavigate?.()
                             }}
                             className={cn(
-                                "flex flex-1 flex-col items-center justify-center gap-1 min-w-[64px] rounded-xl py-1 transition-all",
+                                "flex flex-1 flex-col items-center justify-center gap-1 min-w-[64px] rounded-xl py-1 transition-[transform,color,background-color] duration-200",
                                 isActive
                                     ? mode === "light"
                                         ? "text-orange-600 scale-105"

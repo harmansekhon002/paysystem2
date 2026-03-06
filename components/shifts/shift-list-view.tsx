@@ -50,7 +50,7 @@ export function ShiftListView({
         const isSelected = selectedShiftIds.includes(shift.id)
 
         return (
-            <div style={style} {...ariaAttributes} className={`px-4 border-b border-border/10 ${isSelected ? "bg-primary/5" : ""}`}>
+            <div style={style} {...ariaAttributes} className={`px-3 sm:px-4 border-b border-border/10 ${isSelected ? "bg-primary/5" : ""}`}>
                 <div className="flex items-center gap-2.5 h-full py-2">
                     {multiSelectMode && (
                         <Checkbox

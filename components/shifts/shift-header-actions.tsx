@@ -154,7 +154,7 @@ export function ShiftHeaderActions({
                             <DrawerHeader>
                                 <DrawerTitle>Filter Shifts</DrawerTitle>
                             </DrawerHeader>
-                            <div className="grid gap-4 overflow-y-auto px-4 pb-8">
+                            <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1">
                                 <div className="grid gap-1.5">
                                     <Label className="text-xs">Workplace</Label>
                                     <Select value={filters.jobId} onValueChange={(v) => setFilters((f) => ({ ...f, jobId: v }))}>
@@ -179,7 +179,7 @@ export function ShiftHeaderActions({
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 xs:grid-cols-1">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div className="grid gap-1.5 min-w-0">
                                         <Label htmlFor="mobile-filter-date-from" className="text-xs">From</Label>
                                         <Input

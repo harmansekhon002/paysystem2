@@ -469,7 +469,7 @@ export function ShiftDialogs({
             <Dialog open={recurringDialogOpen} onOpenChange={setRecurringDialogOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Schedule Recurring Shifts</DialogTitle></DialogHeader>
-                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1 -mx-1">
+                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1">
                         <div className="flex flex-col gap-1.5">
                             <Label className="text-xs">Template Name</Label>
                             <Input placeholder="e.g. Weekly cafe shifts" value={recurringForm.name} onChange={e => setRecurringForm(f => ({ ...f, name: e.target.value }))} />

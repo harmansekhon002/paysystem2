@@ -454,83 +454,110 @@ export default function SettingsPage() {
                 </Card>
               </div>
             </div>
-            {true ? (
-              <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
-                <div className="mb-4 border-b border-border/60 pb-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Security & Privacy</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">App locking and privacy controls.</p>
-                </div>
-                <div className="space-y-5">
-                  <Card id="settings-security" className="mobile-settings-card border-border/80 shadow-sm border-primary/20">
-                    <CardHeader className="p-6 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Shield className="text-primary size-4" />
-                        <CardTitle className="text-lg">Access Lock</CardTitle>
+            {/* Universal Security & Privacy section */}
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Security & Privacy</h2>
+                <p className="mt-1 text-xs text-muted-foreground">App locking and privacy controls.</p>
+              </div>
+              <div className="space-y-5">
+                <Card id="settings-security" className="mobile-settings-card border-border/80 shadow-sm border-primary/20">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Shield className="text-primary size-4" />
+                      <CardTitle className="text-lg">Access Lock</CardTitle>
+                    </div>
+                    <CardDescription>Secure your data with a personal PIN or biometrics.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 p-6 pt-0">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-medium">Biometric Unlock</Label>
+                          <p className="text-xs text-muted-foreground">Use Face ID or Touch ID to unlock.</p>
+                        </div>
+                        <Switch
+                          checked={data.settings.specialCompanion.biometricsEnabled}
+                          onCheckedChange={(checked) => updateSpecialCompanion({ biometricsEnabled: Boolean(checked) })}
+                        />
                       </div>
-                      <CardDescription>Secure your data with a personal PIN or biometrics.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6 p-6 pt-0">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="text-sm font-medium">Biometric Unlock</Label>
-                            <p className="text-xs text-muted-foreground">Use Face ID or Touch ID to unlock.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.biometricsEnabled}
-                            onCheckedChange={(checked) => updateSpecialCompanion({ biometricsEnabled: Boolean(checked) })}
+                      {data.settings.specialCompanion.biometricsEnabled && session?.user?.id && (
+                        <div className="rounded-lg border border-primary/10 bg-primary/5 p-3">
+                          <BiometricPrompt
+                            onSuccess={() => {
+                              toast({ title: "Biometrics verified", description: "Your device is now linked." })
+                            }}
+                            userId={session.user.id}
+                            userName={displayName}
                           />
                         </div>
-                        {data.settings.specialCompanion.biometricsEnabled && (
-                          <div className="rounded-lg border border-primary/10 bg-primary/5 p-3">
-                            <BiometricPrompt
-                              onSuccess={() => {
-                                toast({ title: "Biometrics verified", description: "Your device is now linked." })
-                              }}
-                              userId={session?.user?.id || "default"}
-                              userName={displayName}
-                            />
-                          </div>
-                        )}
-                        <Separator className="opacity-50" />
-                        <div className="space-y-3">
-                          <Label htmlFor="app-pin">Personal PIN (4-8 digits)</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="app-pin"
-                              type="password"
-                              inputMode="numeric"
-                              placeholder="Set a pin"
-                              value={specialPin}
-                              onChange={(e) => setSpecialPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                            />
-                            <Button onClick={handleSaveSpecialPin}>Save</Button>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            When set, you'll be asked for this PIN every time the app opens.
-                          </p>
-                        </div>
+                      )}
 
-                        <Separator className="opacity-50" />
-                        <div className="pt-2">
-                          <Button
-                            variant="outline"
-                            className="w-full gap-2 border-primary/20 hover:bg-primary/5"
-                            onClick={() => {
-                              sessionStorage.removeItem("shiftwise:wifey-pin-unlocked")
-                              window.location.reload()
+                      <Separator className="opacity-50" />
+
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Privacy mode</p>
+                          <p className="text-xs text-muted-foreground">Blur dashboard content until manually revealed.</p>
+                        </div>
+                        <Switch
+                          checked={data.settings.specialCompanion.privacyMode}
+                          onCheckedChange={(checked) => {
+                            updateSpecialCompanion({ privacyMode: Boolean(checked) })
+                          }}
+                        />
+                      </div>
+
+                      <Separator className="opacity-50" />
+
+                      <div className="space-y-3">
+                        <Label htmlFor="app-pin">Personal PIN (4-8 digits)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="app-pin"
+                            type="password"
+                            inputMode="numeric"
+                            placeholder="Set a pin"
+                            value={specialPin}
+                            onChange={(e) => setSpecialPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                          />
+                          <Button onClick={handleSaveSpecialPin}>Save</Button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Enable PIN Lock</Label>
+                          <Switch
+                            checked={data.settings.specialCompanion.pinEnabled}
+                            onCheckedChange={(checked) => {
+                              if (checked && data.settings.specialCompanion.pinCode.trim().length < 4) {
+                                toast({ title: "Pin required", description: "Save a 4-8 digit pin first.", variant: "destructive" })
+                                return
+                              }
+                              updateSpecialCompanion({ pinEnabled: Boolean(checked) })
                             }}
-                          >
-                            <Shield className="size-4" />
-                            Lock App Now
-                          </Button>
+                          />
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+
+                      <Separator className="opacity-50" />
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 border-primary/20 hover:bg-primary/5"
+                          onClick={() => {
+                            sessionStorage.removeItem("shiftwise:wifey-pin-unlocked")
+                            window.location.reload()
+                          }}
+                        >
+                          <Shield className="size-4" />
+                          Lock App Now
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            ) : null}
+            </div>
+
             <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Preferences</h2>
@@ -1040,7 +1067,7 @@ export default function SettingsPage() {
                         <Heart className="size-4 text-rose-500" />
                         <CardTitle className="text-lg">{displayName}&apos;s Companion Settings</CardTitle>
                       </div>
-                      <CardDescription>Private controls for pin unlock, privacy mode, reminders, and puppy vibes.</CardDescription>
+                      <CardDescription>Private controls for reminders and puppy vibes.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-5 p-6 pt-0">
                       <div className="space-y-2">
@@ -1081,140 +1108,44 @@ export default function SettingsPage() {
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="companion-pin">Quick unlock pin (4-8 digits)</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="companion-pin"
-                            inputMode="numeric"
-                            type="password"
-                            placeholder="Enter pin"
-                            value={specialPin}
-                            onChange={(event) => setSpecialPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
-                          />
-                          <Button type="button" onClick={handleSaveSpecialPin} className="shrink-0">
-                            Save
-                          </Button>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Special reminders</p>
+                          <p className="text-xs text-muted-foreground">Water, exercise, and study prompts.</p>
                         </div>
+                        <Switch
+                          checked={data.settings.specialCompanion.remindersEnabled}
+                          onCheckedChange={(checked) => {
+                            updateSpecialCompanion({ remindersEnabled: Boolean(checked) })
+                            triggerSpecialCelebration("Reminder preferences updated")
+                          }}
+                        />
                       </div>
-
-                      <div className="space-y-2 rounded-lg border border-border/60 bg-card/60 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Enable quick pin lock</p>
-                            <p className="text-xs text-muted-foreground">Use pin unlock after initial login session.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.pinEnabled}
-                            onCheckedChange={(checked) => {
-                              if (checked && data.settings.specialCompanion.pinCode.trim().length < 4) {
-                                toast({
-                                  title: "Pin required",
-                                  description: "Save a 4-8 digit pin first.",
-                                  variant: "destructive",
-                                })
-                                return
-                              }
-                              updateSpecialCompanion({ pinEnabled: Boolean(checked) })
-                              triggerSpecialCelebration("Pin lock preference updated")
-                            }}
-                          />
+                      <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Celebration effects</p>
+                          <p className="text-xs text-muted-foreground">Show hearts and puppy sparkles on special actions.</p>
                         </div>
-                        {data.settings.specialCompanion.pinEnabled && (
-                          <div className="flex justify-end pt-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
-                              onClick={() => {
-                                sessionStorage.removeItem("shiftwise:wifey-pin-unlocked")
-                                window.location.reload()
-                              }}
-                            >
-                              <Shield className="size-3.5" />
-                              Lock App Now
-                            </Button>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Privacy mode</p>
-                            <p className="text-xs text-muted-foreground">Blur dashboard content until manually revealed.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.privacyMode}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ privacyMode: Boolean(checked) })
-                              triggerSpecialCelebration("Privacy mode updated")
-                            }}
-                          />
+                        <Switch
+                          checked={data.settings.specialCompanion.celebrationEnabled}
+                          onCheckedChange={(checked) => {
+                            updateSpecialCompanion({ celebrationEnabled: Boolean(checked) })
+                            triggerSpecialCelebration("Celebration effects updated")
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Puppy touch</p>
+                          <p className="text-xs text-muted-foreground">Keep puppy accents in companion sections.</p>
                         </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Special reminders</p>
-                            <p className="text-xs text-muted-foreground">Water, exercise, paath, and study prompts from Harman.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.remindersEnabled}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ remindersEnabled: Boolean(checked) })
-                              triggerSpecialCelebration("Reminder preferences updated")
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Use Face ID / Biometrics</p>
-                            <p className="text-xs text-muted-foreground">Unlock the app with your device biometrics.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.biometricsEnabled}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ biometricsEnabled: Boolean(checked) })
-                              triggerSpecialCelebration("Biometric preference updated")
-                            }}
-                          />
-                        </div>
-
-                        {data.settings.specialCompanion.biometricsEnabled && session?.user?.id && (
-                          <div className="mt-2 border-t border-border/40 pt-3">
-                            <BiometricPrompt
-                              userId={session.user.id}
-                              userName={displayName}
-                              onSuccess={() => {
-                                triggerSpecialCelebration("Biometrics verified")
-                                toast({ title: "Biometrics ready", description: "You can now unlock with Face ID." })
-                              }}
-                            />
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Celebration effects</p>
-                            <p className="text-xs text-muted-foreground">Show hearts and puppy sparkles on special actions.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.celebrationEnabled}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ celebrationEnabled: Boolean(checked) })
-                              triggerSpecialCelebration("Celebration effects updated")
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Puppy touch</p>
-                            <p className="text-xs text-muted-foreground">Keep puppy accents in companion sections.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.lovesPuppies}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ lovesPuppies: Boolean(checked) })
-                              triggerSpecialCelebration("Puppy mode updated")
-                            }}
-                          />
-                        </div>
+                        <Switch
+                          checked={data.settings.specialCompanion.lovesPuppies}
+                          onCheckedChange={(checked) => {
+                            updateSpecialCompanion({ lovesPuppies: Boolean(checked) })
+                            triggerSpecialCelebration("Puppy mode updated")
+                          }}
+                        />
                       </div>
 
                       <div className="flex items-center gap-2 rounded-md border border-dashed border-rose-300/50 bg-rose-500/5 px-3 py-2 text-xs text-muted-foreground">
@@ -1227,57 +1158,57 @@ export default function SettingsPage() {
                 ) : null}
               </div>
             </div>
-
-            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
-              <div className="mb-4 border-b border-border/60 pb-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">System</h2>
-                <p className="mt-1 text-xs text-muted-foreground">App info, maintenance, and destructive actions.</p>
-              </div>
-              <div className="space-y-5">
-                <Card className="mobile-settings-card hidden border-border/80 shadow-sm md:block">
-                  <CardHeader className="p-6 pb-4">
-                    <div className="flex items-center gap-2">
-                      <Info className="text-primary size-4" />
-                      <CardTitle className="text-lg">About ShiftWise</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 p-6 pt-0 text-sm">
-                    <p className="text-muted-foreground leading-relaxed">
-                      ShiftWise helps you track shifts, earnings, expenses, and goals with support for Australian penalty rates and more.
-                    </p>
-                    <Separator />
-                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                      <WalletCards className="size-3.5" />
-                      <span>Version 1.0.0</span>
-                      <CalendarClock className="ml-2 size-3.5" />
-                      <span>2026</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card id="settings-data-reset" className="mobile-settings-card border-destructive/40 shadow-sm">
-                  <CardHeader className="p-6 pb-4">
-                    <div className="flex items-center gap-2">
-                      <Database className="text-destructive size-4" />
-                      <CardTitle className="text-lg">Data Reset</CardTitle>
-                    </div>
-                    <CardDescription>Clear all local app data from this browser.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5 p-6 pt-0">
-                    <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-full sm:w-fit">
-                      {resetting ? "Resetting..." : "Reset All Data"}
-                    </Button>
-                    <p className="text-muted-foreground text-xs leading-relaxed">
-                      This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
           </div>
+
+          <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+            <div className="mb-4 border-b border-border/60 pb-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">System</h2>
+              <p className="mt-1 text-xs text-muted-foreground">App info, maintenance, and destructive actions.</p>
+            </div>
+            <div className="space-y-5">
+              <Card className="mobile-settings-card hidden border-border/80 shadow-sm md:block">
+                <CardHeader className="p-6 pb-4">
+                  <div className="flex items-center gap-2">
+                    <Info className="text-primary size-4" />
+                    <CardTitle className="text-lg">About ShiftWise</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 p-6 pt-0 text-sm">
+                  <p className="text-muted-foreground leading-relaxed">
+                    ShiftWise helps you track shifts, earnings, expenses, and goals with support for Australian penalty rates and more.
+                  </p>
+                  <Separator />
+                  <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                    <WalletCards className="size-3.5" />
+                    <span>Version 1.0.0</span>
+                    <CalendarClock className="ml-2 size-3.5" />
+                    <span>2026</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card id="settings-data-reset" className="mobile-settings-card border-destructive/40 shadow-sm">
+                <CardHeader className="p-6 pb-4">
+                  <div className="flex items-center gap-2">
+                    <Database className="text-destructive size-4" />
+                    <CardTitle className="text-lg">Data Reset</CardTitle>
+                  </div>
+                  <CardDescription>Clear all local app data from this browser.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5 p-6 pt-0">
+                  <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-full sm:w-fit">
+                    {resetting ? "Resetting..." : "Reset All Data"}
+                  </Button>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
         </div>
       </div>
-    </AppShell>
+    </AppShell >
   )
 }

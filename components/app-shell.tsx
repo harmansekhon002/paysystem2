@@ -497,7 +497,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (routeTransitionTimeoutRef.current) clearTimeout(routeTransitionTimeoutRef.current)
     routeTransitionTimeoutRef.current = window.setTimeout(() => {
       setRouteTransitioning(false)
-    }, 220)
+    }, 150)
   }, [pathname])
 
   const beginRouteTransition = () => {
@@ -505,7 +505,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (routeTransitionTimeoutRef.current) clearTimeout(routeTransitionTimeoutRef.current)
     routeTransitionTimeoutRef.current = window.setTimeout(() => {
       setRouteTransitioning(false)
-    }, 300)
+    }, 150)
   }
 
   const handlePullStart = (e: TouchEvent) => {
@@ -1003,9 +1003,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="min-h-svh pt-14 pb-20 md:pt-0 md:pb-0">
             <div
               className={cn(
-                "mx-auto w-full max-w-5xl px-4 py-4 transition-all sm:px-6 sm:py-6 md:px-8 md:py-8",
+                "mx-auto w-full max-w-5xl px-4 py-4 transition-opacity duration-200 sm:px-6 sm:py-6 md:px-8 md:py-8",
                 privacyModeEnabled && !privacyReveal && "blur-md",
-                routeTransitioning && "opacity-85"
+                routeTransitioning && "opacity-60"
               )}
               onClickCapture={handleMainClickCapture}
               onTouchStart={(e) => {
@@ -1037,7 +1037,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {children}
             </div>
           </div>
-        </main>
+        </main >
         <InstallAppPrompt />
 
         {

@@ -35,7 +35,7 @@ export function ShiftCalendarView({
             </CardHeader>
             <CardContent className="pt-0 px-2 sm:px-6">
                 <div className="overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="grid grid-cols-7 gap-1 min-w-[320px]">
+                    <div className="grid grid-cols-7 gap-1 min-w-[280px]">
                         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
                             <div key={d} className="p-1 text-center text-[10px] sm:text-[11px] font-medium text-muted-foreground">{d}</div>
                         ))}
