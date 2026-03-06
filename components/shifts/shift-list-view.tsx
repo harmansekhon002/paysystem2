@@ -132,15 +132,15 @@ export function ShiftListView({
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-hidden">
                 {filteredShifts.length === 0 ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
                         {totalShiftsCount === 0 ? "No shifts yet. Log your first one above." : "No shifts match your filters."}
                     </p>
                 ) : (
-                    <div className="h-[500px] w-full">
+                    <div className="h-[500px] w-full min-w-0">
                         <AutoSizer
-                            renderProp={({ height, width }) => (
+                            renderProp={({ height, width }: { height: number | undefined; width: number | undefined }) => (
                                 <List<any>
                                     style={{ height: height || 500, width: width || "100%" }}
                                     rowCount={filteredShifts.length}

@@ -104,7 +104,7 @@ export function ShiftHeaderActions({
     const hasActiveFilters = filters.jobId !== "all" || filters.rateType !== "all" || filters.dateFrom || filters.dateTo
 
     return (
-        <div className="sticky top-14 z-30 flex items-center gap-3.5 overflow-x-auto bg-background/80 pb-2 pt-1 border-b border-border/40 px-4 -mx-4 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:relative lg:top-0 lg:mx-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:p-0 lg:border-none">
+        <div className="sticky top-14 z-30 flex flex-wrap items-center gap-2 bg-background/80 pb-3 pt-2 border-b border-border/40 px-0 backdrop-blur-md lg:relative lg:top-0 lg:flex-nowrap lg:overflow-visible lg:bg-transparent lg:p-0 lg:border-none">
             <input
                 type="file"
                 accept=".pdf"

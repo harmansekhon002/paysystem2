@@ -25,7 +25,7 @@ export function ShiftCalendarView({
     calMonthLabel,
 }: ShiftCalendarViewProps) {
     return (
-        <Card className="max-w-[calc(100vw-2rem)] sm:max-w-none mx-auto">
+        <Card className="w-full sm:max-w-none mx-auto overflow-hidden border-none shadow-none sm:border sm:shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">{calMonthLabel}</CardTitle>
                 <div className="flex gap-1">
