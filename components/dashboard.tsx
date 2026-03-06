@@ -299,7 +299,7 @@ export function Dashboard() {
   const gridColor = "var(--color-border)"
   const legendColor = "var(--color-muted-foreground)"
   const showQuickActions = widgetConfig.quickActions
-  const shouldRenderSecondaryInsights = !isMobile || mobileInsightsOpen || showQuickActions
+  const shouldRenderSecondaryInsights = !isMobile || mobileInsightsOpen
   const statCards = [
     { title: "This Week", value: `${stats.weekHours}h`, subtitle: formatCurrency(stats.weekEarnings, currencySymbol), icon: Clock },
     { title: "Monthly Earnings", value: formatCurrency(stats.monthEarnings, currencySymbol), subtitle: `${stats.monthHours}h worked`, icon: DollarSign },

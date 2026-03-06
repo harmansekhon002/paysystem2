@@ -6,4 +6,4 @@ export type NavItem = {
     icon: ComponentType<{ className?: string }>
 }
 
-export type ThemeMode = "light" | "dark" | "oled" | "love"
+export type ThemeMode = "light" | "dark" | "love"

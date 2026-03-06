@@ -179,24 +179,24 @@ export function ShiftHeaderActions({
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="grid gap-1.5">
+                                <div className="flex flex-row gap-2">
+                                    <div className="grid flex-1 gap-1.5 min-w-0">
                                         <Label htmlFor="mobile-filter-date-from" className="text-xs">From</Label>
                                         <Input
                                             id="mobile-filter-date-from"
                                             data-testid="filter-date-from"
                                             type="date"
-                                            className="h-10 sm:h-9"
+                                            className="h-10 sm:h-9 w-full"
                                             value={filters.dateFrom}
                                             onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
                                         />
                                     </div>
-                                    <div className="grid gap-1.5">
+                                    <div className="grid flex-1 gap-1.5 min-w-0">
                                         <Label htmlFor="mobile-filter-date-to" className="text-xs">To</Label>
                                         <Input
                                             id="mobile-filter-date-to"
                                             type="date"
-                                            className="h-10 sm:h-9"
+                                            className="h-10 sm:h-9 w-full"
                                             value={filters.dateTo}
                                             onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
                                         />

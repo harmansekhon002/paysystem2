@@ -64,11 +64,10 @@ function ThemeToggle({ mode, onToggle, pulsing = false }: { mode: ThemeMode; onT
       onClick={onToggle}
       className={cn("size-8", pulsing && "theme-toggle-pulse")}
       aria-label="Toggle theme"
-      title={mode === "love" ? "Love theme" : mode === "oled" ? "OLED theme" : mode === "dark" ? "Dark theme" : "Light theme"}
+      title={mode === "love" ? "Love theme" : mode === "dark" ? "Dark theme" : "Light theme"}
     >
       <Sun className={cn("absolute size-4 transition-all", mode === "light" ? "rotate-0 scale-100" : "-rotate-90 scale-0")} />
       <Moon className={cn("absolute size-4 transition-all", mode === "dark" ? "rotate-0 scale-100" : "rotate-90 scale-0")} />
-      <Zap className={cn("absolute size-4 transition-all", mode === "oled" ? "rotate-0 scale-100 text-yellow-500" : "rotate-90 scale-0")} />
       <Heart className={cn("absolute size-4 transition-all", mode === "love" ? "scale-100 text-rose-500" : "scale-0")} />
     </Button>
   )
@@ -332,11 +331,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? "light"
     : loveModeActive
       ? "love"
-      : resolvedTheme === "oled"
-        ? "oled"
-        : resolvedTheme === "dark"
-          ? "dark"
-          : "light"
+      : resolvedTheme === "dark" || resolvedTheme === "oled"
+        ? "dark"
+        : "light"
 
   useEffect(() => {
     if (!requiresPin) {
@@ -672,14 +669,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return
     }
 
-    if (resolvedTheme === "dark") {
-      setTheme("oled")
-      runThemeTransitionFeedback("dark")
-      triggerSpecialCelebration("OLED theme enabled", "dark")
-      return
-    }
-
-    if (resolvedTheme === "oled") {
+    if (resolvedTheme === "dark" || resolvedTheme === "oled") {
       updateSpecialCompanion({ loveThemeEnabled: true })
       setTheme("light")
       runThemeTransitionFeedback("love")
@@ -773,7 +763,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <div
-        className={cn("theme-surface flex min-h-svh", loveModeActive && "love-theme")}
+        className={cn(
+          "theme-surface flex min-h-svh transition-colors duration-300",
+          loveModeActive && "love-theme",
+          activeThemeMode === "light" && "bg-gradient-to-b from-yellow-50 via-orange-50 to-red-50"
+        )}
         data-special-user={isSpecialUser ? "true" : "false"}
       >
         {!networkOnline || networkRecovering ? (
