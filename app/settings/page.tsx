@@ -454,6 +454,83 @@ export default function SettingsPage() {
                 </Card>
               </div>
             </div>
+            {true ? (
+              <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+                <div className="mb-4 border-b border-border/60 pb-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Security & Privacy</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">App locking and privacy controls.</p>
+                </div>
+                <div className="space-y-5">
+                  <Card id="settings-security" className="mobile-settings-card border-border/80 shadow-sm border-primary/20">
+                    <CardHeader className="p-6 pb-4">
+                      <div className="flex items-center gap-2">
+                        <Shield className="text-primary size-4" />
+                        <CardTitle className="text-lg">Access Lock</CardTitle>
+                      </div>
+                      <CardDescription>Secure your data with a personal PIN or biometrics.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6 p-6 pt-0">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-sm font-medium">Biometric Unlock</Label>
+                            <p className="text-xs text-muted-foreground">Use Face ID or Touch ID to unlock.</p>
+                          </div>
+                          <Switch
+                            checked={data.settings.specialCompanion.biometricsEnabled}
+                            onCheckedChange={(checked) => updateSpecialCompanion({ biometricsEnabled: Boolean(checked) })}
+                          />
+                        </div>
+                        {data.settings.specialCompanion.biometricsEnabled && (
+                          <div className="rounded-lg border border-primary/10 bg-primary/5 p-3">
+                            <BiometricPrompt
+                              onSuccess={() => {
+                                toast({ title: "Biometrics verified", description: "Your device is now linked." })
+                              }}
+                              userId={session?.user?.id || "default"}
+                              userName={displayName}
+                            />
+                          </div>
+                        )}
+                        <Separator className="opacity-50" />
+                        <div className="space-y-3">
+                          <Label htmlFor="app-pin">Personal PIN (4-8 digits)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="app-pin"
+                              type="password"
+                              inputMode="numeric"
+                              placeholder="Set a pin"
+                              value={specialPin}
+                              onChange={(e) => setSpecialPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                            />
+                            <Button onClick={handleSaveSpecialPin}>Save</Button>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            When set, you'll be asked for this PIN every time the app opens.
+                          </p>
+                        </div>
+
+                        <Separator className="opacity-50" />
+                        <div className="pt-2">
+                          <Button
+                            variant="outline"
+                            className="w-full gap-2 border-primary/20 hover:bg-primary/5"
+                            onClick={() => {
+                              sessionStorage.removeItem("shiftwise:wifey-pin-unlocked")
+                              window.location.reload()
+                            }}
+                          >
+                            <Shield className="size-4" />
+                            Lock App Now
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ) : null}
             <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
               <div className="mb-4 border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Preferences</h2>

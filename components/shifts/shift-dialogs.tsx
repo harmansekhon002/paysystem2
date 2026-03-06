@@ -274,7 +274,7 @@ export function ShiftDialogs({
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Log a Shift</DialogTitle></DialogHeader>
-                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1 -mx-1">
+                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1">
                         <div className="flex flex-col gap-1.5">
                             <Label className="text-xs">Job</Label>
                             {jobs.length === 0 ? (
@@ -353,7 +353,7 @@ export function ShiftDialogs({
             <Dialog open={editDialogOpen} onOpenChange={open => { setEditDialogOpen(open); if (!open) setEditShiftId(null) }}>
                 <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Edit Shift</DialogTitle></DialogHeader>
-                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1 -mx-1">
+                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 py-1">
                         <div className="flex flex-col gap-1.5">
                             <Label className="text-xs">Job</Label>
                             {jobs.length === 0 ? (

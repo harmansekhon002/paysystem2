@@ -323,8 +323,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ]
   }, [specialNavItems.length, studentParentNavItems.length])
 
-  const requiresPin = isSpecialUser && specialCompanion.pinEnabled && specialCompanion.pinCode.trim().length > 0
-  const privacyModeEnabled = isSpecialUser && specialCompanion.privacyMode
+  const requiresPin = specialCompanion.pinEnabled && specialCompanion.pinCode.trim().length > 0
+  const privacyModeEnabled = specialCompanion.privacyMode
 
   // Use "light" as default during SSR/hydration to avoid mismatch if navbar uses theme colors
   const activeThemeMode: ThemeMode = !mounted
