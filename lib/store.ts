@@ -76,6 +76,7 @@ export type SpecialCompanionSettings = {
   privacyMode: boolean
   remindersEnabled: boolean
   celebrationEnabled: boolean
+  biometricsEnabled: boolean
 }
 
 export type WorkHourLimits = {
@@ -292,6 +293,7 @@ export const defaultData: AppData = {
       privacyMode: false,
       remindersEnabled: true,
       celebrationEnabled: true,
+      biometricsEnabled: false,
     },
   },
   publicHolidays: AU_PUBLIC_HOLIDAYS_2026,

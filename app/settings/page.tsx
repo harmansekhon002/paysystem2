@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { triggerSpecialCelebration } from "@/lib/special-features"
 import { resolveTimeZone } from "@/lib/timezone"
+import { BiometricPrompt } from "@/components/biometric-prompt"
 
 type SubscriptionStatus = {
   paypalSubscriptionId: string
@@ -1042,6 +1043,22 @@ export default function SettingsPage() {
                             }}
                           />
                         </div>
+                        {data.settings.specialCompanion.pinEnabled && (
+                          <div className="flex justify-end pt-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                sessionStorage.removeItem("shiftwise:wifey-pin-unlocked")
+                                window.location.reload()
+                              }}
+                            >
+                              <Shield className="size-3.5" />
+                              Lock App Now
+                            </Button>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between gap-3">
                           <div className="space-y-0.5">
                             <p className="text-sm font-medium">Privacy mode</p>
@@ -1068,7 +1085,34 @@ export default function SettingsPage() {
                             }}
                           />
                         </div>
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">Use Face ID / Biometrics</p>
+                            <p className="text-xs text-muted-foreground">Unlock the app with your device biometrics.</p>
+                          </div>
+                          <Switch
+                            checked={data.settings.specialCompanion.biometricsEnabled}
+                            onCheckedChange={(checked) => {
+                              updateSpecialCompanion({ biometricsEnabled: Boolean(checked) })
+                              triggerSpecialCelebration("Biometric preference updated")
+                            }}
+                          />
+                        </div>
+
+                        {data.settings.specialCompanion.biometricsEnabled && session?.user?.id && (
+                          <div className="mt-2 border-t border-border/40 pt-3">
+                            <BiometricPrompt
+                              userId={session.user.id}
+                              userName={displayName}
+                              onSuccess={() => {
+                                triggerSpecialCelebration("Biometrics verified")
+                                toast({ title: "Biometrics ready", description: "You can now unlock with Face ID." })
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">
                           <div className="space-y-0.5">
                             <p className="text-sm font-medium">Celebration effects</p>
                             <p className="text-xs text-muted-foreground">Show hearts and puppy sparkles on special actions.</p>

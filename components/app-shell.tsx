@@ -749,14 +749,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               />
               {pinError ? <p className="text-sm text-destructive">{pinError}</p> : null}
               <Button className="w-full" onClick={handlePinUnlock}>Unlock</Button>
-              <BiometricPrompt
-                onSuccess={() => {
-                  setPinUnlocked(true)
-                  sessionStorage.setItem("shiftwise:wifey-pin-unlocked", "1")
-                }}
-                userId={session?.user?.id || "default"}
-                userName={displayName}
-              />
+              {specialCompanion.biometricsEnabled ? (
+                <BiometricPrompt
+                  onSuccess={() => {
+                    setPinUnlocked(true)
+                    sessionStorage.setItem("shiftwise:wifey-pin-unlocked", "1")
+                  }}
+                  userId={session?.user?.id || "default"}
+                  userName={displayName}
+                />
+              ) : null}
             </div>
           </div>
         </div>
