@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { formatCurrency, RATE_TYPE_LABELS, type Shift, type JobTemplate } from "@/lib/store"
 import { trackEvent } from "@/lib/analytics"
 import { useToast } from "@/hooks/use-toast"
-import { FixedSizeList as List } from "react-window"
-import AutoSizer from "react-virtualized-auto-sizer"
+import { List } from "react-window"
+import { AutoSizer } from "react-virtualized-auto-sizer"
 
 interface ShiftListViewProps {
     filteredShifts: Shift[]
@@ -43,14 +43,14 @@ export function ShiftListView({
 }: ShiftListViewProps) {
     const { toast } = useToast()
 
-    const ShiftRow = ({ index, style }: { index: number; style: CSSProperties }) => {
+    const ShiftRow = ({ index, style, ariaAttributes }: { index: number; style: CSSProperties; ariaAttributes: any }) => {
         const shift = filteredShifts[index]
         if (!shift) return null
         const job = jobsById.get(shift.jobId)
         const isSelected = selectedShiftIds.includes(shift.id)
 
         return (
-            <div style={style} className={`px-4 border-b border-border/10 ${isSelected ? "bg-primary/5" : ""}`}>
+            <div style={style} {...ariaAttributes} className={`px-4 border-b border-border/10 ${isSelected ? "bg-primary/5" : ""}`}>
                 <div className="flex items-center gap-2.5 h-full py-2">
                     {multiSelectMode && (
                         <Checkbox
@@ -139,18 +139,17 @@ export function ShiftListView({
                     </p>
                 ) : (
                     <div className="h-[500px] w-full">
-                        <AutoSizer>
-                            {({ height, width }) => (
-                                <List
-                                    height={height || 500}
-                                    width={width || 320}
-                                    itemCount={filteredShifts.length}
-                                    itemSize={64}
-                                >
-                                    {ShiftRow}
-                                </List>
+                        <AutoSizer
+                            renderProp={({ height, width }) => (
+                                <List<any>
+                                    style={{ height: height || 500, width: width || "100%" }}
+                                    rowCount={filteredShifts.length}
+                                    rowHeight={64}
+                                    rowComponent={ShiftRow}
+                                    rowProps={{}}
+                                />
                             )}
-                        </AutoSizer>
+                        />
                     </div>
                 )}
             </CardContent>
