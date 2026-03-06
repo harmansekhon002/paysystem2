@@ -898,315 +898,314 @@ export default function SettingsPage() {
                 </Card>
               </div>
 
-              <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
-                <div className="mb-4 border-b border-border/60 pb-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">System</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">App info, maintenance, and destructive actions.</p>
-                </div>
-                <div className="space-y-5">
-                  <Card className="mobile-settings-card hidden border-border/80 shadow-sm md:block">
-                    <CardHeader className="p-6 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Info className="text-primary size-4" />
-                        <CardTitle className="text-lg">About ShiftWise</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4 p-6 pt-0 text-sm">
-                      <p className="text-muted-foreground leading-relaxed">
-                        ShiftWise helps you track shifts, earnings, expenses, and goals with support for Australian penalty rates and more.
-                      </p>
-                      <Separator />
-                      <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                        <WalletCards className="size-3.5" />
-                        <span>Version 1.0.0</span>
-                        <CalendarClock className="ml-2 size-3.5" />
-                        <span>2026</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card id="settings-data-reset" className="mobile-settings-card border-destructive/40 shadow-sm">
-                    <CardHeader className="p-6 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Database className="text-destructive size-4" />
-                        <CardTitle className="text-lg">Data Reset</CardTitle>
-                      </div>
-                      <CardDescription>Clear all local app data from this browser.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-5 p-6 pt-0">
-                      <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-full sm:w-fit">
-                        {resetting ? "Resetting..." : "Reset All Data"}
-                      </Button>
-                      <p className="text-muted-foreground text-xs leading-relaxed">
-                        This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
             </div>
+          </div>
 
-            <div className="flex flex-col gap-8 lg:col-span-4">
-              <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
-                <div className="mb-4 border-b border-border/60 pb-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Billing</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">Plan status and renewal controls.</p>
-                </div>
-                <div className="space-y-5">
-                  <Card id="settings-subscription" className="mobile-settings-card border-border/80 shadow-sm">
-                    <CardHeader className="p-6 pb-4">
-                      <div className="flex items-center gap-2">
-                        <WalletCards className="text-primary size-4" />
-                        <CardTitle className="text-lg">Subscription</CardTitle>
+          <div className="flex flex-col gap-8 lg:col-span-4">
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Billing</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Plan status and renewal controls.</p>
+              </div>
+              <div className="space-y-5">
+                <Card id="settings-subscription" className="mobile-settings-card border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <WalletCards className="text-primary size-4" />
+                      <CardTitle className="text-lg">Subscription</CardTitle>
+                    </div>
+                    <CardDescription>Manage your plan and renewal settings.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 p-6 pt-0">
+                    {loadingSubscription ? (
+                      <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                        <Loader2 className="size-4 animate-spin" />
+                        <span>Loading subscription status...</span>
                       </div>
-                      <CardDescription>Manage your plan and renewal settings.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4 p-6 pt-0">
-                      {loadingSubscription ? (
-                        <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                          <Loader2 className="size-4 animate-spin" />
-                          <span>Loading subscription status...</span>
+                    ) : null}
+
+                    {!loadingSubscription && subscriptionError ? (
+                      <Alert variant="destructive">
+                        <AlertTitle>Subscription status unavailable</AlertTitle>
+                        <AlertDescription>{subscriptionError}</AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    {!loadingSubscription && !subscriptionError && !subscription ? (
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground text-sm">
+                          No paid subscription found on this account.
+                        </p>
+                        <Badge variant="secondary">Current plan: {planName}</Badge>
+                        <Button asChild className="w-full sm:w-fit">
+                          <Link href="/pricing">View plans</Link>
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {!loadingSubscription && subscription ? (
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge>{subscription.planName}</Badge>
+                          <Badge variant={subscription.status === "active" || isLifetimePlan ? "secondary" : "outline"}>
+                            {subscription.status}
+                          </Badge>
+                          {isLifetimePlan ? (
+                            <Badge variant="secondary">Lifetime access</Badge>
+                          ) : subscription.cancelAtPeriodEnd ? (
+                            <Badge variant="outline">Cancels at period end</Badge>
+                          ) : (
+                            <Badge variant="secondary">Auto-renew on</Badge>
+                          )}
                         </div>
-                      ) : null}
-
-                      {!loadingSubscription && subscriptionError ? (
-                        <Alert variant="destructive">
-                          <AlertTitle>Subscription status unavailable</AlertTitle>
-                          <AlertDescription>{subscriptionError}</AlertDescription>
-                        </Alert>
-                      ) : null}
-
-                      {!loadingSubscription && !subscriptionError && !subscription ? (
-                        <div className="space-y-3">
-                          <p className="text-muted-foreground text-sm">
-                            No paid subscription found on this account.
+                        <div className="space-y-1.5 text-sm">
+                          <p>
+                            <span className="text-muted-foreground">{isLifetimePlan ? "Renewal:" : "Next billing date:"}</span>{" "}
+                            {isLifetimePlan ? "No renewal required." : new Date(subscription.paypalCurrentPeriodEnd).toLocaleDateString()}
                           </p>
-                          <Badge variant="secondary">Current plan: {planName}</Badge>
-                          <Button asChild className="w-full sm:w-fit">
-                            <Link href="/pricing">View plans</Link>
-                          </Button>
+                          <p>
+                            <span className="text-muted-foreground">Last updated:</span>{" "}
+                            {new Date(subscription.updatedAt).toLocaleString()}
+                          </p>
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground">Subscription ID:</span>
+                            <code className="max-w-full break-all whitespace-normal rounded bg-muted px-2 py-0.5 text-xs">{subscription.paypalSubscriptionId}</code>
+                            <Button size="sm" variant="outline" onClick={copySubscriptionId} className="h-7 gap-1.5 px-2">
+                              <Copy className="size-3.5" />
+                              Copy
+                            </Button>
+                          </div>
                         </div>
-                      ) : null}
-
-                      {!loadingSubscription && subscription ? (
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge>{subscription.planName}</Badge>
-                            <Badge variant={subscription.status === "active" || isLifetimePlan ? "secondary" : "outline"}>
-                              {subscription.status}
-                            </Badge>
-                            {isLifetimePlan ? (
-                              <Badge variant="secondary">Lifetime access</Badge>
-                            ) : subscription.cancelAtPeriodEnd ? (
-                              <Badge variant="outline">Cancels at period end</Badge>
-                            ) : (
-                              <Badge variant="secondary">Auto-renew on</Badge>
-                            )}
-                          </div>
-                          <div className="space-y-1.5 text-sm">
-                            <p>
-                              <span className="text-muted-foreground">{isLifetimePlan ? "Renewal:" : "Next billing date:"}</span>{" "}
-                              {isLifetimePlan ? "No renewal required." : new Date(subscription.paypalCurrentPeriodEnd).toLocaleDateString()}
-                            </p>
-                            <p>
-                              <span className="text-muted-foreground">Last updated:</span>{" "}
-                              {new Date(subscription.updatedAt).toLocaleString()}
-                            </p>
-                            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <span className="text-muted-foreground">Subscription ID:</span>
-                              <code className="max-w-full break-all whitespace-normal rounded bg-muted px-2 py-0.5 text-xs">{subscription.paypalSubscriptionId}</code>
-                              <Button size="sm" variant="outline" onClick={copySubscriptionId} className="h-7 gap-1.5 px-2">
-                                <Copy className="size-3.5" />
-                                Copy
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => void loadSubscriptionStatus()}
+                            disabled={loadingSubscription || Boolean(managingSubscription)}
+                            className="gap-2"
+                          >
+                            <RefreshCw className="size-4" />
+                            Refresh
+                          </Button>
+                          {!isLifetimePlan && subscription.cancelAtPeriodEnd ? (
                             <Button
-                              variant="outline"
-                              onClick={() => void loadSubscriptionStatus()}
-                              disabled={loadingSubscription || Boolean(managingSubscription)}
+                              onClick={() => void manageSubscription("reactivate")}
+                              disabled={Boolean(managingSubscription)}
                               className="gap-2"
                             >
-                              <RefreshCw className="size-4" />
-                              Refresh
+                              {managingSubscription === "reactivate" ? <Loader2 className="size-4 animate-spin" /> : null}
+                              Re-enable Auto Renew
                             </Button>
-                            {!isLifetimePlan && subscription.cancelAtPeriodEnd ? (
-                              <Button
-                                onClick={() => void manageSubscription("reactivate")}
-                                disabled={Boolean(managingSubscription)}
-                                className="gap-2"
-                              >
-                                {managingSubscription === "reactivate" ? <Loader2 className="size-4 animate-spin" /> : null}
-                                Re-enable Auto Renew
-                              </Button>
-                            ) : null}
-                            {!isLifetimePlan && !subscription.cancelAtPeriodEnd ? (
-                              <Button
-                                variant="destructive"
-                                onClick={() => void manageSubscription("cancel")}
-                                disabled={Boolean(managingSubscription)}
-                                className="gap-2"
-                              >
-                                {managingSubscription === "cancel" ? <Loader2 className="size-4 animate-spin" /> : null}
-                                Cancel at Period End
-                              </Button>
-                            ) : null}
-                          </div>
+                          ) : null}
+                          {!isLifetimePlan && !subscription.cancelAtPeriodEnd ? (
+                            <Button
+                              variant="destructive"
+                              onClick={() => void manageSubscription("cancel")}
+                              disabled={Boolean(managingSubscription)}
+                              className="gap-2"
+                            >
+                              {managingSubscription === "cancel" ? <Loader2 className="size-4 animate-spin" /> : null}
+                              Cancel at Period End
+                            </Button>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-
-              <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
-                <div className="mb-4 border-b border-border/60 pb-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Personalization</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">Customize your dashboard layout.</p>
-                </div>
-                <div className="space-y-5">
-                  <Card id="settings-widgets" className="mobile-settings-card border-border/80 shadow-sm">
-                    <CardHeader className="p-6 pb-4">
-                      <div className="flex items-center gap-2">
-                        <LayoutDashboard className="text-primary size-4" />
-                        <CardTitle className="text-lg">Dashboard Widgets</CardTitle>
                       </div>
-                      <CardDescription>Choose what appears on your home dashboard.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-6 pt-0">
-                      <button
-                        type="button"
-                        onClick={() => setWidgetsOpen(v => !v)}
-                        className="flex w-full items-center justify-between rounded-lg border border-border/60 px-3 py-2.5 text-sm font-medium hover:bg-muted/40 transition-colors"
-                      >
-                        <span>Dashboard widgets</span>
-                        {widgetsOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
-                      </button>
-                      {widgetsOpen && (
-                        <div className="space-y-2">
-                          {dashboardWidgetOptions.map((widget) => (
-                            <label key={widget.key} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
-                              <Checkbox
-                                checked={data.settings.dashboardWidgets[widget.key]}
-                                onCheckedChange={(next) =>
-                                  updateSettings({
-                                    dashboardWidgets: {
-                                      ...data.settings.dashboardWidgets,
-                                      [widget.key]: Boolean(next),
-                                    },
-                                  })
-                                }
-                              />
-                              <span>{widget.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {isSpecialUser ? (
-                    <Card id="settings-companion" className="mobile-settings-card border-rose-300/40 bg-gradient-to-br from-rose-500/10 to-orange-500/10 shadow-sm">
-                      <CardHeader className="p-6 pb-4">
-                        <div className="flex items-center gap-2">
-                          <Heart className="size-4 text-rose-500" />
-                          <CardTitle className="text-lg">{displayName}&apos;s Companion Settings</CardTitle>
-                        </div>
-                        <CardDescription>Private controls for reminders and puppy vibes.</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-5 p-6 pt-0">
-                        <div className="space-y-2">
-                          <Label htmlFor="companion-nickname">Display name</Label>
-                          <Input
-                            id="companion-nickname"
-                            value={data.settings.specialCompanion.nickname}
-                            onChange={(event) => updateSpecialCompanion({ nickname: event.target.value })}
-                            placeholder="Wifey"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="companion-water-goal">Daily water bottle goal</Label>
-                          <Select
-                            value={String(companionWaterGoal)}
-                            onValueChange={(value) => {
-                              const parsed = Number(value)
-                              const nextGoal = Number.isFinite(parsed) ? Math.max(4, Math.min(12, Math.round(parsed))) : 8
-                              updateSpecialCompanion({ waterBottleGoal: nextGoal })
-                              triggerSpecialCelebration(`Water goal set to ${nextGoal}`)
-                            }}
-                          >
-                            <SelectTrigger id="companion-water-goal">
-                              <SelectValue placeholder="Select target" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="4">4 bottles</SelectItem>
-                              <SelectItem value="5">5 bottles</SelectItem>
-                              <SelectItem value="6">6 bottles</SelectItem>
-                              <SelectItem value="7">7 bottles</SelectItem>
-                              <SelectItem value="8">8 bottles</SelectItem>
-                              <SelectItem value="9">9 bottles</SelectItem>
-                              <SelectItem value="10">10 bottles</SelectItem>
-                              <SelectItem value="11">11 bottles</SelectItem>
-                              <SelectItem value="12">12 bottles</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Special reminders</p>
-                            <p className="text-xs text-muted-foreground">Water, exercise, and study prompts.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.remindersEnabled}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ remindersEnabled: Boolean(checked) })
-                              triggerSpecialCelebration("Reminder preferences updated")
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Celebration effects</p>
-                            <p className="text-xs text-muted-foreground">Show hearts and puppy sparkles on special actions.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.celebrationEnabled}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ celebrationEnabled: Boolean(checked) })
-                              triggerSpecialCelebration("Celebration effects updated")
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Puppy touch</p>
-                            <p className="text-xs text-muted-foreground">Keep puppy accents in companion sections.</p>
-                          </div>
-                          <Switch
-                            checked={data.settings.specialCompanion.lovesPuppies}
-                            onCheckedChange={(checked) => {
-                              updateSpecialCompanion({ lovesPuppies: Boolean(checked) })
-                              triggerSpecialCelebration("Puppy mode updated")
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-2 rounded-md border border-dashed border-rose-300/50 bg-rose-500/5 px-3 py-2 text-xs text-muted-foreground">
-                          <Shield className="size-3.5 text-rose-500" />
-                          <PawPrint className="size-3.5 text-rose-500" />
-                          Companion mode is active only on this account.
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : null}
-                </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Personalization</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Customize your dashboard layout.</p>
+              </div>
+              <div className="space-y-5">
+                <Card id="settings-widgets" className="mobile-settings-card border-border/80 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <LayoutDashboard className="text-primary size-4" />
+                      <CardTitle className="text-lg">Dashboard Widgets</CardTitle>
+                    </div>
+                    <CardDescription>Choose what appears on your home dashboard.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 pt-0">
+                    <button
+                      type="button"
+                      onClick={() => setWidgetsOpen(v => !v)}
+                      className="flex w-full items-center justify-between rounded-lg border border-border/60 px-3 py-2.5 text-sm font-medium hover:bg-muted/40 transition-colors"
+                    >
+                      <span>Dashboard widgets</span>
+                      {widgetsOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                    </button>
+                    {widgetsOpen && (
+                      <div className="space-y-2">
+                        {dashboardWidgetOptions.map((widget) => (
+                          <label key={widget.key} className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                            <Checkbox
+                              checked={data.settings.dashboardWidgets[widget.key]}
+                              onCheckedChange={(next) =>
+                                updateSettings({
+                                  dashboardWidgets: {
+                                    ...data.settings.dashboardWidgets,
+                                    [widget.key]: Boolean(next),
+                                  },
+                                })
+                              }
+                            />
+                            <span>{widget.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
+                {isSpecialUser ? (
+                  <Card id="settings-companion" className="mobile-settings-card border-rose-300/40 bg-gradient-to-br from-rose-500/10 to-orange-500/10 shadow-sm">
+                    <CardHeader className="p-6 pb-4">
+                      <div className="flex items-center gap-2">
+                        <Heart className="size-4 text-rose-500" />
+                        <CardTitle className="text-lg">{displayName}&apos;s Companion Settings</CardTitle>
+                      </div>
+                      <CardDescription>Private controls for reminders and puppy vibes.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-5 p-6 pt-0">
+                      <div className="space-y-2">
+                        <Label htmlFor="companion-nickname">Display name</Label>
+                        <Input
+                          id="companion-nickname"
+                          value={data.settings.specialCompanion.nickname}
+                          onChange={(event) => updateSpecialCompanion({ nickname: event.target.value })}
+                          placeholder="Wifey"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="companion-water-goal">Daily water bottle goal</Label>
+                        <Select
+                          value={String(companionWaterGoal)}
+                          onValueChange={(value) => {
+                            const parsed = Number(value)
+                            const nextGoal = Number.isFinite(parsed) ? Math.max(4, Math.min(12, Math.round(parsed))) : 8
+                            updateSpecialCompanion({ waterBottleGoal: nextGoal })
+                            triggerSpecialCelebration(`Water goal set to ${nextGoal}`)
+                          }}
+                        >
+                          <SelectTrigger id="companion-water-goal">
+                            <SelectValue placeholder="Select target" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="4">4 bottles</SelectItem>
+                            <SelectItem value="5">5 bottles</SelectItem>
+                            <SelectItem value="6">6 bottles</SelectItem>
+                            <SelectItem value="7">7 bottles</SelectItem>
+                            <SelectItem value="8">8 bottles</SelectItem>
+                            <SelectItem value="9">9 bottles</SelectItem>
+                            <SelectItem value="10">10 bottles</SelectItem>
+                            <SelectItem value="11">11 bottles</SelectItem>
+                            <SelectItem value="12">12 bottles</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Special reminders</p>
+                          <p className="text-xs text-muted-foreground">Water, exercise, and study prompts.</p>
+                        </div>
+                        <Switch
+                          checked={data.settings.specialCompanion.remindersEnabled}
+                          onCheckedChange={(checked) => {
+                            updateSpecialCompanion({ remindersEnabled: Boolean(checked) })
+                            triggerSpecialCelebration("Reminder preferences updated")
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Celebration effects</p>
+                          <p className="text-xs text-muted-foreground">Show hearts and puppy sparkles on special actions.</p>
+                        </div>
+                        <Switch
+                          checked={data.settings.specialCompanion.celebrationEnabled}
+                          onCheckedChange={(checked) => {
+                            updateSpecialCompanion({ celebrationEnabled: Boolean(checked) })
+                            triggerSpecialCelebration("Celebration effects updated")
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">Puppy touch</p>
+                          <p className="text-xs text-muted-foreground">Keep puppy accents in companion sections.</p>
+                        </div>
+                        <Switch
+                          checked={data.settings.specialCompanion.lovesPuppies}
+                          onCheckedChange={(checked) => {
+                            updateSpecialCompanion({ lovesPuppies: Boolean(checked) })
+                            triggerSpecialCelebration("Puppy mode updated")
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 rounded-md border border-dashed border-rose-300/50 bg-rose-500/5 px-3 py-2 text-xs text-muted-foreground">
+                        <Shield className="size-3.5 text-rose-500" />
+                        <PawPrint className="size-3.5 text-rose-500" />
+                        Companion mode is active only on this account.
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mobile-settings-group rounded-xl border border-border/70 bg-muted/20 p-4 md:p-5">
+              <div className="mb-4 border-b border-border/60 pb-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">System</h2>
+                <p className="mt-1 text-xs text-muted-foreground">App info, maintenance, and destructive actions.</p>
+              </div>
+              <div className="space-y-5">
+                <Card className="mobile-settings-card hidden border-border/80 shadow-sm md:block">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Info className="text-primary size-4" />
+                      <CardTitle className="text-lg">About ShiftWise</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4 p-6 pt-0 text-sm">
+                    <p className="text-muted-foreground leading-relaxed">
+                      ShiftWise helps you track shifts, earnings, expenses, and goals with support for Australian penalty rates and more.
+                    </p>
+                    <Separator />
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                      <WalletCards className="size-3.5" />
+                      <span>Version 1.0.0</span>
+                      <CalendarClock className="ml-2 size-3.5" />
+                      <span>2026</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card id="settings-data-reset" className="mobile-settings-card border-destructive/40 shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Database className="text-destructive size-4" />
+                      <CardTitle className="text-lg">Data Reset</CardTitle>
+                    </div>
+                    <CardDescription>Clear all local app data from this browser.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6 pt-0">
+                    <Button variant="destructive" onClick={handleReset} disabled={resetting} className="w-full sm:w-fit">
+                      {resetting ? "Resetting..." : "Reset All Data"}
+                    </Button>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      This removes jobs, shifts, expenses, goals, and settings. This action cannot be undone.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
