@@ -505,7 +505,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (routeTransitionTimeoutRef.current) clearTimeout(routeTransitionTimeoutRef.current)
     routeTransitionTimeoutRef.current = window.setTimeout(() => {
       setRouteTransitioning(false)
-    }, 1200)
+    }, 300)
   }
 
   const handlePullStart = (e: TouchEvent) => {

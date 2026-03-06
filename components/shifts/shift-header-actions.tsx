@@ -154,7 +154,7 @@ export function ShiftHeaderActions({
                             <DrawerHeader>
                                 <DrawerTitle>Filter Shifts</DrawerTitle>
                             </DrawerHeader>
-                            <div className="grid gap-3 overflow-y-auto px-4 pb-4">
+                            <div className="grid gap-4 overflow-y-auto px-4 pb-8">
                                 <div className="grid gap-1.5">
                                     <Label className="text-xs">Workplace</Label>
                                     <Select value={filters.jobId} onValueChange={(v) => setFilters((f) => ({ ...f, jobId: v }))}>
@@ -179,8 +179,8 @@ export function ShiftHeaderActions({
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="flex flex-row gap-2">
-                                    <div className="grid flex-1 gap-1.5 min-w-0">
+                                <div className="grid grid-cols-2 gap-3 xs:grid-cols-1">
+                                    <div className="grid gap-1.5 min-w-0">
                                         <Label htmlFor="mobile-filter-date-from" className="text-xs">From</Label>
                                         <Input
                                             id="mobile-filter-date-from"
@@ -191,7 +191,7 @@ export function ShiftHeaderActions({
                                             onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
                                         />
                                     </div>
-                                    <div className="grid flex-1 gap-1.5 min-w-0">
+                                    <div className="grid gap-1.5 min-w-0">
                                         <Label htmlFor="mobile-filter-date-to" className="text-xs">To</Label>
                                         <Input
                                             id="mobile-filter-date-to"
