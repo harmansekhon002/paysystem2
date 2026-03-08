@@ -10,9 +10,11 @@ function CustomChartTooltip({
   label,
   formatter,
   theme,
+  currencySymbol,
 }: TooltipProps<number, string> & {
   theme: "light" | "dark"
   formatter?: (value: number, name: string) => [string, string]
+  currencySymbol?: string
 }) {
   if (!active || !payload || !payload.length) return null;
   const isDark = theme === 'dark';
@@ -23,8 +25,8 @@ function CustomChartTooltip({
   const seriesName = String(payload[0]?.name ?? "")
   const value = formatter
     ? formatter(numericValue, seriesName)
-    : [`$${numericValue}`, seriesName]
-  const displayValue = String(value[0]).replace(/^\$\$/, "$")
+    : [`${currencySymbol || "$"}${numericValue}`, seriesName]
+  const displayValue = String(value[0]).replace(/^(A\$|US\$|C\$|€|£)\$/, "$1")
   return (
     <div
       style={{
@@ -309,6 +311,7 @@ export function Earnings() {
                     content={
                       <CustomChartTooltip
                         theme={resolvedTheme === "dark" ? "dark" : "light"}
+                        currencySymbol={currencySymbol}
                         formatter={(v: number) => [formatCurrency(v, currencySymbol), "Earnings"]}
                       />
                     }

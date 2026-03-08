@@ -14,9 +14,16 @@ model User {
   passwordHash  String
   currency      String    @default("AUD")
   timezone      String    @default("Australia/Sydney")
+  role          String    @default("USER") // "USER" | "ADMIN"
   
   isPremium     Boolean   @default(false)
   premiumUntil  DateTime?
+  
+  emailVerified Boolean   @default(false)
+  verificationToken String?
+  verificationTokenExpires DateTime?
+  resetToken    String?
+  resetTokenExpires DateTime?
   
   settings      Json?
   publicHolidays String[]
@@ -254,5 +261,25 @@ model AuditLog {
   
   @@index([userId])
   @@index([createdAt])
-  @@index([userId, entity])
+}
+
+// For pricing waitlist
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String
+  plan      String   // "plus" | "pro"
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model AiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  feature   String   // "payslip_ocr" | "care_plan"
+  timestamp DateTime @default(now())
+  tokensUsed Int     @default(0)
+
+  @@index([userId])
+  @@index([timestamp])
 }

@@ -1,12 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sun, Moon, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Toaster } from "@/components/ui/toaster"
 
 export function AuthShell({ children }: { children: React.ReactNode }) {
-    const [dark, setDark] = useState(true)
+    const [dark, setDark] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    // Initialize theme from system preference on mount only
+    useEffect(() => {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+        setDark(prefersDark)
+        setMounted(true)
+    }, [])
+
+    // Prevent rendering until client-side hydration is complete
+    if (!mounted) {
+        return (
+            <div className="relative min-h-svh flex flex-col items-center justify-center bg-background px-4 py-12">
+                <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-lg shadow-black/20">
+                    {children}
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className={dark ? "dark" : ""}>
@@ -45,7 +63,6 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                     By continuing you agree to our Terms of Service &amp; Privacy Policy.
                 </p>
             </div>
-            <Toaster />
         </div>
     )
 }

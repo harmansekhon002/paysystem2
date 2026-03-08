@@ -9,13 +9,24 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
+const supabaseOrigin = (() => {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    return url ? new URL(url).origin : null
+  } catch {
+    return null
+  }
+})()
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://shiftwise.vercel.app"),
-  title: 'ShiftWise - Smart Shift Management for Students',
-  description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals. Built for students who hustle.',
+  title: 'ShiftWise — Shift Tracker for International Students',
+  description: 'Free shift tracker for international students. Track visa work hours, calculate penalty rates, manage budgets and hit savings goals while studying abroad.',
   generator: 'v0.app',
   manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: '/',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -25,14 +36,14 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: 'ShiftWise - Smart Shift Management for Students',
-    description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals.',
-    url: '/',
+    title: 'ShiftWise — Shift Tracker for International Students',
+    description: 'Free shift tracker for international students. Track visa work hours, calculate penalty rates, manage budgets and hit savings goals while studying abroad.',
+    url: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://shiftwise.vercel.app"),
     siteName: 'ShiftWise',
     type: 'website',
     images: [
       {
-        url: '/opengraph-image',
+        url: '/api/og',
         width: 1200,
         height: 630,
         alt: 'ShiftWise',
@@ -41,9 +52,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ShiftWise - Smart Shift Management for Students',
-    description: 'Track shifts, manage earnings, budget smarter, and hit your savings goals.',
-    images: ['/twitter-image'],
+    title: 'ShiftWise — Shift Tracker for International Students',
+    description: 'Free shift tracker for international students. Track visa work hours, calculate penalty rates, manage budgets and hit savings goals while studying abroad.',
+    images: ['/api/og'],
   },
   icons: {
     icon: [
@@ -80,6 +91,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {supabaseOrigin ? <link rel="preconnect" href={supabaseOrigin} /> : null}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      </head>
       <body className={`${inter.className} font-sans antialiased text-foreground selection:bg-primary/20`}>
         <AuthProvider>
           <ThemeProvider>

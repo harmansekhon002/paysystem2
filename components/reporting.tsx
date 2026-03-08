@@ -122,11 +122,15 @@ export function ReportingDashboard() {
     totalEarnings: 0, totalHours: 0, avgHourlyRate: 0, totalExpenses: 0, netIncome: 0, earningsTrend: 0
   }
 
+  const jobsById = useMemo(() => {
+    return new Map(data.jobs.map((job) => [job.id, job]))
+  }, [data.jobs])
+
   // Earnings by job
   const earningsByJob = useMemo(() => {
     const jobMap = new Map<string, { name: string; earnings: number; hours: number; color: string }>()
     filteredShifts.forEach(shift => {
-      const job = data.jobs.find(j => j.id === shift.jobId)
+      const job = jobsById.get(shift.jobId)
       if (!job) return
       const existing = jobMap.get(shift.jobId) || { name: job.name, earnings: 0, hours: 0, color: job.color }
       existing.earnings += shift.earnings
@@ -134,7 +138,7 @@ export function ReportingDashboard() {
       jobMap.set(shift.jobId, existing)
     })
     return Array.from(jobMap.values()).sort((a, b) => b.earnings - a.earnings)
-  }, [filteredShifts, data.jobs])
+  }, [filteredShifts, jobsById])
 
   // Earnings by rate type
   const earningsByRateType = useMemo(() => {

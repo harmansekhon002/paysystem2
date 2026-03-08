@@ -38,6 +38,7 @@ export async function validateLoginCredentials(email: string, password: string) 
       email: admin.email,
       name: "Admin",
       isSpecialUser: false,
+      role: "ADMIN",
     }
   }
 
@@ -48,6 +49,7 @@ export async function validateLoginCredentials(email: string, password: string) 
       email: specialUser.email,
       name: specialUser.name,
       isSpecialUser: true,
+      role: (specialUser as any).role || "USER",
     }
   }
 
@@ -76,14 +78,7 @@ export async function validateLoginCredentials(email: string, password: string) 
     throw new LoginError("ACCOUNT_NOT_FOUND", "No account found with that email")
   }
 
-  const [verificationStatus] = await prisma.$queryRaw<Array<{ email_verified: boolean | null }>>`
-    SELECT "emailVerified" as email_verified
-    FROM "User"
-    WHERE "id" = ${user.id}
-    LIMIT 1
-  `
-
-  if (verificationStatus?.email_verified === false) {
+  if (user.emailVerified === false) {
     throw new LoginError("EMAIL_NOT_VERIFIED", "Email not verified. Please verify your email before signing in.")
   }
 
@@ -97,6 +92,7 @@ export async function validateLoginCredentials(email: string, password: string) 
     email: user.email,
     name: user.name,
     isSpecialUser: isSpecialUserEmail(user.email),
+    role: user.role,
   }
 }
 
@@ -147,6 +143,7 @@ export const authOptions: NextAuthOptions = {
         }
         token.email = user.email || token.email
         token.isSpecialUser = Boolean((user as { isSpecialUser?: boolean }).isSpecialUser)
+        token.role = (user as { role?: string }).role || "USER"
       } else if (!token.id && typeof token.sub === "string") {
         token.id = token.sub
       }
@@ -156,6 +153,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.id = (typeof token.id === "string" ? token.id : token.sub) as string
         session.user.isSpecialUser = Boolean(token.isSpecialUser)
+          ; (session.user as any).role = token.role || "USER"
       }
       return session
     },

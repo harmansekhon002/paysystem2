@@ -1,15 +1,13 @@
+import type { Metadata } from "next"
+import LandingPage from "@/components/landing-page"
 
-import dynamic from "next/dynamic"
-import { AppShell } from "@/components/app-shell"
+export const metadata: Metadata = {
+  title: "ShiftWise — Shift Tracker for International Students",
+  description:
+    "Free shift tracker for international students. Track visa work hours, calculate penalty rates, manage budgets and hit savings goals while studying abroad.",
+  alternates: { canonical: "/" },
+}
 
-const Dashboard = dynamic(() => import("@/components/dashboard").then(mod => mod.Dashboard), {
-  loading: () => <div className="flex h-96 items-center justify-center">Loading Dashboard...</div>
-})
-
-export default function HomePage() {
-  return (
-    <AppShell>
-      <Dashboard />
-    </AppShell>
-  )
+export default function Page() {
+  return <LandingPage />
 }

@@ -158,6 +158,11 @@ export async function POST(req: NextRequest) {
         // Use a transaction to safely sync user data
         await prisma.$transaction(async (txArg) => {
             const tx = txArg as any
+            const userExists = await tx.user.findUnique({ where: { id: userId }, select: { id: true } })
+            if (!userExists) {
+                // In dev environments without a seeded user, skip sync gracefully.
+                return
+            }
             // 1. Update User settings
             await tx.user.update({
                 where: { id: userId },

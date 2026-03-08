@@ -47,6 +47,10 @@ export default function LoginPage() {
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+        
+        // Prevent multiple submissions
+        if (isLoading) return
+        
         setError("")
         setErrorCode("")
         setErrorDetails("")
@@ -56,32 +60,8 @@ export default function LoginPage() {
 
         try {
             const normalizedEmail = email.trim().toLowerCase()
-            const precheckResponse = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: normalizedEmail, password }),
-            })
-
-            if (!precheckResponse.ok) {
-                const payload = await precheckResponse.json().catch(() => ({}))
-                const code = String(payload?.code ?? `HTTP_${precheckResponse.status}`)
-                const rawMessage = String(payload?.error ?? "Login failed")
-                const message = sanitizeMessage(rawMessage)
-                setError(message)
-                setErrorCode(code)
-                setErrorDetails(`Login error\nCode: ${code}\nStatus: ${precheckResponse.status}\nMessage: ${message}`)
-                if (code === "EMAIL_NOT_VERIFIED") {
-                    const verifyRes = await fetch("/api/auth/request-email-verification", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: normalizedEmail }),
-                    })
-                    const verifyData = await verifyRes.json().catch(() => ({}))
-                    if (verifyData?.verificationUrl) setVerificationLink(String(verifyData.verificationUrl))
-                }
-                return
-            }
-
+            
+            // Call NextAuth directly - no need for pre-validation
             const result = await signIn("credentials", {
                 email: normalizedEmail,
                 password,
@@ -89,30 +69,50 @@ export default function LoginPage() {
             })
 
             if (result?.error) {
-                setError("Authentication session creation failed after credential check.")
-                setErrorCode(result.error)
-                setErrorDetails(`Sign in error\nCode: ${result.error}\nMessage: Authentication session creation failed after credential check.`)
-            } else {
-                try {
-                    const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" })
-                    if (sessionResponse.ok) {
-                        const session = await sessionResponse.json() as { user?: { isSpecialUser?: boolean } }
-                        if (session.user?.isSpecialUser) {
-                            sessionStorage.setItem("shiftwise:wifey-login-welcome", "1")
-                        }
-                    }
-                } catch {
-                    // Ignore non-blocking welcome marker failures.
+                // Check if error is EMAIL_NOT_VERIFIED to request verification
+                if (result.error.includes("Email not verified") || result.error.includes("EMAIL_NOT_VERIFIED")) {
+                    setError("Email not verified. Please verify your email before signing in.")
+                    setErrorCode("EMAIL_NOT_VERIFIED")
+                    setErrorDetails(`Sign in error\nCode: EMAIL_NOT_VERIFIED\nMessage: Email not verified. Please verify your email before signing in.`)
+                    
+                    const verifyRes = await fetch("/api/auth/request-email-verification", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: normalizedEmail }),
+                    })
+                    const verifyData = await verifyRes.json().catch(() => ({}))
+                    if (verifyData?.verificationUrl) setVerificationLink(String(verifyData.verificationUrl))
+                } else {
+                    const message = sanitizeMessage(result.error)
+                    setError(message)
+                    setErrorCode(result.error)
+                    setErrorDetails(`Sign in error\nCode: ${result.error}\nMessage: ${message}`)
                 }
-                router.push("/")
-                router.refresh()
+                setIsLoading(false)
+                return
             }
+
+            // Get session and handle special user welcome marker
+            try {
+                const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" })
+                if (sessionResponse.ok) {
+                    const session = await sessionResponse.json() as { user?: { isSpecialUser?: boolean } }
+                    if (session.user?.isSpecialUser) {
+                        sessionStorage.setItem("shiftwise:wifey-login-welcome", "1")
+                    }
+                }
+            } catch {
+                // Ignore non-blocking welcome marker failures.
+            }
+            
+            // Redirect to dashboard
+            router.push("/")
+            router.refresh()
         } catch (err) {
             const detail = err instanceof Error ? err.message : "Unknown client-side exception"
             setError("Login failed due to a client or network error.")
             setErrorCode("CLIENT_EXCEPTION")
             setErrorDetails(`Login error\nCode: CLIENT_EXCEPTION\nMessage: ${detail}`)
-        } finally {
             setIsLoading(false)
         }
     }

@@ -1,51 +1,109 @@
-import { AppShell } from "@/components/app-shell"
+
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
+
+export const metadata = {
+    title: "Privacy Policy | ShiftWise",
+    description: "How we protect and manage your data at ShiftWise.",
+    alternates: {
+        canonical: "/privacy",
+    },
+}
 
 export default function PrivacyPage() {
     return (
-        <AppShell>
-            <div className="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-                <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
-                <div className="prose prose-sm dark:prose-invert">
-                    <p className="mb-4">Last updated: March 04, 2026</p>
+        <div className="min-h-screen bg-[#FFFDF9] py-20">
+            <div className="container mx-auto px-4 max-w-3xl">
+                <Button variant="ghost" asChild className="mb-8 -ml-4 text-slate-500 hover:text-orange-600">
+                    <Link href="/" className="flex items-center gap-2">
+                        <ArrowLeft className="size-4" />
+                        Back to Home
+                    </Link>
+                </Button>
 
-                    <h2 className="text-xl font-semibold mt-8 mb-4">1. Information We Collect</h2>
-                    <p>When you use ShiftWise (&quot;the Service&quot;), we collect information that helps us provide and improve our tracking and financial tools. This includes:</p>
-                    <ul className="list-disc pl-5 my-4">
-                        <li><strong>Account Information:</strong> Name, email address, and authentication data.</li>
-                        <li><strong>Financial & Operational Data:</strong> Shift times, hourly rates, calculated earnings, budgets, expenses, and savings goals you input into the Service. We do not connect to your bank accounts directly.</li>
-                        <li><strong>Device & Usage Data:</strong> Interacting with our Service automatically provides us with certain data (e.g., IP address, browser type, device identifiers) essential for analytics and security tracking.</li>
-                    </ul>
+                <article className="prose prose-slate prose-orange lg:prose-lg mx-auto">
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-2">Privacy Policy</h1>
+                    <p className="text-slate-500 font-medium mb-12">Last Updated: March 2026</p>
 
-                    <h2 className="text-xl font-semibold mt-8 mb-4">2. How We Use Information</h2>
-                    <p>We use your information strictly to operate the Service. This includes:</p>
-                    <ul className="list-disc pl-5 my-4">
-                        <li>Providing core features like shift penalty calculations and budget tracking.</li>
-                        <li>Syncing your data across devices using secure, authenticated pathways.</li>
-                        <li>Detecting and preventing fraudulent activity or security breaches.</li>
-                        <li>Communicating updates, support responses, and service announcements.</li>
-                    </ul>
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">What data we collect</h2>
+                        <p className="text-slate-600 leading-relaxed">
+                            To provide the best experience, we collect and process the following information:
+                        </p>
+                        <ul className="list-disc pl-6 text-slate-600 space-y-2">
+                            <li><strong>Account Information:</strong> Email, name, and profile settings.</li>
+                            <li><strong>App Data:</strong> Shift logs, earnings, job details, and financial goals.</li>
+                            <li><strong>Technical Data:</strong> Device info, browser type, and anonymous usage statistics.</li>
+                        </ul>
+                    </section>
 
-                    <h2 className="text-xl font-semibold mt-8 mb-4">3. Data Sharing & Third Parties</h2>
-                    <p>We do not sell or rent your personal data to third parties. We may share information with trusted service providers who assist us in operating our Service, such as:</p>
-                    <ul className="list-disc pl-5 my-4">
-                        <li><strong>Database Providers:</strong> Hosting your data securely (e.g., PostgreSQL hosting).</li>
-                        <li><strong>Payment Processors:</strong> We use PayPal to process subscriptions. We do not store your full credit card information.</li>
-                        <li><strong>Email Providers:</strong> To send you transactional and support emails.</li>
-                    </ul>
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">How we store your data</h2>
+                        <p className="text-slate-600 leading-relaxed">
+                            Your data is stored securely in two ways:
+                        </p>
+                        <ul className="list-disc pl-6 text-slate-600 space-y-2">
+                            <li><strong>Local Storage:</strong> Temporary data is cached on your device for offline support and speed.</li>
+                            <li><strong>Cloud Storage:</strong> When synced, data is stored in our secure database hosted by Supabase.</li>
+                        </ul>
+                    </section>
 
-                    <h2 className="text-xl font-semibold mt-8 mb-4">4. Data Security & Storage</h2>
-                    <p>We employ operational, technical, and physical safeguards designed to protect the information we collect. Financial data is transmitted over encrypted connections (HTTPS) and stored in secured environments. However, no internet transmission is 100% secure, and we cannot guarantee absolute security.</p>
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">How we use your data</h2>
+                        <p className="text-slate-600 leading-relaxed">
+                            We use your data strictly to power ShiftWise features. This includes calculating earnings, providing analytics, and managing your routines.
+                            <strong> We never sell your data to third parties.</strong>
+                        </p>
+                    </section>
 
-                    <h2 className="text-xl font-semibold mt-8 mb-4">5. Your Privacy Rights</h2>
-                    <p>Depending on your location, you may have rights regarding your personal information, such as the right to access, correct, or request deletion of your data. You may delete your account and associated synced data directly from the ShiftWise application settings or by contacting support.</p>
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Third party services</h2>
+                        <p className="text-slate-600 leading-relaxed mb-4">
+                            We work with trusted partners to keep the app running:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                <p className="font-bold text-slate-800">Supabase</p>
+                                <p className="text-sm text-slate-500">Database & Security</p>
+                            </div>
+                            <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                <p className="font-bold text-slate-800">PayPal</p>
+                                <p className="text-sm text-slate-500">Subscription Payments</p>
+                            </div>
+                            <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                <p className="font-bold text-slate-800">Vercel</p>
+                                <p className="text-sm text-slate-500">Hosting & Delivery</p>
+                            </div>
+                            <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                <p className="font-bold text-slate-800">OpenAI</p>
+                                <p className="text-sm text-slate-500">AI Features</p>
+                            </div>
+                        </div>
+                    </section>
 
-                    <h2 className="text-xl font-semibold mt-8 mb-4">6. Changes to This Policy</h2>
-                    <p>We may update this Privacy Policy periodically. We will notify you of any significant changes by posting the new Privacy Policy on this page and updating the &quot;Last updated&quot; date. Continued use of the Service implies your acceptance of the revised policy.</p>
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Data retention & deletion</h2>
+                        <p className="text-slate-600 leading-relaxed">
+                            You stay in control of your data. You can delete all your records at any time by navigating to <strong>Settings → Reset All Data</strong>. This action is irreversible and permanently removes your records from our servers.
+                        </p>
+                    </section>
 
-                    <h2 className="text-xl font-semibold mt-8 mb-4">7. Contact Us</h2>
-                    <p>If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at support@shiftwise.app.</p>
-                </div>
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Cookies</h2>
+                        <p className="text-slate-600 leading-relaxed">
+                            We use essential session cookies to keep you logged in. Optional analytics cookies may be used to help us improve the app, subject to your consent.
+                        </p>
+                    </section>
+
+                    <section className="mt-16 pt-10 border-t border-slate-200">
+                        <h2 className="text-xl font-bold text-slate-800 mb-2">Contact Us</h2>
+                        <p className="text-slate-600">
+                            Questions about your privacy? Email us at <a href="mailto:privacy@shiftwise.app" className="text-orange-600 font-bold hover:underline">privacy@shiftwise.app</a>
+                        </p>
+                    </section>
+                </article>
             </div>
-        </AppShell>
+        </div>
     )
 }

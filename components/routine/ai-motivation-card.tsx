@@ -4,6 +4,10 @@ import { useEffect, useState } from "react"
 import { Sparkles, RefreshCw, BrainCircuit } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 
 interface AIMotivationCardProps {
     context: {
@@ -17,6 +21,20 @@ interface AIMotivationCardProps {
 export function AIMotivationCard({ context }: AIMotivationCardProps) {
     const [nudge, setNudge] = useState<string>("")
     const [loading, setLoading] = useState(false)
+    const { toast } = useToast()
+    const [aiStatus, setAiStatus] = useState<{ allowed: boolean; usageCount: number; limit: number; plan: string } | null>(null)
+
+    const fetchAiStatus = async () => {
+        try {
+            const res = await fetch("/api/ai/usage-status")
+            if (res.ok) {
+                const data = await res.json()
+                setAiStatus(data)
+            }
+        } catch (e) {
+            console.error("Failed to fetch AI status", e)
+        }
+    }
 
     const fetchNudge = async () => {
         setLoading(true)
@@ -55,6 +73,22 @@ export function AIMotivationCard({ context }: AIMotivationCardProps) {
                         }
                         setNudge(result)
                     }
+                    fetchAiStatus() // Update count after success
+                }
+            } else {
+                const data = await response.json()
+                if (data.error === "AI_LIMIT_REACHED") {
+                    toast({
+                        title: "AI Limit Reached",
+                        description: `You've used all ${data.limit} AI requests for today. Upgrade to Plus for 20/day or Pro for unlimited.`,
+                        variant: "destructive",
+                        action: (
+                            <ToastAction altText="Upgrade" asChild>
+                                <Link href="/pricing">Upgrade</Link>
+                            </ToastAction>
+                        ),
+                    })
+                    setNudge("AI Limit Reached. Please upgrade to continue.")
                 }
             }
         } catch (error) {
@@ -67,6 +101,7 @@ export function AIMotivationCard({ context }: AIMotivationCardProps) {
 
     useEffect(() => {
         fetchNudge()
+        fetchAiStatus()
     }, [])
 
     return (
@@ -80,15 +115,22 @@ export function AIMotivationCard({ context }: AIMotivationCardProps) {
                         </div>
                         AI Motivation
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-muted-foreground hover:text-primary transition-transform hover:rotate-180 duration-500"
-                        onClick={fetchNudge}
-                        disabled={loading}
-                    >
-                        <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {aiStatus && aiStatus.plan === "free" && (
+                            <Badge variant="secondary" className="bg-primary/10 text-[10px] h-5 px-1.5 whitespace-nowrap">
+                                {Math.max(0, aiStatus.limit - aiStatus.usageCount)} left
+                            </Badge>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-primary transition-transform hover:rotate-180 duration-500"
+                            onClick={fetchNudge}
+                            disabled={loading}
+                        >
+                            <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
+                        </Button>
+                    </div>
                 </CardTitle>
             </CardHeader>
             <CardContent>

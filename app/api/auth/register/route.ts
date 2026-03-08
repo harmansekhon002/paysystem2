@@ -8,6 +8,9 @@ import { createTokenPair } from "@/lib/security-tokens"
 import { handleDbWriteFailure } from "@/lib/db-resilience"
 import { prepareIdempotency } from "@/lib/idempotency"
 import { checkRateLimit } from "@/lib/rate-limit"
+import { sendEmail } from "@/lib/email"
+import { WelcomeEmail } from "@/emails/WelcomeEmail"
+import * as React from "react"
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -56,6 +59,13 @@ async function registerUser(name: string, normalizedEmail: string, password: str
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   const verificationUrl = `${appUrl}/verify-email?token=${token}`
+
+  // Send Welcome Email (non-blocking)
+  sendEmail({
+    to: normalizedEmail,
+    subject: "Welcome to ShiftWise 👋",
+    react: React.createElement(WelcomeEmail, { name })
+  }).catch(e => console.error("Welcome email failed:", e))
 
   return {
     status: 201,

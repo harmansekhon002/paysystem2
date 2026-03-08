@@ -3,6 +3,8 @@ import { generateText } from 'ai';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { PDFParse } from 'pdf-parse';
+import { checkAiRateLimit, logAiUsage } from "@/lib/ai-rate-limit";
+import { NextResponse } from "next/server";
 
 export const runtime = 'nodejs'; // Required for pdf-parse
 
@@ -10,6 +12,19 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
         return new Response('Unauthorized', { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    const email = session.user.email || undefined;
+
+    const rateLimit = await checkAiRateLimit(userId, "payslip_ocr", email);
+    if (!rateLimit.allowed) {
+        return NextResponse.json({
+            error: "AI_LIMIT_REACHED",
+            limit: rateLimit.limit,
+            plan: rateLimit.plan,
+            resetAt: rateLimit.resetAt
+        }, { status: 429 });
     }
 
     try {
@@ -55,6 +70,10 @@ export async function POST(req: Request) {
 
         try {
             const parsedData = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+            // Log successful usage
+            await logAiUsage(userId, "payslip_ocr");
+
             return new Response(JSON.stringify(parsedData), {
                 headers: { 'Content-Type': 'application/json' }
             });

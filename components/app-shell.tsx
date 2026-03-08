@@ -43,7 +43,7 @@ import { resolveTimeZone } from "@/lib/timezone"
 import { BiometricPrompt } from "@/components/biometric-prompt"
 
 const baseNavItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Shifts", href: "/shifts", icon: CalendarClock },
   { label: "Earnings", href: "/earnings", icon: DollarSign },
   { label: "Budget", href: "/budget", icon: Wallet },
@@ -241,6 +241,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [networkOnline, setNetworkOnline] = useState(true)
   const [networkRecovering, setNetworkRecovering] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [authResolvedOnce, setAuthResolvedOnce] = useState(false)
   const [pinInput, setPinInput] = useState("")
   const [pinError, setPinError] = useState("")
   const [pinUnlocked, setPinUnlocked] = useState(true)
@@ -273,6 +274,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.push("/login")
     }
   }, [status, router])
+
+  useEffect(() => {
+    if (status !== "loading") {
+      setAuthResolvedOnce(true)
+    }
+  }, [status])
 
 
   const currencyOptions = ["AUD", "USD", "CAD", "EUR", "GBP"] as const
@@ -313,7 +320,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [settingsNavItem, specialNavItems, studentParentNavItems])
   const swipeRoutes = useMemo(() => {
     return [
-      "/",
+      "/dashboard",
       "/shifts",
       "/earnings",
       "/budget",
@@ -493,11 +500,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return
     }
 
-    setRouteTransitioning(true)
+    // End any in-flight transition when route change completes.
     if (routeTransitionTimeoutRef.current) clearTimeout(routeTransitionTimeoutRef.current)
-    routeTransitionTimeoutRef.current = window.setTimeout(() => {
-      setRouteTransitioning(false)
-    }, 150)
+    setRouteTransitioning(false)
   }, [pathname])
 
   const beginRouteTransition = () => {
@@ -691,14 +696,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Bottom Navigation core items
   const bottomNavItems = useMemo(() => {
     return [
-      { label: "Dash", href: "/", icon: LayoutDashboard },
+      { label: "Dash", href: "/dashboard", icon: LayoutDashboard },
       { label: "Shifts", href: "/shifts", icon: CalendarClock },
       { label: "Earnings", href: "/earnings", icon: DollarSign },
       { label: "Goals", href: "/goals", icon: Target },
     ]
   }, [])
 
-  if (status === "loading" || (status === "unauthenticated" && mounted)) {
+  if ((!authResolvedOnce && status === "loading") || (status === "unauthenticated" && mounted)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -1004,8 +1009,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div
               className={cn(
                 "mx-auto w-full max-w-5xl px-4 py-4 transition-opacity duration-200 sm:px-6 sm:py-6 md:px-8 md:py-8",
-                privacyModeEnabled && !privacyReveal && "blur-md",
-                routeTransitioning && "opacity-60"
+                privacyModeEnabled && !privacyReveal && "blur-md"
               )}
               onClickCapture={handleMainClickCapture}
               onTouchStart={(e) => {

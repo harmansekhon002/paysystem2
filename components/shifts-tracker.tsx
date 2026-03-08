@@ -66,9 +66,11 @@ export function ShiftsTracker() {
     })
   }, [sortedShifts, filters])
 
+  const selectedShiftIdSet = useMemo(() => new Set(selectedShiftIds), [selectedShiftIds])
+
   const allVisibleSelected =
     filteredShifts.length > 0 &&
-    filteredShifts.every((shift) => selectedShiftIds.includes(shift.id))
+    filteredShifts.every((shift) => selectedShiftIdSet.has(shift.id))
 
   const jobsById = useMemo(() => new Map(data.jobs.map(job => [job.id, job])), [data.jobs])
 
@@ -80,7 +82,8 @@ export function ShiftsTracker() {
 
   const toggleSelectAllVisible = (checked: boolean) => {
     if (!checked) {
-      setSelectedShiftIds((prev) => prev.filter((id) => !filteredShifts.some((shift) => shift.id === id)))
+      const visibleShiftIds = new Set(filteredShifts.map((shift) => shift.id))
+      setSelectedShiftIds((prev) => prev.filter((id) => !visibleShiftIds.has(id)))
       return
     }
     const visibleIds = filteredShifts.map((shift) => shift.id)

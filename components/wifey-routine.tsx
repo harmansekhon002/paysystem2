@@ -50,9 +50,7 @@ export function WifeyRoutine() {
   const coupleCheckInStorageKey = `shiftwise:couple-checkin:${today}`
   const hydrationGoal = clampHydrationGoal(data.settings.specialCompanion.waterBottleGoal)
   const hydrationStreakTarget = getHydrationStreakTarget(hydrationGoal)
-  const whatsappNumber = isSpecialUser
-    ? (data.settings.whatsappNumber || ENV_WHATSAPP_NUMBER || "").replace(/\D/g, "")
-    : ""
+  const whatsappNumber = (data.settings.whatsappNumber || ENV_WHATSAPP_NUMBER || "").replace(/\D/g, "")
 
   const [routine, setRoutine] = useState<RoutineState>(DEFAULT_ROUTINE_STATE)
   const [mood, setMood] = useState("")

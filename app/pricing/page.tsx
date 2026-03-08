@@ -1,9 +1,10 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { Check } from "lucide-react"
-import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js"
+import { useRef, useState, useEffect } from "react"
+import { Check, Loader2 } from "lucide-react"
+import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import Link from "next/link"
+import Script from "next/script"
 
 import { AppShell } from "@/components/app-shell"
 import { useAppData } from "@/components/data-provider"
@@ -12,6 +13,16 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 type PaidPlan = {
   name: string
@@ -41,6 +52,44 @@ export default function PricingPage() {
 
   const plusPlanId = process.env.NEXT_PUBLIC_PAYPAL_PLUS_MONTHLY_PLAN_ID || ""
   const proPlanId = process.env.NEXT_PUBLIC_PAYPAL_PREMIUM_MONTHLY_PLAN_ID || ""
+
+  const [waitlistPlan, setWaitlistPlan] = useState<string | null>(null)
+  const [waitlistEmail, setWaitlistEmail] = useState("")
+  const [submittingWaitlist, setSubmittingWaitlist] = useState(false)
+
+  useEffect(() => {
+    const handler = (e: any) => setWaitlistPlan(e.detail)
+    window.addEventListener("open-waitlist", handler)
+    return () => window.removeEventListener("open-waitlist", handler)
+  }, [])
+
+  const handleJoinWaitlist = async () => {
+    if (!waitlistEmail) {
+      toast({ title: "Email required", description: "Please enter your email to join the waitlist.", variant: "destructive" })
+      return
+    }
+
+    setSubmittingWaitlist(true)
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: waitlistEmail, plan: waitlistPlan }),
+      })
+
+      if (response.ok) {
+        toast({ title: "Joined!", description: "You're on the list! We'll notify you when this plan launches." })
+        setWaitlistPlan(null)
+        setWaitlistEmail("")
+      } else {
+        throw new Error("Failed to join")
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Could not join waitlist right now. Please try again later.", variant: "destructive" })
+    } finally {
+      setSubmittingWaitlist(false)
+    }
+  }
 
   const paidPlans: PaidPlan[] = [
     {
@@ -82,6 +131,28 @@ export default function PricingPage() {
       highlighted: true,
     },
   ]
+
+  const productSchemas = [
+    {
+      name: "Starter",
+      description: "Perfect for getting started with shift and expense tracking.",
+      price: "0",
+    },
+    ...paidPlans.map((plan) => ({
+      name: plan.name,
+      description: plan.description,
+      price: plan.price.replace(/[^0-9.]/g, "") || "0",
+    })),
+  ].map((plan) => ({
+    "@type": "Product",
+    name: plan.name,
+    description: plan.description,
+    offers: {
+      "@type": "Offer",
+      price: plan.price,
+      priceCurrency: "USD",
+    },
+  }))
 
   const getIdempotencyKeyForSubscription = (subscriptionId: string) => {
     const existing = idempotencyBySubscriptionId.current.get(subscriptionId)
@@ -153,6 +224,12 @@ export default function PricingPage() {
 
   return (
     <AppShell>
+      <Script
+        id="pricing-jsonld"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@graph": productSchemas }) }}
+      />
       <PayPalScriptProvider options={{ clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "" }}>
         <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="mx-auto mb-12 max-w-2xl text-center">
@@ -217,11 +294,10 @@ export default function PricingPage() {
             {paidPlans.map(plan => (
               <Card
                 key={plan.name}
-                className={`relative flex h-full flex-col overflow-hidden rounded-2xl border p-6 shadow-md transition-all duration-300 ${
-                  plan.highlighted
-                    ? "border-primary/60 bg-gradient-to-br from-primary/10 via-background to-primary/5 ring-primary/20 ring-2"
-                    : "border-border/80 bg-card/95"
-                }`}
+                className={`relative flex h-full flex-col overflow-hidden rounded-2xl border p-6 shadow-md transition-all duration-300 ${plan.highlighted
+                  ? "border-primary/60 bg-gradient-to-br from-primary/10 via-background to-primary/5 ring-primary/20 ring-2"
+                  : "border-border/80 bg-card/95"
+                  }`}
               >
                 <div className="bg-primary text-primary-foreground absolute right-4 top-4 inline-flex min-h-8 items-center rounded-full px-3 py-2 text-xs font-semibold leading-tight">
                   {plan.badge}
@@ -247,53 +323,64 @@ export default function PricingPage() {
                 </ul>
 
                 <div className="w-full">
-                  {plan.planId ? (
-                    <>
-                      <div className="w-full overflow-hidden rounded-xl border border-transparent">
-                        <PayPalButtons
-                          disabled={Boolean(syncingSubscriptionId)}
-                          style={{ layout: "vertical", shape: "rect", color: "blue", label: "subscribe" }}
-                          createSubscription={(_, actions) => {
-                            return actions.subscription.create({
-                              plan_id: plan.planId,
-                            })
-                          }}
-                          onApprove={async data => {
-                            if (!data.subscriptionID) {
-                              toast({
-                                title: "Missing subscription ID",
-                                description: "Approval succeeded but no subscription ID was returned by PayPal.",
-                                variant: "destructive",
-                              })
-                              return
-                            }
-                            await handleSubscriptionApproved(data.subscriptionID, plan.successMessage, plan.name)
-                          }}
-                          onError={() => {
-                            toast({
-                              title: "PayPal checkout failed",
-                              description: "Please retry in a few seconds.",
-                              variant: "destructive",
-                            })
-                          }}
-                        />
-                      </div>
-                      <p className="text-muted-foreground mt-2 text-center text-xs">{plan.subCta}</p>
-                    </>
-                  ) : (
-                    <>
-                      <button className="from-primary hover:to-primary w-full rounded-xl bg-gradient-to-r to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors duration-200 hover:from-blue-500">
-                        {plan.ctaLabel}
-                      </button>
-                      <p className="text-muted-foreground mt-2 text-center text-xs">Set {plan.missingEnvVar} to enable checkout.</p>
-                    </>
-                  )}
+                  <WaitlistButton plan={plan.name} />
                 </div>
               </Card>
             ))}
           </div>
         </div>
+
+        <Dialog open={!!waitlistPlan} onOpenChange={(open) => !open && setWaitlistPlan(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Join the {waitlistPlan} Waitlist</DialogTitle>
+              <DialogDescription>
+                We&apos;re currently finalizing our {waitlistPlan} features. Enter your email to be notified when we launch.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="waitlist-email">Email Address</Label>
+                <Input
+                  id="waitlist-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={waitlistEmail}
+                  onChange={(e) => setWaitlistEmail(e.target.value)}
+                  disabled={submittingWaitlist}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                className="w-full font-bold"
+                onClick={handleJoinWaitlist}
+                disabled={submittingWaitlist}
+              >
+                {submittingWaitlist ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Get Early Access
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </PayPalScriptProvider>
     </AppShell>
+  )
+}
+
+function WaitlistButton({ plan }: { plan: string }) {
+  // Use a simple button as requested
+  return (
+    <Button
+      className="w-full h-11 bg-orange-500 hover:bg-orange-600 font-bold shadow-lg shadow-orange-500/20"
+      onClick={() => {
+        // Trigger the parent's state change
+        // Since we are in the same file, we can use a local state or ref
+        const event = new CustomEvent("open-waitlist", { detail: plan })
+        window.dispatchEvent(event)
+      }}
+    >
+      Join Waitlist
+    </Button>
   )
 }

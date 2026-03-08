@@ -8,6 +8,7 @@ import type { NavItem, ThemeMode } from "./nav-types"
 export function MobileBottomNav({ items, mode, onNavigate, isVisible }: { items: NavItem[]; mode: ThemeMode; onNavigate?: () => void; isVisible: boolean }) {
     const pathname = usePathname()
     const router = useRouter()
+    const normalizedPathname = pathname.replace(/\/$/, "") || "/"
 
     return (
         <div
@@ -28,7 +29,9 @@ export function MobileBottomNav({ items, mode, onNavigate, isVisible }: { items:
                 )}
             >
                 {items.map((item) => {
-                    const isActive = pathname === item.href
+                    const normalizedHref = item.href.replace(/\/$/, "") || "/"
+                    const isDashboardAlias = normalizedHref === "/dashboard" && (normalizedPathname === "/" || normalizedPathname === "/dashboard")
+                    const isActive = isDashboardAlias || normalizedPathname === normalizedHref
                     return (
                         <Link
                             key={item.href}

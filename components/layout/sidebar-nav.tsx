@@ -8,10 +8,13 @@ import type { NavItem, ThemeMode } from "./nav-types"
 export function SidebarNav({ items, mode, onNavigate }: { items: NavItem[]; mode: ThemeMode; onNavigate?: () => void }) {
     const pathname = usePathname()
     const router = useRouter()
+    const normalizedPathname = pathname.replace(/\/$/, "") || "/"
     return (
         <nav className="flex flex-col gap-1">
             {items.map((item) => {
-                const isActive = pathname === item.href
+                const normalizedHref = item.href.replace(/\/$/, "") || "/"
+                const isDashboardAlias = normalizedHref === "/dashboard" && (normalizedPathname === "/" || normalizedPathname === "/dashboard")
+                const isActive = isDashboardAlias || normalizedPathname === normalizedHref
                 return (
                     <Link
                         key={item.href}

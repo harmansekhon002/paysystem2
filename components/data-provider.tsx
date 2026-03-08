@@ -219,56 +219,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return `${STORAGE_KEY}:${identity}`
     }
 
-    let sessionUser: SessionResponse["user"] | undefined
-
     try {
-      try {
-        const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" })
-        if (sessionResponse.ok) {
-          const session = (await sessionResponse.json()) as SessionResponse
-          sessionUser = session.user ?? undefined
-          setCurrentUser(sessionUser ?? null)
-          setStorageKey(getStorageKey(sessionUser))
-          setStorageReady(true)
+      // Parallelize session and subscription fetching
+      const [sessionRes, subStatusRes] = await Promise.all([
+        fetch("/api/auth/session", { cache: "no-store" }).catch(() => null),
+        fetch("/api/subscription/status", { cache: "no-store" }).catch(() => null)
+      ])
 
-          if (isAdminSession(sessionUser)) {
-            setPlanTier("admin")
-            return
-          }
+      let sessionUser: SessionResponse["user"] | undefined
 
-          if (sessionUser?.isSpecialUser) {
-            setPlanTier("lifetime")
-            return
-          }
-        } else {
-          setCurrentUser(null)
-          setStorageKey(getStorageKey(undefined))
-          setStorageReady(true)
+      // Handle Session
+      if (sessionRes && sessionRes.ok) {
+        const session = (await sessionRes.json()) as SessionResponse
+        sessionUser = session.user ?? undefined
+        setCurrentUser(sessionUser ?? null)
+        setStorageKey(getStorageKey(sessionUser))
+        setStorageReady(true)
+
+        if (isAdminSession(sessionUser)) {
+          setPlanTier("admin")
+          // If admin, we don't necessarily need to check subscription status
+          return
         }
-      } catch {
+
+        if (sessionUser?.isSpecialUser) {
+          setPlanTier("lifetime")
+          // If special user, subscription status is secondary
+          return
+        }
+      } else {
         setCurrentUser(null)
         setStorageKey(getStorageKey(undefined))
         setStorageReady(true)
       }
 
-      const response = await fetch("/api/subscription/status", { cache: "no-store" })
-      if (!response.ok) {
-        if (sessionUser?.isSpecialUser) {
-          setPlanTier("lifetime")
-          return
-        }
-        setPlanTier("free")
-        return
-      }
-      const payload = (await response.json()) as SubscriptionStatusResponse
-      const normalizedTier = normalizePlanTier(payload)
-      setPlanTier(sessionUser?.isSpecialUser && normalizedTier === "free" ? "lifetime" : normalizedTier)
-    } catch {
-      if (sessionUser?.isSpecialUser) {
-        setPlanTier("lifetime")
+      // Handle Subscription Status
+      if (subStatusRes && subStatusRes.ok) {
+        const payload = (await subStatusRes.json()) as SubscriptionStatusResponse
+        const normalizedTier = normalizePlanTier(payload)
+        setPlanTier(sessionUser?.isSpecialUser && normalizedTier === "free" ? "lifetime" : normalizedTier)
       } else {
-        setPlanTier("free")
+        setPlanTier(sessionUser?.isSpecialUser ? "lifetime" : "free")
       }
+    } catch (error) {
+      console.error("Refresh plan error", error)
+      setPlanTier("free")
     }
   }, [])
 
@@ -496,9 +491,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addPublicHoliday = storeActions.addPublicHoliday
   const removePublicHoliday = storeActions.removePublicHoliday
 
-  const getJob = useCallback((id: string) => {
-    return data.jobs.find(j => j.id === id)
+  const jobsById = useMemo(() => {
+    return new Map(data.jobs.map((job) => [job.id, job]))
   }, [data.jobs])
+
+  const getJob = useCallback((id: string) => {
+    return jobsById.get(id)
+  }, [jobsById])
 
   const canUseFeature = useCallback((feature: PremiumFeature) => {
     if (typeof navigator !== "undefined" && navigator.webdriver) return true

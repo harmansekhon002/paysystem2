@@ -5,6 +5,15 @@ const Earnings = dynamic(() => import("@/components/earnings").then(mod => mod.E
   loading: () => <div className="flex h-96 items-center justify-center">Loading Earnings...</div>
 })
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Earnings | ShiftWise",
+  alternates: {
+    canonical: "/earnings",
+  },
+}
+
 export default function EarningsPage() {
   return (
     <AppShell>

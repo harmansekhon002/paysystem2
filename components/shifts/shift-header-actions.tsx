@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { RATE_TYPE_LABELS, type RateType, type JobTemplate } from "@/lib/store"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+import Link from "next/link"
 
 interface ShiftFilters {
     jobId: string
@@ -57,6 +59,23 @@ export function ShiftHeaderActions({
     const { toast } = useToast()
     const [uploading, setUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [aiStatus, setAiStatus] = useState<{ allowed: boolean; usageCount: number; limit: number; plan: string } | null>(null)
+
+    const fetchAiStatus = async () => {
+        try {
+            const res = await fetch("/api/ai/usage-status")
+            if (res.ok) {
+                const data = await res.json()
+                setAiStatus(data)
+            }
+        } catch (e) {
+            console.error("Failed to fetch AI status", e)
+        }
+    }
+
+    useEffect(() => {
+        fetchAiStatus()
+    }, [])
 
     const handlePayslipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -81,12 +100,27 @@ export function ShiftHeaderActions({
                 // In a real app, we would open a dialog to confirm the extracted data
                 // For now, let's just log it or show a toast
                 console.log("Extracted Data:", data)
+                fetchAiStatus() // update remaining count
             } else {
-                toast({
-                    title: "OCR Failed",
-                    description: "Could not parse payslip. Please try again.",
-                    variant: "destructive",
-                })
+                const data = await response.json()
+                if (data.error === "AI_LIMIT_REACHED") {
+                    toast({
+                        title: "AI Limit Reached",
+                        description: `You've used all ${data.limit} AI requests for today. Upgrade to Plus for 20/day or Pro for unlimited.`,
+                        variant: "destructive",
+                        action: (
+                            <ToastAction altText="Upgrade" asChild>
+                                <Link href="/pricing">Upgrade</Link>
+                            </ToastAction>
+                        ),
+                    })
+                } else {
+                    toast({
+                        title: "OCR Failed",
+                        description: "Could not parse payslip. Please try again.",
+                        variant: "destructive",
+                    })
+                }
             }
         } catch (error) {
             console.error(error)
@@ -133,6 +167,11 @@ export function ShiftHeaderActions({
                     >
                         {uploading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                         <span>AI Upload</span>
+                        {aiStatus && aiStatus.plan === "free" && (
+                            <Badge variant="secondary" className="ml-1 bg-primary/20 text-[10px] px-1 h-4">
+                                {Math.max(0, aiStatus.limit - aiStatus.usageCount)} left
+                            </Badge>
+                        )}
                     </Button>
 
                     <div className="h-4 w-px bg-border/60 mx-1 shrink-0" />
@@ -250,6 +289,16 @@ export function ShiftHeaderActions({
                 </>
             ) : null}
 
+            {/* Desktop Actions */}
+            <Button
+                size="sm"
+                className="hidden h-9 shrink-0 justify-center gap-1.5 whitespace-nowrap px-4 font-bold shadow-md shadow-primary/20 sm:inline-flex active:scale-95"
+                onClick={() => setDialogOpen(true)}
+            >
+                <Plus className="size-4" />
+                <span>Log Shift</span>
+            </Button>
+
             {/* Desktop Filter Popover */}
             <Popover>
                 <PopoverTrigger asChild>
@@ -324,6 +373,11 @@ export function ShiftHeaderActions({
             >
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                 <span className="hidden sm:inline">AI Payslip Upload</span>
+                {aiStatus && aiStatus.plan === "free" && (
+                    <Badge variant="secondary" className="ml-2 bg-primary/20 text-[10px] px-1.5 h-4">
+                        {Math.max(0, aiStatus.limit - aiStatus.usageCount)} left
+                    </Badge>
+                )}
             </Button>
 
             <Button

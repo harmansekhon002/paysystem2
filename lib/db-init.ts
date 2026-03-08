@@ -32,11 +32,6 @@ const USER_TABLE_INIT_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "User_email_idx" ON "User"("email")`,
   `CREATE INDEX IF NOT EXISTS "User_verificationToken_idx" ON "User"("verificationToken")`,
   `CREATE INDEX IF NOT EXISTS "User_resetToken_idx" ON "User"("resetToken")`,
-  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN NOT NULL DEFAULT false`,
-  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationToken" TEXT`,
-  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationTokenExpires" TIMESTAMP(3)`,
-  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetToken" TEXT`,
-  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetTokenExpires" TIMESTAMP(3)`,
 ]
 
 async function runUserTableInitialization() {

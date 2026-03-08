@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "ShiftWise",
     short_name: "ShiftWise",
-    description: "Track shifts, earnings, goals, and routines with a clean mobile-first experience.",
+    description: "Shift tracker for international students working abroad",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

@@ -158,17 +158,25 @@ export function Dashboard() {
     })
   }, [shifts])
 
+  const jobsById = useMemo(() => {
+    return new Map(jobs.map((job) => [job.id, job]))
+  }, [jobs])
+
   const jobPieData = useMemo(() => {
-    const byJob: Record<string, number> = {}
+    const byJobId: Record<string, number> = {}
     shifts.forEach((s) => {
-      const job = getJob(s.jobId)
-      if (job) byJob[job.name] = (byJob[job.name] || 0) + s.earnings
+      if (!jobsById.has(s.jobId)) return
+      byJobId[s.jobId] = (byJobId[s.jobId] || 0) + s.earnings
     })
-    return Object.entries(byJob).map(([name, value]) => {
-      const job = jobs.find((j) => j.name === name)
-      return { name, value: Math.round(value * 100) / 100, color: job?.color || "#94a3b8" }
+    return Object.entries(byJobId).map(([jobId, value]) => {
+      const job = jobsById.get(jobId)
+      return {
+        name: job?.name || "Unknown Job",
+        value: Math.round(value * 100) / 100,
+        color: job?.color || "#94a3b8",
+      }
     })
-  }, [shifts, jobs, getJob])
+  }, [shifts, jobsById])
 
   const profitabilityRows = useMemo(() => {
     const todayDate = new Date()
@@ -206,7 +214,7 @@ export function Dashboard() {
   }, [jobs, shifts, expenses])
 
   const handleQuickAddShift = () => {
-    const job = jobs.find((item) => item.id === quickJobId)
+    const job = jobsById.get(quickJobId)
     const hours = Number(quickHours)
     if (!job) {
       toast({ title: "Select a job", description: "Choose a job before adding a quick shift." })

@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma"
 import { ensureUserTableInitialized } from "@/lib/db-init"
 import { createTokenPair } from "@/lib/security-tokens"
 import { handleDbWriteFailure } from "@/lib/db-resilience"
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Resend } from "resend"
+import { sendEmail } from "@/lib/email"
+import { ResetPasswordEmail } from "@/emails/ResetPasswordEmail"
+import * as React from "react"
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,35 +35,15 @@ export async function POST(req: NextRequest) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
       const resetUrl = `${appUrl}/reset-password?token=${token}`
 
-      if (process.env.RESEND_API_KEY) {
-        try {
-          const resend = new Resend(process.env.RESEND_API_KEY)
-          await resend.emails.send({
-            from: "ShiftWise <noreply@shiftwise.app>", // Update this verified domain in production
-            to: email,
-            subject: "Reset your ShiftWise password",
-            html: `
-              <h2>Password Reset</h2>
-              <p>You requested a password reset for your ShiftWise account.</p>
-              <p>Click the link below to reset your password. This link is valid for 1 hour.</p>
-              <a href="${resetUrl}">Reset Password</a>
-              <p>If you didn't request this, you can safely ignore this email.</p>
-            `,
-          })
-        } catch (emailError) {
-          console.error("Failed to send reset email:", emailError)
-          // We don't fail the request so we don't leak user existence
-        }
-      } else {
-        // Fallback for local dev
-        console.log(`[DEV ONLY] Password reset link for ${email}: ${resetUrl}`)
-      }
+      await sendEmail({
+        to: email,
+        subject: "Reset your ShiftWise password",
+        react: React.createElement(ResetPasswordEmail, { resetLink: resetUrl })
+      })
 
       return NextResponse.json({
         ok: true,
         message: "If an account exists, a reset link has been generated.",
-        // We only return the resetUrl in the response for local development testing purposes
-        // In production, the user must check their email.
         resetUrl: process.env.NODE_ENV === "development" && !process.env.RESEND_API_KEY ? resetUrl : undefined,
       })
     }
