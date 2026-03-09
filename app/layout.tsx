@@ -59,19 +59,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon.svg',
+        url: '/icon-filled.svg',
         type: 'image/svg+xml',
       },
       {
-        url: '/icon.svg',
+        url: '/icon-filled.svg',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/icon.svg',
+        url: '/icon-filled.svg',
         media: '(prefers-color-scheme: dark)',
       },
     ],
-    apple: '/icon.svg',
+    apple: '/apple-touch-icon.png',
   },
 }
 
